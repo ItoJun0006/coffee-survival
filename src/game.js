@@ -5,6 +5,7 @@ import { Bean } from './entities/bean.js';
 import { Enemy } from './entities/enemy.js';
 import { Boss } from './entities/boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
+import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
@@ -50,6 +51,7 @@ export class Game {
     this.beans = [];
     this.enemies = [];
     this.waves = [];
+    this.effects = [];
     this.boss = null;
     this.bossAppearedAt = 0;
     this.beanTimer = 0;
@@ -177,6 +179,8 @@ export class Game {
     if (this.boss) this.#updateBoss(dt);
     for (const w of this.weapons) w.update(dt);
     this.#removeDeadEnemies();
+    for (const fx of this.effects) fx.update(dt);
+    this.effects = this.effects.filter((fx) => fx.alive);
     this.#collectBeans();
 
     if (!this.player.alive) this.state = 'gameover';
@@ -343,11 +347,12 @@ export class Game {
     if (dist(boss, p) < boss.radius + p.radius) p.hit(cfg.contactCaffeine);
   }
 
-  // 倒した敵はときどき豆を落とす
+  // 倒した敵はエフェクトを残し、ときどき豆を落とす
   #removeDeadEnemies() {
     const { enemyDropChance, maxDroppedBeans } = CONFIG.leveling;
     this.enemies = this.enemies.filter((e) => {
       if (!e.dead) return true;
+      this.effects.push(new DefeatEffect(e.x, e.y, e.config.color, e.radius));
       if (Math.random() < enemyDropChance && this.beans.length < CONFIG.bean.maxCount + maxDroppedBeans) {
         this.beans.push(new Bean(e.x, e.y));
       }
@@ -367,6 +372,7 @@ export class Game {
     for (const b of this.beans) b.draw(ctx);
     for (const w of this.waves) w.draw(ctx);
     for (const e of this.enemies) e.draw(ctx);
+    for (const fx of this.effects) fx.draw(ctx);
     if (this.boss && !this.boss.dead) this.boss.draw(ctx);
     this.player.draw(ctx);
     for (const w of this.weapons) w.draw(ctx);
