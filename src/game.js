@@ -150,7 +150,7 @@ export class Game {
 
   update(dt) {
     if (this.state === 'title') {
-      if (this.input.consumeTap()) this.state = 'playing';
+      if (this.input.consumeClick()) this.state = 'playing';
       return;
     }
     if (this.state === 'paused') {
@@ -158,11 +158,11 @@ export class Game {
       return;
     }
     if (this.state !== 'playing') {
-      if (this.input.consumeTap()) this.reset();
+      if (this.input.consumeClick()) this.reset();
       return;
     }
-    const tapped = this.input.consumeTap();
-    if (this.input.wasPressed('Escape', 'KeyP') || (tapped && inRect(this.input.tapPos, this.#pauseButtonRect()))) {
+    this.input.consumeClick();
+    if (this.input.wasPressed('Escape', 'KeyP')) {
       this.#pause();
       return;
     }
@@ -197,20 +197,15 @@ export class Game {
     const items = this.#pauseMenuItems();
     if (this.input.wasPressed('ArrowUp', 'KeyW')) this.pauseIndex = (this.pauseIndex + items.length - 1) % items.length;
     if (this.input.wasPressed('ArrowDown', 'KeyS')) this.pauseIndex = (this.pauseIndex + 1) % items.length;
-    const tapped = this.input.consumeTap();
+    const clicked = this.input.consumeClick();
     if (this.input.wasPressed('Escape', 'KeyP')) {
       this.state = 'playing';
       return;
     }
-    if (!tapped) return;
-    const pos = this.input.tapPos;
+    if (!clicked) return;
+    const pos = this.input.clickPos;
     const item = pos ? items.find((it) => inRect(pos, it)) : items[this.pauseIndex];
     item?.action();
-  }
-
-  #pauseButtonRect() {
-    const size = 44;
-    return { x: this.viewW - 16 - size, y: 16, w: size, h: size };
   }
 
   #pauseMenuItems() {
@@ -384,9 +379,7 @@ export class Game {
       this.#drawTitle();
       return;
     }
-    if (this.state === 'playing') this.#drawStick();
     this.#drawHud();
-    if (this.state === 'playing') this.#drawPauseButton();
     if (this.state === 'paused') this.#drawPauseMenu();
     this.#drawOverlay();
   }
@@ -433,22 +426,6 @@ export class Game {
     g.addColorStop(1, 'rgba(255, 240, 210, 0.25)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.viewW, this.viewH);
-  }
-
-  #drawStick() {
-    const s = this.input.stick;
-    if (!s.active) return;
-    const { ctx } = this;
-    const r = this.input.stickRadius;
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.beginPath();
-    ctx.arc(s.originX, s.originY, r, 0, Math.PI * 2);
-    ctx.fill();
-    const d = this.input.direction();
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.beginPath();
-    ctx.arc(s.originX + d.x * r, s.originY + d.y * r, r * 0.4, 0, Math.PI * 2);
-    ctx.fill();
   }
 
   #drawHud() {
@@ -539,9 +516,7 @@ export class Game {
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    // 画面が狭いスマホでも収まるよう、幅に合わせて文字を縮める
-    const size = Math.min(48, (this.viewW - 32) / CONFIG.title.name.length);
-    ctx.font = `bold ${size}px system-ui, sans-serif`;
+    ctx.font = 'bold 48px system-ui, sans-serif';
     ctx.fillStyle = c.hudBar;
     ctx.fillText(CONFIG.title.name, cx, cy - 60);
 
@@ -556,22 +531,8 @@ export class Game {
     ctx.globalAlpha = 0.5 + 0.5 * Math.sin(performance.now() / 300);
     ctx.font = 'bold 18px system-ui, sans-serif';
     ctx.fillStyle = c.xpBar;
-    ctx.fillText('タップ / Space でスタート', cx, cy + 80);
+    ctx.fillText('クリック / Space でスタート', cx, cy + 80);
     ctx.globalAlpha = 1;
-  }
-
-  #drawPauseButton() {
-    const { ctx } = this;
-    const r = this.#pauseButtonRect();
-    ctx.fillStyle = CONFIG.colors.hudBg;
-    ctx.fillRect(r.x, r.y, r.w, r.h);
-    // 「⏸」の 2 本線
-    ctx.fillStyle = CONFIG.colors.text;
-    const barW = 6;
-    const barH = r.h * 0.45;
-    const top = r.y + (r.h - barH) / 2;
-    ctx.fillRect(r.x + r.w / 2 - barW - 3, top, barW, barH);
-    ctx.fillRect(r.x + r.w / 2 + 3, top, barW, barH);
   }
 
   #drawPauseMenu() {
@@ -610,6 +571,6 @@ export class Game {
     ctx.fillText(cleared ? '朝が来た！' : '眠りに落ちた…', this.viewW / 2, this.viewH / 2 - 30);
     ctx.font = '16px system-ui, sans-serif';
     ctx.fillText(`生存時間  ${formatTime(this.time)}`, this.viewW / 2, this.viewH / 2 + 10);
-    ctx.fillText('タップ / Space でもう一度', this.viewW / 2, this.viewH / 2 + 40);
+    ctx.fillText('クリック / Space でもう一度', this.viewW / 2, this.viewH / 2 + 40);
   }
 }
