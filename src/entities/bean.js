@@ -1,9 +1,11 @@
 import { CONFIG } from '../config.js';
 
 export class Bean {
-  constructor(x, y) {
+  // fake: 夢の世界で出る偽物の豆。拾うとカフェインが減る
+  constructor(x, y, fake = false) {
     this.x = x;
     this.y = y;
+    this.fake = fake;
     this.radius = CONFIG.bean.radius;
     this.angle = Math.random() * Math.PI;
   }
@@ -13,7 +15,7 @@ export class Bean {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.fillStyle = CONFIG.colors.bean;
+    ctx.fillStyle = this.fake ? CONFIG.colors.fakeBean : CONFIG.colors.bean;
     ctx.beginPath();
     ctx.ellipse(0, 0, r * 0.75, r, 0, 0, Math.PI * 2);
     ctx.fill();
