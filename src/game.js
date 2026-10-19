@@ -9,6 +9,7 @@ import { WEAPON_ORDER } from './weapons/index.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 const formatTime = (sec) => {
   const s = Math.max(0, Math.ceil(sec));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -27,6 +28,10 @@ export class Game {
     this.debugLevel = Number(params.get('level')) || 1;
     this.resize();
     window.addEventListener('resize', () => this.resize());
+    // 別のタブやアプリに切り替えたら自動でポーズする
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.#pause();
+    });
     this.reset();
     this.state = 'title';
   }
@@ -136,6 +141,7 @@ export class Game {
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
       this.update(dt);
+      this.input.endFrame();
       this.draw();
       requestAnimationFrame(loop);
     };
@@ -147,11 +153,19 @@ export class Game {
       if (this.input.consumeTap()) this.state = 'playing';
       return;
     }
+    if (this.state === 'paused') {
+      this.#updatePauseMenu();
+      return;
+    }
     if (this.state !== 'playing') {
       if (this.input.consumeTap()) this.reset();
       return;
     }
-    this.input.consumeTap();
+    const tapped = this.input.consumeTap();
+    if (this.input.wasPressed('Escape', 'KeyP') || (tapped && inRect(this.input.tapPos, this.#pauseButtonRect()))) {
+      this.#pause();
+      return;
+    }
 
     this.time += dt;
     if (!this.boss && this.time >= CONFIG.boss.timeSec) this.#spawnBoss();
@@ -170,6 +184,44 @@ export class Game {
 
     this.camera.x = this.player.x - this.viewW / 2;
     this.camera.y = this.player.y - this.viewH / 2;
+  }
+
+  #pause() {
+    if (this.state !== 'playing') return;
+    this.state = 'paused';
+    this.pauseIndex = 0;
+  }
+
+  // ポーズメニューの操作。矢印キーで選んで Space / Enter で決定、Esc / P で再開
+  #updatePauseMenu() {
+    const items = this.#pauseMenuItems();
+    if (this.input.wasPressed('ArrowUp', 'KeyW')) this.pauseIndex = (this.pauseIndex + items.length - 1) % items.length;
+    if (this.input.wasPressed('ArrowDown', 'KeyS')) this.pauseIndex = (this.pauseIndex + 1) % items.length;
+    const tapped = this.input.consumeTap();
+    if (this.input.wasPressed('Escape', 'KeyP')) {
+      this.state = 'playing';
+      return;
+    }
+    if (!tapped) return;
+    const pos = this.input.tapPos;
+    const item = pos ? items.find((it) => inRect(pos, it)) : items[this.pauseIndex];
+    item?.action();
+  }
+
+  #pauseButtonRect() {
+    const size = 44;
+    return { x: this.viewW - 16 - size, y: 16, w: size, h: size };
+  }
+
+  #pauseMenuItems() {
+    const w = Math.min(240, this.viewW - 64);
+    const h = 48;
+    const x = (this.viewW - w) / 2;
+    const y = this.viewH / 2 - 10;
+    return [
+      { label: '再開', x, y, w, h, action: () => { this.state = 'playing'; } },
+      { label: 'タイトルへ戻る', x, y: y + h + 16, w, h, action: () => { this.reset(); this.state = 'title'; } },
+    ];
   }
 
   #updatePlayer(dt) {
@@ -332,8 +384,10 @@ export class Game {
       this.#drawTitle();
       return;
     }
-    this.#drawStick();
+    if (this.state === 'playing') this.#drawStick();
     this.#drawHud();
+    if (this.state === 'playing') this.#drawPauseButton();
+    if (this.state === 'paused') this.#drawPauseMenu();
     this.#drawOverlay();
   }
 
@@ -506,8 +560,43 @@ export class Game {
     ctx.globalAlpha = 1;
   }
 
+  #drawPauseButton() {
+    const { ctx } = this;
+    const r = this.#pauseButtonRect();
+    ctx.fillStyle = CONFIG.colors.hudBg;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    // 「⏸」の 2 本線
+    ctx.fillStyle = CONFIG.colors.text;
+    const barW = 6;
+    const barH = r.h * 0.45;
+    const top = r.y + (r.h - barH) / 2;
+    ctx.fillRect(r.x + r.w / 2 - barW - 3, top, barW, barH);
+    ctx.fillRect(r.x + r.w / 2 + 3, top, barW, barH);
+  }
+
+  #drawPauseMenu() {
+    const { ctx } = this;
+    const c = CONFIG.colors;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, this.viewW, this.viewH);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = c.text;
+    ctx.font = 'bold 28px system-ui, sans-serif';
+    ctx.fillText('ポーズ中', this.viewW / 2, this.viewH / 2 - 60);
+
+    ctx.font = 'bold 18px system-ui, sans-serif';
+    this.#pauseMenuItems().forEach((it, i) => {
+      const selected = i === this.pauseIndex;
+      ctx.fillStyle = selected ? c.hudBar : c.hudBg;
+      ctx.fillRect(it.x, it.y, it.w, it.h);
+      ctx.fillStyle = selected ? '#3b2418' : c.text;
+      ctx.fillText(it.label, it.x + it.w / 2, it.y + it.h / 2);
+    });
+  }
+
   #drawOverlay() {
-    if (this.state === 'playing') return;
+    if (this.state === 'playing' || this.state === 'paused') return;
     const { ctx } = this;
     const cleared = this.state === 'clear';
     if (!cleared) {

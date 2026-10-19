@@ -5,10 +5,18 @@ export class Input {
     this.stick = { active: false, id: null, originX: 0, originY: 0, x: 0, y: 0 };
     this.stickRadius = 60;
     this.tapped = false;
+    // 直前のタップ位置。キーボードで決定したときは null
+    this.tapPos = null;
+    // このフレームで押されたキー（押しっぱなしは含まない）
+    this.justPressed = new Set();
 
     window.addEventListener('keydown', (e) => {
       this.keys.add(e.code);
-      if (e.code === 'Space' || e.code === 'Enter') this.tapped = true;
+      if (!e.repeat) this.justPressed.add(e.code);
+      if (e.code === 'Space' || e.code === 'Enter') {
+        this.tapped = true;
+        this.tapPos = null;
+      }
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
 
@@ -20,6 +28,7 @@ export class Input {
 
   #onDown(e) {
     this.tapped = true;
+    this.tapPos = { x: e.clientX, y: e.clientY };
     if (this.stick.active) return;
     Object.assign(this.stick, {
       active: true, id: e.pointerId,
@@ -62,5 +71,15 @@ export class Input {
     const t = this.tapped;
     this.tapped = false;
     return t;
+  }
+
+  // 指定したキーのどれかがこのフレームで押されたか
+  wasPressed(...codes) {
+    return codes.some((c) => this.justPressed.has(c));
+  }
+
+  // 毎フレームの最後に呼び、押されたキーの記録を消す
+  endFrame() {
+    this.justPressed.clear();
   }
 }
