@@ -1,4 +1,4 @@
-# Junistry
+# Jun
 
 珈琲をテーマにしたサバイバルゲーム。スマホ・PC のブラウザで遊べる HTML5 Canvas ゲーム。
 
