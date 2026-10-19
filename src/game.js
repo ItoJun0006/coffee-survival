@@ -28,6 +28,7 @@ export class Game {
     this.resize();
     window.addEventListener('resize', () => this.resize());
     this.reset();
+    this.state = 'title';
   }
 
   resize() {
@@ -142,6 +143,10 @@ export class Game {
   }
 
   update(dt) {
+    if (this.state === 'title') {
+      if (this.input.consumeTap()) this.state = 'playing';
+      return;
+    }
     if (this.state !== 'playing') {
       if (this.input.consumeTap()) this.reset();
       return;
@@ -323,6 +328,10 @@ export class Game {
     if (this.state === 'clear') this.#drawDawn();
     else this.#drawDarkness();
 
+    if (this.state === 'title') {
+      this.#drawTitle();
+      return;
+    }
     this.#drawStick();
     this.#drawHud();
     this.#drawOverlay();
@@ -463,6 +472,38 @@ export class Game {
       ctx.font = 'bold 20px system-ui, sans-serif';
       ctx.fillText(`${CONFIG.boss.name} が現れた`, this.viewW / 2, this.viewH * 0.3);
     }
+  }
+
+  // 起動時のタイトル画面。ゲームの場面を背景に、名前とスタート案内を重ねる
+  #drawTitle() {
+    const { ctx } = this;
+    const c = CONFIG.colors;
+    const cx = this.viewW / 2;
+    const cy = this.viewH / 2;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, this.viewW, this.viewH);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // 画面が狭いスマホでも収まるよう、幅に合わせて文字を縮める
+    const size = Math.min(48, (this.viewW - 32) / CONFIG.title.name.length);
+    ctx.font = `bold ${size}px system-ui, sans-serif`;
+    ctx.fillStyle = c.hudBar;
+    ctx.fillText(CONFIG.title.name, cx, cy - 60);
+
+    ctx.font = '16px system-ui, sans-serif';
+    ctx.fillStyle = c.text;
+    ctx.fillText(CONFIG.title.subtitle, cx, cy - 15);
+    ctx.font = '13px system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
+    ctx.fillText('珈琲豆を拾ってカフェインを保ち、朝まで生き延びろ', cx, cy + 20);
+
+    // スタート案内はゆっくり点滅させる
+    ctx.globalAlpha = 0.5 + 0.5 * Math.sin(performance.now() / 300);
+    ctx.font = 'bold 18px system-ui, sans-serif';
+    ctx.fillStyle = c.xpBar;
+    ctx.fillText('タップ / Space でスタート', cx, cy + 80);
+    ctx.globalAlpha = 1;
   }
 
   #drawOverlay() {

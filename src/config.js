@@ -1,4 +1,5 @@
 export const CONFIG = {
+  title: { name: 'コーヒーサバイバル', subtitle: '〜 眠気に負けるな 〜' },
   world: { width: 2000, height: 2000 },
   player: {
     radius: 18,

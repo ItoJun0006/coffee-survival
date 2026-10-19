@@ -1,6 +1,6 @@
 {
-  "name": "Junistry",
-  "short_name": "Junistry",
+  "name": "コーヒーサバイバル",
+  "short_name": "コーヒーサバイバル",
   "start_url": "./",
   "display": "fullscreen",
   "orientation": "any",
