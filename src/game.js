@@ -11,6 +11,7 @@ import { WEAPON_ORDER } from './weapons/index.js';
 import { loadLastCharacter, saveLastCharacter } from './characters.js';
 import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu } from './level-up-menu.js';
+import { drawItemIcon } from './item-icons.js';
 import { sound } from './sound.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
@@ -171,6 +172,7 @@ export class Game {
     const cfg = CONFIG.items[id];
     return {
       kind: 'item',
+      iconId: id,
       name: cfg.name,
       desc: cfg.desc,
       element: 'none',
@@ -713,7 +715,16 @@ export class Game {
     for (const wp of this.weapons) line(`・${wp.name}  Lv ${wp.level}`, 'rgba(243, 230, 216, 0.6)');
     ly += 4;
     line(`アイテム ${this.items.length}/${slots.items}`, c.itemCard);
-    for (const it of this.items) line(`・${CONFIG.items[it.id].name}  Lv ${it.level}`, 'rgba(243, 230, 216, 0.6)');
+    for (const it of this.items) {
+      ly += 2;
+      drawItemIcon(ctx, it.id, x + 9, ly + 6, 18);
+      ctx.font = '11px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = 'rgba(243, 230, 216, 0.6)';
+      ctx.fillText(`${CONFIG.items[it.id].name}  Lv ${it.level}`, x + 22, ly);
+      ly += 18;
+    }
 
     this.#drawNotice();
     if (this.boss && !this.boss.dead) this.#drawBossHud();

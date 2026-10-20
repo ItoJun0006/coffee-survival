@@ -1,9 +1,10 @@
 import { CONFIG } from './config.js';
+import { drawItemIcon } from './item-icons.js';
 
 const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 
 const CARD_W = 220;
-const CARD_H = 210;
+const CARD_H = 240;
 const GAP = 24;
 const ELEMENT_LABEL = { none: '', hot: '熱い', ice: '冷たい' };
 
@@ -62,7 +63,7 @@ export class LevelUpMenu {
 
   #drawCard(ctx, card, selected) {
     const c = CONFIG.colors;
-    const { kind, name, desc, element, level, isNew } = card.choice;
+    const { kind, iconId, name, desc, element, level, isNew } = card.choice;
     const cx = card.x + card.w / 2;
     // 攻撃は茶色、アイテムは緑の枠で見分ける
     const accent = kind === 'item' ? c.itemCard : c.hudBar;
@@ -87,19 +88,25 @@ export class LevelUpMenu {
       ctx.fillText(isNew ? 'NEW' : `Lv ${level} → ${level + 1}`, cx, card.y + 40);
     }
 
+    // アイコンがあるカードは、アイコンの下に名前と説明を置く
+    const nameY = card.y + (iconId ? 128 : 70);
+    const descY = card.y + (iconId ? 154 : 122);
+    if (iconId) drawItemIcon(ctx, iconId, cx, card.y + 82, 56);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillStyle = c.text;
     ctx.font = 'bold 17px system-ui, sans-serif';
-    ctx.fillText(name, cx, card.y + 70);
+    ctx.fillText(name, cx, nameY);
     const elementLabel = ELEMENT_LABEL[element];
     if (elementLabel) {
       ctx.font = '12px system-ui, sans-serif';
       ctx.fillStyle = element === 'hot' ? '#e8935a' : '#9cc7e8';
-      ctx.fillText(`属性：${elementLabel}`, cx, card.y + 94);
+      ctx.fillText(`属性：${elementLabel}`, cx, nameY + 24);
     }
 
     ctx.fillStyle = 'rgba(243, 230, 216, 0.8)';
     ctx.font = '12px system-ui, sans-serif';
-    this.#wrap(ctx, desc, card.w - 28).forEach((line, i) => ctx.fillText(line, cx, card.y + 122 + i * 18));
+    this.#wrap(ctx, desc, card.w - 28).forEach((line, i) => ctx.fillText(line, cx, descY + i * 17));
     if (kind === 'bonus') return;
 
     // 強化の段階を ● で見せる
