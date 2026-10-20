@@ -35,6 +35,7 @@ http://localhost:8000 を開く。
 | キャラ選択 | ←→（A / D）で選んで Space / Enter、またはクリック。Esc でタイトルへ |
 | 移動 | WASD / 矢印キー |
 | ポーズ | Esc / P |
+| 音の消音 / 解除 | M |
 | ポーズメニューの選択 | ↑↓（W / S）で選んで Space / Enter、またはクリック |
 | リトライ | Space / Enter / クリック |
 

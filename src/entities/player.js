@@ -90,11 +90,12 @@ export class Player {
     return this.caffeine > 0;
   }
 
-  // 被弾：無敵時間中は無効
+  // 被弾：無敵時間中は無効。実際にダメージを受けたら true
   hit(amount) {
-    if (this.invincibleTimer > 0) return;
+    if (this.invincibleTimer > 0) return false;
     this.caffeine -= amount;
     this.invincibleTimer = CONFIG.player.invincibleSec;
+    return true;
   }
 
   // 継続的な減少：無敵時間に関係なく減る

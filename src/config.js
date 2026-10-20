@@ -96,6 +96,38 @@ export const CONFIG = {
     pull: { strength: 110 },
     dream: { fakeRatio: 0.4 },
   },
+  // 音。BGM はブラウザの中で組み立てるローファイ調の曲（音楽ファイルは使わない）
+  // chords は 1 小節ごとの和音（音名＋オクターブ）。bass は各小節の根音
+  audio: {
+    volume: { master: 0.8, music: 0.9, sfx: 0.6 },
+    pausedMusicRate: 0.35,
+    fadeOutSec: 2.5,
+    crackle: 0.08,
+    musicCutoffHz: 3200,
+    swing: 0.28,
+    music: {
+      normal: {
+        bpm: 72,
+        chords: [
+          ['D3', 'F3', 'A3', 'C4', 'E4'],
+          ['G2', 'F3', 'B3', 'E4'],
+          ['C3', 'E3', 'G3', 'B3', 'D4'],
+          ['A2', 'G3', 'C4', 'E4'],
+        ],
+        bass: ['D2', 'G1', 'C2', 'A1'],
+      },
+      boss: {
+        bpm: 80,
+        chords: [
+          ['A2', 'C3', 'E3', 'G3', 'B3'],
+          ['F2', 'A2', 'C3', 'E3', 'G3'],
+          ['D3', 'F3', 'A3', 'C4', 'E4'],
+          ['E2', 'G#2', 'D3', 'F3'],
+        ],
+        bass: ['A1', 'F1', 'D2', 'E1'],
+      },
+    },
+  },
   colors: {
     ground: '#2a1a12',
     grid: '#33221a',

@@ -9,6 +9,7 @@ import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { loadLastCharacter, saveLastCharacter } from './characters.js';
 import { CharacterSelect } from './character-select.js';
+import { sound } from './sound.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -37,6 +38,7 @@ export class Game {
     });
     this.character = loadLastCharacter();
     this.characterSelect = new CharacterSelect();
+    sound.init();
     this.reset();
     this.state = 'title';
   }
@@ -51,6 +53,8 @@ export class Game {
   }
 
   reset() {
+    sound.setMode('normal');
+    sound.startMusic();
     this.player = new Player(CONFIG.world.width / 2, CONFIG.world.height / 2, this.character);
     this.beans = [];
     this.enemies = [];
@@ -79,10 +83,12 @@ export class Game {
 
   #gainXp(amount) {
     this.xp += amount;
+    const before = this.level;
     while (this.xp >= this.xpToNext) {
       this.xp -= this.xpToNext;
       this.#levelUp();
     }
+    if (this.level > before) sound.play('levelUp');
   }
 
   // 次の攻撃を手に入れる。全部そろった後は攻撃力が上がる
@@ -130,6 +136,7 @@ export class Game {
     let m = this.damageBonus;
     if (target === this.boss) m *= CONFIG.boss.elementMultiplier[element] ?? 1;
     target.damage(amount * m);
+    sound.play('hit');
   }
 
   // ボスは凍らず、押し返されない
@@ -155,6 +162,8 @@ export class Game {
   }
 
   update(dt) {
+    if (this.input.wasPressed('KeyM')) sound.toggleMute();
+    sound.setPaused(this.state === 'paused');
     if (this.state === 'title') {
       if (this.input.consumeClick()) {
         this.characterSelect.open(this.character);
@@ -201,11 +210,18 @@ export class Game {
     this.effects = this.effects.filter((fx) => fx.alive);
     this.#collectBeans();
 
-    if (!this.player.alive) this.state = 'gameover';
-    else if (this.boss?.dead) this.state = 'clear';
+    if (!this.player.alive) this.#finish('gameover');
+    else if (this.boss?.dead) this.#finish('clear');
 
     this.camera.x = this.player.x - this.viewW / 2;
     this.camera.y = this.player.y - this.viewH / 2;
+  }
+
+  // ゲームオーバーかクリアで終わる。BGM は静かに消し、終わりの音を鳴らす
+  #finish(state) {
+    this.state = state;
+    sound.stopMusic();
+    sound.play(state);
   }
 
   #pause() {
@@ -286,8 +302,10 @@ export class Game {
       if (dist(b, p) >= b.radius + p.radius) return true;
       if (b.fake) {
         p.drain(CONFIG.bean.fakeCaffeine);
+        sound.play('fakeBean');
       } else {
         p.heal(CONFIG.bean.caffeine);
+        sound.play('bean');
         this.#gainXp(CONFIG.leveling.xpPerBean);
       }
       return false;
@@ -329,7 +347,7 @@ export class Game {
       e.update(dt, p);
       if (e.frozen || dist(e, p) >= e.radius + p.radius) continue;
       const c = e.config;
-      if (c.contactCaffeine) p.hit(c.contactCaffeine);
+      if (c.contactCaffeine && p.hit(c.contactCaffeine)) sound.play('damage');
       if (c.drainPerSec) p.drain(c.drainPerSec * dt);
       if (c.slowSec) p.slow(c.slowSec, c.slowFactor);
     }
@@ -343,6 +361,8 @@ export class Game {
       clamp(this.player.y + Math.sin(a) * d, 0, CONFIG.world.height),
     );
     this.bossAppearedAt = this.time;
+    sound.play('bossAppear');
+    sound.setMode('boss');
   }
 
   #updateBoss(dt) {
@@ -358,11 +378,11 @@ export class Game {
 
     for (const w of this.waves) {
       w.update(dt);
-      if (w.hits(p)) p.hit(cfg.yawn.caffeine);
+      if (w.hits(p) && p.hit(cfg.yawn.caffeine)) sound.play('damage');
     }
     this.waves = this.waves.filter((w) => w.alive);
 
-    if (dist(boss, p) < boss.radius + p.radius) p.hit(cfg.contactCaffeine);
+    if (dist(boss, p) < boss.radius + p.radius && p.hit(cfg.contactCaffeine)) sound.play('damage');
   }
 
   // 倒した敵はエフェクトを残し、ときどき豆を落とす
@@ -371,6 +391,7 @@ export class Game {
     this.enemies = this.enemies.filter((e) => {
       if (!e.dead) return true;
       this.effects.push(new DefeatEffect(e.x, e.y, e.config.color, e.radius));
+      sound.play('defeat');
       if (Math.random() < enemyDropChance && this.beans.length < CONFIG.bean.maxCount + maxDroppedBeans) {
         this.beans.push(new Bean(e.x, e.y));
       }
@@ -401,15 +422,27 @@ export class Game {
 
     if (this.state === 'title') {
       this.#drawTitle();
-      return;
-    }
-    if (this.state === 'select') {
+    } else if (this.state === 'select') {
       this.characterSelect.draw(ctx, this.viewW, this.viewH);
-      return;
+    } else {
+      this.#drawHud();
+      if (this.state === 'paused') this.#drawPauseMenu();
+      this.#drawOverlay();
     }
-    this.#drawHud();
-    if (this.state === 'paused') this.#drawPauseMenu();
-    this.#drawOverlay();
+    this.#drawSoundIndicator();
+  }
+
+  // 画面右上に、音あり／消音の状態を小さく出す
+  #drawSoundIndicator() {
+    const { ctx } = this;
+    ctx.save();
+    ctx.globalAlpha = 0.6;
+    ctx.fillStyle = CONFIG.colors.text;
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText(sound.isMuted ? 'M：消音中' : 'M：音あり ♪', this.viewW - 16, 16);
+    ctx.restore();
   }
 
   #drawGrid() {
