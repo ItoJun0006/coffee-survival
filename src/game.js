@@ -75,13 +75,14 @@ export class Game {
     this.xp = 0;
     this.damageBonus = this.character.roast.damageRate;
     this.attackIntervalRate = this.character.roast.attackIntervalRate;
+    this.items = [];
     this.weapons = [new WEAPON_ORDER[0](this)];
     this.pendingLevelUps = 0;
     // 動作確認用の ?level=N は、まだ持っていない攻撃を優先して自動で選ぶ
     for (let i = 1; i < this.debugLevel; i++) {
       this.level += 1;
       const choices = this.#levelUpChoices();
-      this.#applyChoice(choices.find((c) => c.isNew) ?? choices[0]);
+      this.#applyChoice(choices.find((c) => c.isNew && c.kind === 'weapon') ?? choices[0] ?? this.#bonusChoices()[1]);
     }
     this.notice = null;
   }
@@ -105,17 +106,106 @@ export class Game {
     }
   }
 
-  // 攻撃の候補：まだ持っていない攻撃（新しいインスタンス）と、Lv が上限未満の持っている攻撃
-  #levelUpChoices() {
-    const max = CONFIG.weaponLevels.max;
-    return WEAPON_ORDER.flatMap((W) => {
-      const owned = this.weapons.find((w) => w instanceof W);
-      if (!owned) return [{ weapon: new W(this), isNew: true }];
-      return owned.level < max ? [{ weapon: owned, isNew: false }] : [];
-    });
+  // ---- ステータス強化アイテムの効果 ----
+
+  #itemLevel(id) {
+    return this.items.find((it) => it.id === id)?.level ?? 0;
   }
 
-  // 候補をランダムに選んで、選択画面を開く。候補がなければ攻撃力全体を上げる
+  // 範囲アップ：弾と範囲の大きさの倍率
+  get areaRate() {
+    return 1 + CONFIG.items.area.perLevel * this.#itemLevel('area');
+  }
+
+  // 発生頻度アップ：攻撃の間隔の倍率
+  get frequencyRate() {
+    return 1 - CONFIG.items.frequency.perLevel * this.#itemLevel('frequency');
+  }
+
+  get powerRate() {
+    return 1 + CONFIG.items.power.perLevel * this.#itemLevel('power');
+  }
+
+  get xpRate() {
+    return 1 + CONFIG.items.xp.perLevel * this.#itemLevel('xp');
+  }
+
+  // ---- レベルアップの候補 ----
+  // 候補は { kind, name, desc, element, level（今の Lv。新しいものは 0）, isNew, apply } の形にそろえる。
+  // apply は選んだときの処理で、画面に出す知らせの文を返す
+
+  // 攻撃とアイテムの候補。持てる数の上限に達していたら、新しいものは出さない
+  #levelUpChoices() {
+    const { max } = CONFIG.weaponLevels;
+    const slots = CONFIG.slots;
+    const weapons = WEAPON_ORDER.flatMap((W) => {
+      const owned = this.weapons.find((w) => w instanceof W);
+      if (owned) return owned.level < max ? [this.#weaponChoice(owned, false)] : [];
+      return this.weapons.length < slots.weapons ? [this.#weaponChoice(new W(this), true)] : [];
+    });
+    const items = Object.keys(CONFIG.items).flatMap((id) => {
+      const owned = this.items.find((it) => it.id === id);
+      if (owned) return owned.level < max ? [this.#itemChoice(id, owned)] : [];
+      return this.items.length < slots.items ? [this.#itemChoice(id, null)] : [];
+    });
+    return [...weapons, ...items];
+  }
+
+  #weaponChoice(weapon, isNew) {
+    return {
+      kind: 'weapon',
+      name: weapon.name,
+      desc: weapon.desc,
+      element: weapon.config.element,
+      level: isNew ? 0 : weapon.level,
+      isNew,
+      apply: () => {
+        if (isNew) this.weapons.push(weapon);
+        else weapon.level += 1;
+        return isNew ? `${weapon.name} を手に入れた！` : `${weapon.name} が Lv ${weapon.level} になった！`;
+      },
+    };
+  }
+
+  #itemChoice(id, owned) {
+    const cfg = CONFIG.items[id];
+    return {
+      kind: 'item',
+      name: cfg.name,
+      desc: cfg.desc,
+      element: 'none',
+      level: owned?.level ?? 0,
+      isNew: !owned,
+      apply: () => {
+        if (owned) owned.level += 1;
+        else this.items.push({ id, level: 1 });
+        return `${cfg.name} が Lv ${this.#itemLevel(id)} になった！`;
+      },
+    };
+  }
+
+  // 攻撃もアイテムもすべて Lv 上限になったあとの候補
+  #bonusChoices() {
+    const p = this.player;
+    return [
+      {
+        kind: 'bonus', name: 'カフェイン全回復', desc: 'カフェインを\n上限まで回復する', element: 'none', level: 0, isNew: false,
+        apply: () => {
+          p.caffeine = p.maxCaffeine;
+          return 'カフェインが全回復した！';
+        },
+      },
+      {
+        kind: 'bonus', name: '攻撃力 +10%', desc: 'すべての攻撃の\nダメージが上がる', element: 'none', level: 0, isNew: false,
+        apply: () => {
+          this.damageBonus += CONFIG.leveling.damageBonusPerLevel;
+          return `攻撃力アップ（×${this.damageBonus.toFixed(1)}）`;
+        },
+      },
+    ];
+  }
+
+  // 候補をランダムに選んで、選択画面を開く。選べるものがなくなっていたら、ボーナスから選ぶ
   #openLevelUp() {
     const all = this.#levelUpChoices();
     for (let i = all.length - 1; i > 0; i--) {
@@ -123,21 +213,12 @@ export class Game {
       [all[i], all[j]] = [all[j], all[i]];
     }
     const choices = all.slice(0, CONFIG.weaponLevels.choices);
-    if (choices.length) {
-      this.levelUpMenu.open(choices, this.level);
-      this.state = 'levelup';
-      return;
-    }
-    this.damageBonus += CONFIG.leveling.damageBonusPerLevel;
-    this.notice = { title: `レベル ${this.level}`, text: `攻撃力アップ（×${this.damageBonus.toFixed(1)}）`, until: this.time + 2.5 };
-    this.pendingLevelUps = 0;
+    this.levelUpMenu.open(choices.length ? choices : this.#bonusChoices(), this.level);
+    this.state = 'levelup';
   }
 
   #applyChoice(choice) {
-    const { weapon } = choice;
-    if (choice.isNew) this.weapons.push(weapon);
-    else weapon.level += 1;
-    const text = choice.isNew ? `${weapon.name} を手に入れた！` : `${weapon.name} が Lv ${weapon.level} になった！`;
+    const text = choice.apply();
     this.notice = { title: `レベル ${this.level}`, text, until: this.time + 2.5 };
   }
 
@@ -177,7 +258,7 @@ export class Game {
   }
 
   dealDamage(target, amount, element) {
-    let m = this.damageBonus;
+    let m = this.damageBonus * this.powerRate;
     if (target === this.boss) m *= CONFIG.boss.elementMultiplier[element] ?? 1;
     target.damage(amount * m);
     sound.play('hit');
@@ -379,7 +460,7 @@ export class Game {
     this.xpOrbs = this.xpOrbs.filter((o) => {
       o.update(dt, this.player);
       if (!o.collected) return true;
-      this.#gainXp(o.value);
+      this.#gainXp(o.value * this.xpRate);
       return false;
     });
   }
@@ -619,17 +700,28 @@ export class Game {
     ctx.fillText(`生存時間  ${formatTime(this.time)}`, x, y + 54);
     if (!this.boss) ctx.fillText(`眠気が来るまで  ${formatTime(CONFIG.boss.timeSec - this.time)}`, x, y + 74);
 
-    // 手に入れた攻撃の一覧
+    // 持っている攻撃とアイテムの一覧（持っている数 / 上限）
+    const { slots } = CONFIG;
+    let ly = y + 98;
+    const line = (text, color) => {
+      ctx.fillStyle = color;
+      ctx.fillText(text, x, ly);
+      ly += 14;
+    };
     ctx.font = '11px system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(243, 230, 216, 0.6)';
-    this.weapons.forEach((wp, i) => ctx.fillText(`・${wp.name}  Lv ${wp.level}`, x, y + 98 + i * 14));
+    line(`攻撃 ${this.weapons.length}/${slots.weapons}`, 'rgba(243, 230, 216, 0.85)');
+    for (const wp of this.weapons) line(`・${wp.name}  Lv ${wp.level}`, 'rgba(243, 230, 216, 0.6)');
+    ly += 4;
+    line(`アイテム ${this.items.length}/${slots.items}`, c.itemCard);
+    for (const it of this.items) line(`・${CONFIG.items[it.id].name}  Lv ${it.level}`, 'rgba(243, 230, 216, 0.6)');
 
     this.#drawNotice();
     if (this.boss && !this.boss.dead) this.#drawBossHud();
   }
 
   #drawNotice() {
-    if (!this.notice || this.time > this.notice.until) return;
+    // 選択画面の見出しと重ならないように、選んでいる間は出さない
+    if (!this.notice || this.time > this.notice.until || this.state === 'levelup') return;
     const { ctx } = this;
     const k = Math.min(1, (this.notice.until - this.time) / 0.5);
     ctx.save();

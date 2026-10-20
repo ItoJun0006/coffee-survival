@@ -7,7 +7,9 @@ const CARD_H = 210;
 const GAP = 24;
 const ELEMENT_LABEL = { none: '', hot: '熱い', ice: '冷たい' };
 
-// レベルアップで出る攻撃の候補を選ぶ画面。choices は { weapon, isNew } の配列
+const KIND_LABEL = { weapon: '攻撃', item: '強化アイテム', bonus: 'ボーナス' };
+
+// レベルアップで出る候補を選ぶ画面。choices は { kind, name, desc, element, level, isNew } の配列
 export class LevelUpMenu {
   open(choices, level) {
     this.choices = choices;
@@ -49,7 +51,7 @@ export class LevelUpMenu {
     ctx.fillText(`レベル ${this.level}！`, viewW / 2, cards[0].y - 64);
     ctx.fillStyle = c.text;
     ctx.font = '15px system-ui, sans-serif';
-    ctx.fillText('攻撃を 1 つ選ぶ', viewW / 2, cards[0].y - 32);
+    ctx.fillText(this.choices[0].kind === 'bonus' ? 'すべて最大まで強化した！ ボーナスを 1 つ選ぶ' : '攻撃かアイテムを 1 つ選ぶ', viewW / 2, cards[0].y - 32);
 
     for (const card of cards) this.#drawCard(ctx, card, card.index === this.index);
 
@@ -60,45 +62,52 @@ export class LevelUpMenu {
 
   #drawCard(ctx, card, selected) {
     const c = CONFIG.colors;
-    const { weapon, isNew } = card.choice;
+    const { kind, name, desc, element, level, isNew } = card.choice;
     const cx = card.x + card.w / 2;
+    // 攻撃は茶色、アイテムは緑の枠で見分ける
+    const accent = kind === 'item' ? c.itemCard : c.hudBar;
     ctx.fillStyle = selected ? 'rgba(217, 160, 102, 0.25)' : c.hudBg;
     ctx.fillRect(card.x, card.y, card.w, card.h);
-    if (selected) {
-      ctx.strokeStyle = c.hudBar;
-      ctx.lineWidth = 3;
-      ctx.strokeRect(card.x, card.y, card.w, card.h);
-    }
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = selected ? 3 : 1;
+    ctx.globalAlpha = selected ? 1 : 0.5;
+    ctx.strokeRect(card.x, card.y, card.w, card.h);
+    ctx.globalAlpha = 1;
 
     ctx.fillStyle = 'rgba(243, 230, 216, 0.5)';
     ctx.font = '12px system-ui, sans-serif';
     ctx.fillText(String(card.index + 1), card.x + 16, card.y + 16);
+    ctx.fillStyle = accent;
+    ctx.fillText(KIND_LABEL[kind], cx, card.y + 16);
 
     // NEW か、強化の段階
-    ctx.font = 'bold 14px system-ui, sans-serif';
-    ctx.fillStyle = isNew ? c.xpBar : c.hudBar;
-    ctx.fillText(isNew ? 'NEW' : `Lv ${weapon.level} → ${weapon.level + 1}`, cx, card.y + 34);
+    if (kind !== 'bonus') {
+      ctx.font = 'bold 14px system-ui, sans-serif';
+      ctx.fillStyle = isNew ? c.xpBar : accent;
+      ctx.fillText(isNew ? 'NEW' : `Lv ${level} → ${level + 1}`, cx, card.y + 40);
+    }
 
     ctx.fillStyle = c.text;
     ctx.font = 'bold 17px system-ui, sans-serif';
-    ctx.fillText(weapon.name, cx, card.y + 68);
-    const element = ELEMENT_LABEL[weapon.config.element];
-    if (element) {
+    ctx.fillText(name, cx, card.y + 70);
+    const elementLabel = ELEMENT_LABEL[element];
+    if (elementLabel) {
       ctx.font = '12px system-ui, sans-serif';
-      ctx.fillStyle = weapon.config.element === 'hot' ? '#e8935a' : '#9cc7e8';
-      ctx.fillText(`属性：${element}`, cx, card.y + 92);
+      ctx.fillStyle = element === 'hot' ? '#e8935a' : '#9cc7e8';
+      ctx.fillText(`属性：${elementLabel}`, cx, card.y + 94);
     }
 
     ctx.fillStyle = 'rgba(243, 230, 216, 0.8)';
     ctx.font = '12px system-ui, sans-serif';
-    this.#wrap(ctx, weapon.desc, card.w - 28).forEach((line, i) => ctx.fillText(line, cx, card.y + 122 + i * 18));
+    this.#wrap(ctx, desc, card.w - 28).forEach((line, i) => ctx.fillText(line, cx, card.y + 122 + i * 18));
+    if (kind === 'bonus') return;
 
     // 強化の段階を ● で見せる
     const max = CONFIG.weaponLevels.max;
-    const next = isNew ? 1 : weapon.level + 1;
+    const next = level + 1;
     ctx.font = '14px system-ui, sans-serif';
     for (let i = 0; i < max; i++) {
-      ctx.fillStyle = i < next ? c.hudBar : 'rgba(255,255,255,0.15)';
+      ctx.fillStyle = i < next ? accent : 'rgba(255,255,255,0.15)';
       ctx.fillText('●', cx + (i - (max - 1) / 2) * 18, card.y + card.h - 24);
     }
   }

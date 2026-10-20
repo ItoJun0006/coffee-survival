@@ -41,14 +41,24 @@ export const CONFIG = {
   },
   // レベルアップで出る攻撃の候補の数と、攻撃の強化。Lv が 1 上がるごとに
   // ダメージが damagePerLevel、攻撃の間隔が intervalPerLevel の割合で変わる
-  weaponLevels: { choices: 3, max: 5, damagePerLevel: 0.25, intervalPerLevel: 0.08 },
+  // 攻撃の間隔は、キャラ・強化・アイテムが重なっても元の minIntervalRate 倍より短くしない
+  weaponLevels: { choices: 3, max: 5, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.3 },
+  // 持てる数。weapons は最初の豆マシンガンを含む
+  slots: { weapons: 3, items: 2 },
+  // ステータス強化アイテム。perLevel は 1 段階（Lv）ごとの効果。最大 Lv は weaponLevels.max と同じ
+  items: {
+    area: { name: '範囲アップ', desc: 'すべての弾と範囲が\n大きくなる', perLevel: 0.1 },
+    frequency: { name: '発生頻度アップ', desc: 'すべての攻撃の\n間隔が短くなる', perLevel: 0.06 },
+    power: { name: '攻撃力アップ', desc: 'すべての攻撃の\nダメージが上がる', perLevel: 0.1 },
+    xp: { name: '経験値アップ', desc: '経験値の粒から入る\n経験値が増える', perLevel: 0.15 },
+  },
   // 攻撃。element が hot の攻撃はボスに効きやすく、ice は効きにくい
   weapons: {
     beanGun: { name: '豆マシンガン', desc: '近い敵に豆を\n連射する', element: 'none', intervalSec: 0.35, speed: 520, radius: 6, damage: 1, range: 450 },
     mill: { name: 'ミル・トルネード', desc: '2 枚の刃が\nまわりを回り続ける', element: 'none', count: 2, orbitRadius: 70, bladeRadius: 12, angularSpeed: 3, damage: 1, hitCooldownSec: 0.5 },
     mug: { name: 'マグカップ投げ', desc: '投げると戻ってくる。\n敵を貫通する', element: 'none', intervalSec: 1.6, speed: 380, radius: 14, damage: 2, range: 320, hitCooldownSec: 0.4 },
     drip: { name: 'ドリップの雨', desc: '敵の頭上に\n熱い雫を降らせる', element: 'hot', intervalSec: 1.2, drops: 3, radius: 40, delaySec: 0.6, damage: 3, range: 500 },
-    steam: { name: 'スチーム噴射', desc: '扇形に蒸気を吹き、\n敵を押し返す', element: 'hot', intervalSec: 1.8, range: 140, angleDeg: 70, damage: 2, knockback: 300 },
+    steam: { areaKeys: ['range'], name: 'スチーム噴射', desc: '扇形に蒸気を吹き、\n敵を押し返す', element: 'hot', intervalSec: 1.8, range: 140, angleDeg: 70, damage: 2, knockback: 300 },
     puddle: { name: 'こぼれ珈琲', desc: '足元に熱い水たまりを作り、\nダメージを与え続ける', element: 'hot', intervalSec: 2, radius: 50, durationSec: 4, damage: 1, tickSec: 0.5 },
     ice: { name: 'アイス珈琲', desc: '氷を全方向に飛ばし、\n当たった敵を凍らせる', element: 'ice', intervalSec: 1.5, shards: 6, speed: 360, radius: 7, damage: 1, range: 300, freezeSec: 1.2 },
     espresso: { name: 'エスプレッソ・ショット', desc: '一直線に\n敵を貫く', element: 'hot', intervalSec: 2.5, range: 600, width: 10, damage: 6 },
@@ -155,6 +165,7 @@ export const CONFIG = {
     hudBar: '#d9a066',
     xpBar: '#f0d58a',
     bossBar: '#9b7fd1',
+    itemCard: '#8fc7a0',
     text: '#f3e6d8',
   },
 };

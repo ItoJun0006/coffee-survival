@@ -12,13 +12,34 @@ export function distToSegment(p, x1, y1, x2, y2) {
   return Math.hypot(p.x - (x1 + dx * t), p.y - (y1 + dy * t));
 }
 
+// 範囲アップで大きくなる設定の値。areaKeys を持つ攻撃は、その値も大きくなる
+const AREA_KEYS = ['radius', 'bladeRadius', 'orbitRadius', 'width', 'maxRadius', 'thickness'];
+
 // 攻撃の基底クラス。game は Game のインスタンス
 export class Weapon {
+  #baseConfig;
+  #config = null;
+  #configRate = null;
+
   constructor(game, config) {
     this.game = game;
-    this.config = config;
+    this.#baseConfig = config;
     this.timer = 0;
     this.level = 1;
+  }
+
+  // 範囲アップの倍率をかけた設定。倍率が変わったときだけ作り直す
+  get config() {
+    const rate = this.game.areaRate;
+    if (this.#configRate !== rate) {
+      const c = { ...this.#baseConfig };
+      for (const k of [...AREA_KEYS, ...(c.areaKeys ?? [])]) {
+        if (typeof c[k] === 'number') c[k] *= rate;
+      }
+      this.#config = c;
+      this.#configRate = rate;
+    }
+    return this.#config;
   }
 
   get name() {
@@ -35,11 +56,13 @@ export class Weapon {
   }
 
   // 発動間隔が経過していれば true。発動したら this.timer = 0 に戻す
-  // 間隔はキャラの攻撃間隔の倍率と、強化の段階で伸び縮みする
+  // 間隔はキャラの倍率・強化の段階・発生頻度アップで縮む。ただし下限がある
   tick(dt) {
     this.timer += dt;
-    const levelRate = 1 - CONFIG.weaponLevels.intervalPerLevel * (this.level - 1);
-    return this.timer >= this.config.intervalSec * this.game.attackIntervalRate * levelRate;
+    const { intervalPerLevel, minIntervalRate } = CONFIG.weaponLevels;
+    const levelRate = 1 - intervalPerLevel * (this.level - 1);
+    const rate = Math.max(minIntervalRate, this.game.attackIntervalRate * levelRate * this.game.frequencyRate);
+    return this.timer >= this.config.intervalSec * rate;
   }
 
   hit(target, damage = this.config.damage) {
