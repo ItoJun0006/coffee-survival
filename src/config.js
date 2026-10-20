@@ -62,21 +62,21 @@ export const CONFIG = {
   // 眠気の化身の手下。xp は倒したときに落とす経験値
   enemies: {
     sheep: { name: 'うとうと羊', color: '#e8e2d6', xp: 1, radius: 16, speed: 70, hp: 2, appearSec: 0, weight: 6, contactCaffeine: 5 },
-    slime: { name: 'まぶたスライム', color: '#7a5c8e', xp: 2, radius: 18, speed: 50, hp: 4, appearSec: 60, weight: 2, drainPerSec: 12 },
-    ghost: { name: 'ふとんゴースト', color: '#b9c4d8', xp: 2, radius: 20, speed: 90, hp: 3, appearSec: 120, weight: 2, slowSec: 1.5, slowFactor: 0.5 },
+    slime: { name: 'まぶたスライム', color: '#7a5c8e', xp: 2, radius: 18, speed: 50, hp: 4, appearSec: 120, weight: 2, drainPerSec: 12 },
+    ghost: { name: 'ふとんゴースト', color: '#b9c4d8', xp: 2, radius: 20, speed: 90, hp: 3, appearSec: 240, weight: 2, slowSec: 1.5, slowFactor: 0.5 },
   },
   // 敵を倒したときのエフェクト
   effects: {
     defeat: { durationSec: 0.45, particles: 12, speed: 200 },
   },
   // 時間とともに敵が強くなる。出現した時点の生存時間（分）× 倍率ぶん、標準より強くなる
-  // 例：hpPerMin 0.4 なら、5:00 に出た敵の体力は 1 + 0.4 × 5 = 3 倍
-  enemyScaling: { hpPerMin: 0.4, speedPerMin: 0.06, damagePerMin: 0.1 },
+  // 例：hpPerMin 0.35 なら、10:00 に出た敵の体力は 1 + 0.35 × 10 = 4.5 倍
+  enemyScaling: { hpPerMin: 0.35, speedPerMin: 0.04, damagePerMin: 0.06 },
   // 敵の出現。rampSec かけて、出現の間隔が start → min に縮み、1 回に出る数が startGroup → endGroup に増える
   spawn: {
     startIntervalSec: 0.9,
     minIntervalSec: 0.3,
-    rampSec: 240,
+    rampSec: 480,
     startGroup: 1,
     endGroup: 3,
     maxCount: 150,
@@ -85,7 +85,7 @@ export const CONFIG = {
   // ラスボス：眠気の化身 ネムリーヌ
   boss: {
     name: '眠気の化身 ネムリーヌ',
-    timeSec: 300,
+    timeSec: 600,
     radius: 70,
     hp: 600,
     speed: 40,
