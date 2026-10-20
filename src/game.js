@@ -163,6 +163,9 @@ export class Game {
 
   update(dt) {
     if (this.input.wasPressed('KeyM')) sound.toggleMute();
+    // − で BGM を小さく、＋で大きく（日本語キーボードの ; ＋ キーと、テンキーにも対応）
+    if (this.input.wasPressed('Minus', 'NumpadSubtract')) this.#changeMusicVolume(-1);
+    if (this.input.wasPressed('Equal', 'Semicolon', 'NumpadAdd')) this.#changeMusicVolume(1);
     sound.setPaused(this.state === 'paused');
     if (this.state === 'title') {
       if (this.input.consumeClick()) {
@@ -224,6 +227,11 @@ export class Game {
     sound.play(state);
   }
 
+  #changeMusicVolume(steps) {
+    sound.changeMusicVolume(steps);
+    this.volumeShownUntil = performance.now() + 1500;
+  }
+
   #pause() {
     if (this.state !== 'playing') return;
     this.state = 'paused';
@@ -235,6 +243,11 @@ export class Game {
     const items = this.#pauseMenuItems();
     if (this.input.wasPressed('ArrowUp', 'KeyW')) this.pauseIndex = (this.pauseIndex + items.length - 1) % items.length;
     if (this.input.wasPressed('ArrowDown', 'KeyS')) this.pauseIndex = (this.pauseIndex + 1) % items.length;
+    const current = items[this.pauseIndex];
+    if (current.adjust) {
+      if (this.input.wasPressed('ArrowLeft', 'KeyA')) current.adjust(-1);
+      if (this.input.wasPressed('ArrowRight', 'KeyD')) current.adjust(1);
+    }
     const clicked = this.input.consumeClick();
     if (this.input.wasPressed('Escape', 'KeyP')) {
       this.state = 'playing';
@@ -242,8 +255,14 @@ export class Game {
     }
     if (!clicked) return;
     const pos = this.input.clickPos;
-    const item = pos ? items.find((it) => inRect(pos, it)) : items[this.pauseIndex];
-    item?.action();
+    const item = pos ? items.find((it) => inRect(pos, it)) : current;
+    if (!item) return;
+    // 音量の項目は、左半分のクリックで下げ、右半分のクリックで上げる
+    if (item.adjust) {
+      if (pos) item.adjust(pos.x < item.x + item.w / 2 ? -1 : 1);
+      return;
+    }
+    item.action();
   }
 
   #pauseMenuItems() {
@@ -251,9 +270,11 @@ export class Game {
     const h = 48;
     const x = (this.viewW - w) / 2;
     const y = this.viewH / 2 - 10;
+    const gap = h + 16;
     return [
       { label: '再開', x, y, w, h, action: () => { this.state = 'playing'; } },
-      { label: 'タイトルへ戻る', x, y: y + h + 16, w, h, action: () => { this.reset(); this.state = 'title'; } },
+      { label: `音楽の音量  ◀ ${sound.musicVolume}% ▶`, x, y: y + gap, w, h, adjust: (d) => sound.changeMusicVolume(d) },
+      { label: 'タイトルへ戻る', x, y: y + gap * 2, w, h, action: () => { this.reset(); this.state = 'title'; } },
     ];
   }
 
@@ -441,6 +462,11 @@ export class Game {
     ctx.textAlign = 'right';
     ctx.textBaseline = 'top';
     ctx.fillText(sound.isMuted ? 'M：消音中' : 'M：音あり ♪', this.viewW - 16, 16);
+    if (performance.now() < (this.volumeShownUntil ?? 0)) {
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 14px system-ui, sans-serif';
+      ctx.fillText(`音楽 ${sound.musicVolume}%`, this.viewW - 16, 34);
+    }
     ctx.restore();
   }
 

@@ -101,6 +101,8 @@ export const CONFIG = {
   audio: {
     volume: { master: 0.8, music: 0.9, sfx: 0.6 },
     pausedMusicRate: 0.35,
+    // 遊ぶ人が変えられる BGM の音量（%）。volume.music にこの割合をかける
+    musicVolume: { default: 80, step: 10 },
     fadeOutSec: 2.5,
     crackle: 0.08,
     musicCutoffHz: 3200,

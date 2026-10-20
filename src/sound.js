@@ -2,6 +2,7 @@ import { CONFIG } from './config.js';
 
 const cfg = CONFIG.audio;
 const MUTE_KEY = 'coffee-survival.muted';
+const MUSIC_VOLUME_KEY = 'coffee-survival.musicVolume';
 const NOTE = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
 // 同じ効果音を続けて鳴らすときの最短の間隔（秒）。敵が一度にたくさん倒れても音が重なりすぎないようにする
 const SFX_COOLDOWN = { hit: 0.05, defeat: 0.06, bean: 0.04, damage: 0.1 };
@@ -11,6 +12,16 @@ function freq(name) {
   const m = /^([A-G]#?)(-?\d)$/.exec(name);
   const midi = (Number(m[2]) + 1) * 12 + NOTE[m[1]];
   return 440 * 2 ** ((midi - 69) / 12);
+}
+
+function loadMusicVolume() {
+  try {
+    const v = Number(localStorage.getItem(MUSIC_VOLUME_KEY));
+    if (localStorage.getItem(MUSIC_VOLUME_KEY) !== null && v >= 0 && v <= 100) return v;
+  } catch {
+    // 保存領域が使えないときは初期値
+  }
+  return cfg.musicVolume.default;
 }
 
 function loadMuted() {
@@ -29,6 +40,7 @@ class Sound {
   constructor() {
     this.ctx = null;
     this.muted = loadMuted();
+    this.musicVolume = loadMusicVolume();
     this.paused = false;
     this.wantMusic = false;
     this.playing = false;
@@ -62,6 +74,18 @@ class Sound {
       // 保存できなくても切り替え自体はできる
     }
     if (this.ctx) this.master.gain.setTargetAtTime(this.muted ? 0 : cfg.volume.master, this.ctx.currentTime, 0.05);
+  }
+
+  // BGM の音量（%）を steps 段階ぶん変える。+1 で 1 段階上げる
+  changeMusicVolume(steps) {
+    const { step } = cfg.musicVolume;
+    this.musicVolume = Math.min(100, Math.max(0, this.musicVolume + steps * step));
+    try {
+      localStorage.setItem(MUSIC_VOLUME_KEY, String(this.musicVolume));
+    } catch {
+      // 保存できなくても変更自体はできる
+    }
+    if (this.ctx && this.playing && !this.stopAt) this.#fadeMusicTo(this.#musicLevel(), 0.05);
   }
 
   // ---- BGM ----
@@ -196,7 +220,7 @@ class Sound {
   }
 
   #musicLevel() {
-    return cfg.volume.music * (this.paused ? cfg.pausedMusicRate : 1);
+    return cfg.volume.music * (this.musicVolume / 100) * (this.paused ? cfg.pausedMusicRate : 1);
   }
 
   #fadeMusicTo(level, timeConstant) {
