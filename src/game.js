@@ -357,10 +357,13 @@ export class Game {
     const s = CONFIG.spawn;
     const t = Math.min(1, this.time / s.rampSec);
     const interval = s.startIntervalSec + (s.minIntervalSec - s.startIntervalSec) * t;
+    // 1 回に出る数。2.5 体なら半々の確率で 2 体か 3 体
+    const group = s.startGroup + (s.endGroup - s.startGroup) * t;
     this.enemyTimer += dt;
     while (this.enemyTimer >= interval) {
       this.enemyTimer -= interval;
-      if (this.enemies.length < s.maxCount) this.#spawnEnemy(this.#pickEnemyType());
+      const n = Math.floor(group) + (Math.random() < group % 1 ? 1 : 0);
+      for (let i = 0; i < n && this.enemies.length < s.maxCount; i++) this.#spawnEnemy(this.#pickEnemyType());
     }
   }
 

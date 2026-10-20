@@ -69,11 +69,14 @@ export const CONFIG = {
   // 時間とともに敵が強くなる。出現した時点の生存時間（分）× 倍率ぶん、標準より強くなる
   // 例：hpPerMin 0.4 なら、5:00 に出た敵の体力は 1 + 0.4 × 5 = 3 倍
   enemyScaling: { hpPerMin: 0.4, speedPerMin: 0.06, damagePerMin: 0.1 },
+  // 敵の出現。rampSec かけて、出現の間隔が start → min に縮み、1 回に出る数が startGroup → endGroup に増える
   spawn: {
-    startIntervalSec: 1.6,
-    minIntervalSec: 0.4,
+    startIntervalSec: 0.9,
+    minIntervalSec: 0.3,
     rampSec: 240,
-    maxCount: 80,
+    startGroup: 1,
+    endGroup: 3,
+    maxCount: 150,
   },
   night: { maxDarkness: 0.55 },
   // ラスボス：眠気の化身 ネムリーヌ
