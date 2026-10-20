@@ -23,9 +23,10 @@ export class Weapon {
   }
 
   // 発動間隔が経過していれば true。発動したら this.timer = 0 に戻す
+  // 間隔はキャラの攻撃間隔の倍率で伸び縮みする
   tick(dt) {
     this.timer += dt;
-    return this.timer >= this.config.intervalSec;
+    return this.timer >= this.config.intervalSec * this.game.attackIntervalRate;
   }
 
   hit(target, damage = this.config.damage) {

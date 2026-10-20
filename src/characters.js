@@ -34,13 +34,23 @@ export function saveLastCharacter(character) {
   }
 }
 
-// 性能の説明文（選択画面用）
+// 選択画面に出す性能のバー。value は 0〜1 で、min〜max の範囲に対する位置
+const STAT_BARS = [
+  { label: 'スピード', get: (r) => r.speedRate, min: 0.6, max: 1.5 },
+  { label: '体力', get: (r) => r.maxCaffeine, min: 50, max: 150 },
+  { label: 'パワー', get: (r) => r.damageRate, min: 0.5, max: 1.75 },
+  { label: '連射', get: (r) => 1 / r.attackIntervalRate, min: 0.5, max: 1.5 },
+];
+
+export function statBars(character) {
+  return STAT_BARS.map(({ label, get, min, max }) => ({
+    label,
+    value: Math.min(1, Math.max(0, (get(character.roast) - min) / (max - min))),
+  }));
+}
+
+// 性能の数値（選択画面の説明用）
 export function describeStats(character) {
   const r = character.roast;
-  const lines = [];
-  if (r.speedRate > 1) lines.push('移動が速い');
-  if (r.speedRate < 1) lines.push('移動が少し遅い');
-  if (r.maxCaffeine < CONFIG.player.maxCaffeine) lines.push('カフェイン上限が少し低い');
-  if (r.damageRate > 1) lines.push('攻撃力が高い');
-  return lines.length ? lines : ['クセのない標準性能'];
+  return `移動 ×${r.speedRate}・カフェイン上限 ${r.maxCaffeine}・攻撃力 ×${r.damageRate}・攻撃間隔 ×${r.attackIntervalRate}`;
 }

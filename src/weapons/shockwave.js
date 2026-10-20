@@ -1,7 +1,7 @@
 import { CONFIG } from '../config.js';
 import { Weapon, dist, angleTo } from './base.js';
 
-// カフェインが多いときだけ、周りに衝撃波を放って押し返す
+// カフェインが上限の 7 割以上あるときだけ、周りに衝撃波を放って押し返す
 export class Shockwave extends Weapon {
   constructor(game) {
     super(game, CONFIG.weapons.shockwave);
@@ -12,7 +12,7 @@ export class Shockwave extends Weapon {
     const c = this.config;
     const g = this.game;
     const p = g.player;
-    if (this.tick(dt) && p.caffeine >= c.minCaffeine) {
+    if (this.tick(dt) && p.caffeine >= p.maxCaffeine * c.minCaffeineRatio) {
       this.timer = 0;
       this.rings.push({ x: p.x, y: p.y, r: p.radius, hit: new Set() });
     }
