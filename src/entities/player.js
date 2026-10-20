@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { sound } from '../sound.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
@@ -95,6 +96,7 @@ export class Player {
     if (this.invincibleTimer > 0) return;
     this.caffeine -= amount;
     this.invincibleTimer = CONFIG.player.invincibleSec;
+    sound.play('damage');
   }
 
   // 継続的な減少：無敵時間に関係なく減る
