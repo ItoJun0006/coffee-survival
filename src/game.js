@@ -66,6 +66,7 @@ export class Game {
     this.level = 1;
     this.xp = 0;
     this.damageBonus = this.character.roast.damageRate;
+    this.attackIntervalRate = this.character.roast.attackIntervalRate;
     this.weapons = [new WEAPON_ORDER[0](this)];
     this.notice = null;
     for (let i = 1; i < this.debugLevel; i++) this.#levelUp();

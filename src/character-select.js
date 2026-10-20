@@ -1,11 +1,11 @@
 import { CONFIG } from './config.js';
-import { CHARACTERS, describeStats } from './characters.js';
+import { CHARACTERS, describeStats, statBars } from './characters.js';
 import { drawCharacter } from './entities/player.js';
 
 const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 
 const CARD_W = 160;
-const CARD_H = 190;
+const CARD_H = 260;
 const GAP = 24;
 
 // キャラ選択画面。品種ごとに 1 行、焙煎度ごとに 1 列のカードを並べる
@@ -80,7 +80,7 @@ export class CharacterSelect {
     const sel = this.selected;
     ctx.fillStyle = c.text;
     ctx.font = '15px system-ui, sans-serif';
-    ctx.fillText(sel.unlocked ? `${sel.name}：${describeStats(sel).join('・')}` : 'この品種はまだ解放されていません', viewW / 2, infoY);
+    ctx.fillText(sel.unlocked ? `${sel.name}（${sel.roast.trait}）：${describeStats(sel)}` : 'この品種はまだ解放されていません', viewW / 2, infoY);
     ctx.font = '13px system-ui, sans-serif';
     ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
     ctx.fillText('←→ で選ぶ　Space / Enter / クリックで決定　Esc でタイトルへ', viewW / 2, infoY + 28);
@@ -109,6 +109,27 @@ export class CharacterSelect {
     ctx.fillText(character.unlocked ? character.name : '？？？', cx, card.y + 135);
     ctx.font = '12px system-ui, sans-serif';
     ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
-    ctx.fillText(character.unlocked ? character.roast.trait : '未解放', cx, card.y + 160);
+    ctx.fillText(character.unlocked ? character.roast.trait : '未解放', cx, card.y + 158);
+    if (character.unlocked) this.#drawStatBars(ctx, card);
+  }
+
+  #drawStatBars(ctx, card) {
+    const c = CONFIG.colors;
+    const labelW = 56;
+    const barX = card.x + 14 + labelW;
+    const barW = card.w - 28 - labelW;
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.font = '11px system-ui, sans-serif';
+    statBars(card.character).forEach((bar, i) => {
+      const y = card.y + 180 + i * 18;
+      ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
+      ctx.fillText(bar.label, card.x + 14, y);
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.fillRect(barX, y - 4, barW, 8);
+      ctx.fillStyle = c.hudBar;
+      ctx.fillRect(barX, y - 4, barW * bar.value, 8);
+    });
+    ctx.restore();
   }
 }

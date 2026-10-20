@@ -1,16 +1,17 @@
 export const CONFIG = {
   title: { name: 'コーヒーサバイバル', subtitle: '〜 眠気に負けるな 〜' },
   // 操作キャラ。品種 × 焙煎度の組み合わせで 1 体になる（仮実装）
-  // 性能は焙煎度ごとの倍率。unlocked: false の品種は選択画面に鍵付きで出る
+  // 性能は焙煎度ごとに決める。speedRate・damageRate・attackIntervalRate は標準（中煎り）に対する倍率で、
+  // attackIntervalRate は小さいほど攻撃の間隔が短い（連射が速い）。unlocked: false の品種は選択画面に鍵付きで出る
   characters: {
     defaultId: 'arabica-medium',
     varieties: [
       { id: 'arabica', name: 'アラビカ', unlocked: true },
     ],
     roasts: [
-      { id: 'light', name: '浅煎り', trait: 'すばやい', color: '#c9955e', crease: '#8a5a32', speedRate: 1.15, maxCaffeine: 85, damageRate: 1 },
-      { id: 'medium', name: '中煎り', trait: 'バランス型', color: '#8b5a2b', crease: '#4e2f16', speedRate: 1, maxCaffeine: 100, damageRate: 1 },
-      { id: 'dark', name: '深煎り', trait: '力強い', color: '#4a2c1a', crease: '#22130a', speedRate: 0.9, maxCaffeine: 100, damageRate: 1.25 },
+      { id: 'light', name: '浅煎り', trait: 'スピード', color: '#c9955e', crease: '#8a5a32', speedRate: 1.35, maxCaffeine: 75, damageRate: 0.8, attackIntervalRate: 0.75 },
+      { id: 'medium', name: '中煎り', trait: 'バランス', color: '#8b5a2b', crease: '#4e2f16', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
+      { id: 'dark', name: '深煎り', trait: 'パワー', color: '#4a2c1a', crease: '#22130a', speedRate: 0.8, maxCaffeine: 130, damageRate: 1.5, attackIntervalRate: 1.3 },
     ],
   },
   world: { width: 2000, height: 2000 },
@@ -51,7 +52,7 @@ export const CONFIG = {
     espresso: { name: 'エスプレッソ・ショット', element: 'hot', intervalSec: 2.5, range: 600, width: 10, damage: 6 },
     press: { name: 'フレンチプレス', element: 'none', intervalSec: 4, radius: 90, delaySec: 0.8, damage: 10, range: 400 },
     latte: { name: 'ラテアート', element: 'none', intervalSec: 6, radius: 130, durationSec: 2.5, damage: 2, tickSec: 0.5, healPerSec: 3 },
-    shockwave: { name: 'カフェイン・ショックウェーブ', element: 'none', intervalSec: 3, minCaffeine: 70, speed: 400, maxRadius: 250, thickness: 20, damage: 4, knockback: 400 },
+    shockwave: { name: 'カフェイン・ショックウェーブ', element: 'none', intervalSec: 3, minCaffeineRatio: 0.7, speed: 400, maxRadius: 250, thickness: 20, damage: 4, knockback: 400 },
   },
   // 眠気の化身の手下
   enemies: {
