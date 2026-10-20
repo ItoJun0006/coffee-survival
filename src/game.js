@@ -2,6 +2,7 @@ import { CONFIG } from './config.js';
 import { Input } from './input.js';
 import { Player } from './entities/player.js';
 import { Bean } from './entities/bean.js';
+import { XpOrb } from './entities/xp-orb.js';
 import { Enemy } from './entities/enemy.js';
 import { Boss } from './entities/boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
@@ -53,6 +54,7 @@ export class Game {
   reset() {
     this.player = new Player(CONFIG.world.width / 2, CONFIG.world.height / 2, this.character);
     this.beans = [];
+    this.xpOrbs = [];
     this.enemies = [];
     this.waves = [];
     this.effects = [];
@@ -201,6 +203,7 @@ export class Game {
     for (const fx of this.effects) fx.update(dt);
     this.effects = this.effects.filter((fx) => fx.alive);
     this.#collectBeans();
+    this.#collectXpOrbs(dt);
 
     if (!this.player.alive) this.state = 'gameover';
     else if (this.boss?.dead) this.state = 'clear';
@@ -281,6 +284,24 @@ export class Game {
     }
   }
 
+  #dropXp(x, y, value) {
+    if (this.xpOrbs.length < CONFIG.xpOrb.maxCount) {
+      this.xpOrbs.push(new XpOrb(x, y, value));
+    } else {
+      // 粒が多すぎるときは、いちばん古い粒に経験値をまとめる
+      this.xpOrbs[0].value += value;
+    }
+  }
+
+  #collectXpOrbs(dt) {
+    this.xpOrbs = this.xpOrbs.filter((o) => {
+      o.update(dt, this.player);
+      if (!o.collected) return true;
+      this.#gainXp(o.value);
+      return false;
+    });
+  }
+
   #collectBeans() {
     const p = this.player;
     this.beans = this.beans.filter((b) => {
@@ -289,7 +310,6 @@ export class Game {
         p.drain(CONFIG.bean.fakeCaffeine);
       } else {
         p.heal(CONFIG.bean.caffeine);
-        this.#gainXp(CONFIG.leveling.xpPerBean);
       }
       return false;
     });
@@ -373,12 +393,13 @@ export class Game {
     if (dist(boss, p) < boss.radius + p.radius) p.hit(cfg.contactCaffeine);
   }
 
-  // 倒した敵はエフェクトを残し、ときどき豆を落とす
+  // 倒した敵はエフェクトと経験値の粒を残し、ときどき豆を落とす
   #removeDeadEnemies() {
     const { enemyDropChance, maxDroppedBeans } = CONFIG.leveling;
     this.enemies = this.enemies.filter((e) => {
       if (!e.dead) return true;
       this.effects.push(new DefeatEffect(e.x, e.y, e.config.color, e.radius));
+      this.#dropXp(e.x, e.y, e.config.xp);
       if (Math.random() < enemyDropChance && this.beans.length < CONFIG.bean.maxCount + maxDroppedBeans) {
         this.beans.push(new Bean(e.x, e.y));
       }
@@ -396,6 +417,7 @@ export class Game {
     this.#drawGrid();
     for (const w of this.weapons) w.drawBelow(ctx);
     for (const b of this.beans) b.draw(ctx);
+    for (const o of this.xpOrbs) o.draw(ctx);
     for (const w of this.waves) w.draw(ctx);
     for (const e of this.enemies) e.draw(ctx);
     for (const fx of this.effects) fx.draw(ctx);
