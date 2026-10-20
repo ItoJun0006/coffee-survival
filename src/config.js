@@ -55,9 +55,13 @@ export const CONFIG = {
   },
   // 眠気の化身の手下
   enemies: {
-    sheep: { name: 'うとうと羊', radius: 16, speed: 70, hp: 2, appearSec: 0, weight: 6, contactCaffeine: 5 },
-    slime: { name: 'まぶたスライム', radius: 18, speed: 50, hp: 4, appearSec: 60, weight: 2, drainPerSec: 12 },
-    ghost: { name: 'ふとんゴースト', radius: 20, speed: 90, hp: 3, appearSec: 120, weight: 2, slowSec: 1.5, slowFactor: 0.5 },
+    sheep: { name: 'うとうと羊', color: '#e8e2d6', radius: 16, speed: 70, hp: 2, appearSec: 0, weight: 6, contactCaffeine: 5 },
+    slime: { name: 'まぶたスライム', color: '#7a5c8e', radius: 18, speed: 50, hp: 4, appearSec: 60, weight: 2, drainPerSec: 12 },
+    ghost: { name: 'ふとんゴースト', color: '#b9c4d8', radius: 20, speed: 90, hp: 3, appearSec: 120, weight: 2, slowSec: 1.5, slowFactor: 0.5 },
+  },
+  // 敵を倒したときのエフェクト
+  effects: {
+    defeat: { durationSec: 0.45, particles: 12, speed: 200 },
   },
   spawn: {
     startIntervalSec: 1.6,
