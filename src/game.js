@@ -300,12 +300,11 @@ export class Game {
     const p = this.player;
     this.beans = this.beans.filter((b) => {
       if (dist(b, p) >= b.radius + p.radius) return true;
+      sound.play(b.fake ? 'fakeBean' : 'bean');
       if (b.fake) {
         p.drain(CONFIG.bean.fakeCaffeine);
-        sound.play('fakeBean');
       } else {
         p.heal(CONFIG.bean.caffeine);
-        sound.play('bean');
         this.#gainXp(CONFIG.leveling.xpPerBean);
       }
       return false;
@@ -347,7 +346,7 @@ export class Game {
       e.update(dt, p);
       if (e.frozen || dist(e, p) >= e.radius + p.radius) continue;
       const c = e.config;
-      if (c.contactCaffeine && p.hit(c.contactCaffeine)) sound.play('damage');
+      if (c.contactCaffeine) p.hit(c.contactCaffeine);
       if (c.drainPerSec) p.drain(c.drainPerSec * dt);
       if (c.slowSec) p.slow(c.slowSec, c.slowFactor);
     }
@@ -378,11 +377,11 @@ export class Game {
 
     for (const w of this.waves) {
       w.update(dt);
-      if (w.hits(p) && p.hit(cfg.yawn.caffeine)) sound.play('damage');
+      if (w.hits(p)) p.hit(cfg.yawn.caffeine);
     }
     this.waves = this.waves.filter((w) => w.alive);
 
-    if (dist(boss, p) < boss.radius + p.radius && p.hit(cfg.contactCaffeine)) sound.play('damage');
+    if (dist(boss, p) < boss.radius + p.radius) p.hit(cfg.contactCaffeine);
   }
 
   // 倒した敵はエフェクトを残し、ときどき豆を落とす
@@ -390,8 +389,8 @@ export class Game {
     const { enemyDropChance, maxDroppedBeans } = CONFIG.leveling;
     this.enemies = this.enemies.filter((e) => {
       if (!e.dead) return true;
-      this.effects.push(new DefeatEffect(e.x, e.y, e.config.color, e.radius));
       sound.play('defeat');
+      this.effects.push(new DefeatEffect(e.x, e.y, e.config.color, e.radius));
       if (Math.random() < enemyDropChance && this.beans.length < CONFIG.bean.maxCount + maxDroppedBeans) {
         this.beans.push(new Bean(e.x, e.y));
       }

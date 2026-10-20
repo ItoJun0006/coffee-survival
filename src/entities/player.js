@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { sound } from '../sound.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
@@ -90,12 +91,12 @@ export class Player {
     return this.caffeine > 0;
   }
 
-  // 被弾：無敵時間中は無効。実際にダメージを受けたら true
+  // 被弾：無敵時間中は無効
   hit(amount) {
-    if (this.invincibleTimer > 0) return false;
+    if (this.invincibleTimer > 0) return;
     this.caffeine -= amount;
     this.invincibleTimer = CONFIG.player.invincibleSec;
-    return true;
+    sound.play('damage');
   }
 
   // 継続的な減少：無敵時間に関係なく減る
