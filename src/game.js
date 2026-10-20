@@ -321,7 +321,14 @@ export class Game {
     const a = Math.random() * Math.PI * 2;
     const x = clamp(cx + Math.cos(a) * distance, 0, CONFIG.world.width);
     const y = clamp(cy + Math.sin(a) * distance, 0, CONFIG.world.height);
-    this.enemies.push(new Enemy(type, x, y));
+    this.enemies.push(new Enemy(type, x, y, this.#enemyStrength()));
+  }
+
+  // 今の生存時間に応じた敵の強さの倍率
+  #enemyStrength() {
+    const s = CONFIG.enemyScaling;
+    const min = this.time / 60;
+    return { hp: 1 + s.hpPerMin * min, speed: 1 + s.speedPerMin * min, damage: 1 + s.damagePerMin * min };
   }
 
   #updateEnemies(dt) {
@@ -330,8 +337,8 @@ export class Game {
       e.update(dt, p);
       if (e.frozen || dist(e, p) >= e.radius + p.radius) continue;
       const c = e.config;
-      if (c.contactCaffeine) p.hit(c.contactCaffeine);
-      if (c.drainPerSec) p.drain(c.drainPerSec * dt);
+      if (c.contactCaffeine) p.hit(c.contactCaffeine * e.damageRate);
+      if (c.drainPerSec) p.drain(c.drainPerSec * e.damageRate * dt);
       if (c.slowSec) p.slow(c.slowSec, c.slowFactor);
     }
   }

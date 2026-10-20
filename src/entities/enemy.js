@@ -1,14 +1,17 @@
 import { CONFIG } from '../config.js';
 
 // 眠気の化身の手下。type は CONFIG.enemies のキー
+// strength は出現時の強さの倍率 { hp, speed, damage }。時間がたつほど大きくなる
 export class Enemy {
-  constructor(type, x, y) {
+  constructor(type, x, y, strength = { hp: 1, speed: 1, damage: 1 }) {
     this.type = type;
     this.config = CONFIG.enemies[type];
     this.x = x;
     this.y = y;
     this.radius = this.config.radius;
-    this.hp = this.config.hp;
+    this.hp = this.config.hp * strength.hp;
+    this.speed = this.config.speed * strength.speed;
+    this.damageRate = strength.damage;
     this.wobble = Math.random() * Math.PI * 2;
     this.freezeTimer = 0;
     this.kx = 0;
@@ -42,8 +45,8 @@ export class Enemy {
       this.freezeTimer -= dt;
     } else {
       const d = Math.hypot(target.x - this.x, target.y - this.y) || 1;
-      this.x += ((target.x - this.x) / d) * this.config.speed * dt;
-      this.y += ((target.y - this.y) / d) * this.config.speed * dt;
+      this.x += ((target.x - this.x) / d) * this.speed * dt;
+      this.y += ((target.y - this.y) / d) * this.speed * dt;
       this.wobble += dt * 4;
     }
     this.x += this.kx * dt;

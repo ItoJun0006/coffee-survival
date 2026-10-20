@@ -64,6 +64,9 @@ export const CONFIG = {
   effects: {
     defeat: { durationSec: 0.45, particles: 12, speed: 200 },
   },
+  // 時間とともに敵が強くなる。出現した時点の生存時間（分）× 倍率ぶん、標準より強くなる
+  // 例：hpPerMin 0.4 なら、5:00 に出た敵の体力は 1 + 0.4 × 5 = 3 倍
+  enemyScaling: { hpPerMin: 0.4, speedPerMin: 0.06, damagePerMin: 0.1 },
   spawn: {
     startIntervalSec: 1.6,
     minIntervalSec: 0.4,
