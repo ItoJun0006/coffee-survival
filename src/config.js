@@ -29,9 +29,8 @@ export const CONFIG = {
     spawnRadius: 600,
     maxCount: 40,
   },
-  // 豆を拾うと経験値が入り、レベルアップごとに攻撃が 1 つ増える
+  // 敵が落とす経験値の粒を拾うと経験値が入り、レベルアップごとに攻撃が 1 つ増える
   leveling: {
-    xpPerBean: 1,
     baseXp: 5,
     xpGrowth: 5,
     enemyDropChance: 0.4,
@@ -53,11 +52,14 @@ export const CONFIG = {
     latte: { name: 'ラテアート', element: 'none', intervalSec: 6, radius: 130, durationSec: 2.5, damage: 2, tickSec: 0.5, healPerSec: 3 },
     shockwave: { name: 'カフェイン・ショックウェーブ', element: 'none', intervalSec: 3, minCaffeine: 70, speed: 400, maxRadius: 250, thickness: 20, damage: 4, knockback: 400 },
   },
-  // 眠気の化身の手下
+  // 倒した敵が落とす経験値の粒。magnetRadius 以内に近づくと吸い寄せられる
+  // maxCount を超えたら新しい粒は作らず、今ある粒に経験値をまとめる
+  xpOrb: { radius: 5, magnetRadius: 110, magnetSpeed: 420, maxCount: 300, color: '#f0d58a' },
+  // 眠気の化身の手下。xp は倒したときに落とす経験値
   enemies: {
-    sheep: { name: 'うとうと羊', color: '#e8e2d6', radius: 16, speed: 70, hp: 2, appearSec: 0, weight: 6, contactCaffeine: 5 },
-    slime: { name: 'まぶたスライム', color: '#7a5c8e', radius: 18, speed: 50, hp: 4, appearSec: 60, weight: 2, drainPerSec: 12 },
-    ghost: { name: 'ふとんゴースト', color: '#b9c4d8', radius: 20, speed: 90, hp: 3, appearSec: 120, weight: 2, slowSec: 1.5, slowFactor: 0.5 },
+    sheep: { name: 'うとうと羊', color: '#e8e2d6', xp: 1, radius: 16, speed: 70, hp: 2, appearSec: 0, weight: 6, contactCaffeine: 5 },
+    slime: { name: 'まぶたスライム', color: '#7a5c8e', xp: 2, radius: 18, speed: 50, hp: 4, appearSec: 60, weight: 2, drainPerSec: 12 },
+    ghost: { name: 'ふとんゴースト', color: '#b9c4d8', xp: 2, radius: 20, speed: 90, hp: 3, appearSec: 120, weight: 2, slowSec: 1.5, slowFactor: 0.5 },
   },
   // 敵を倒したときのエフェクト
   effects: {
