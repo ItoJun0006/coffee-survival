@@ -6,9 +6,12 @@ import { Enemy } from './entities/enemy.js';
 import { Boss } from './entities/boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
 import { WEAPON_ORDER } from './weapons/index.js';
+import { loadLastCharacter, saveLastCharacter } from './characters.js';
+import { CharacterSelect } from './character-select.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 const formatTime = (sec) => {
   const s = Math.max(0, Math.ceil(sec));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -27,7 +30,14 @@ export class Game {
     this.debugLevel = Number(params.get('level')) || 1;
     this.resize();
     window.addEventListener('resize', () => this.resize());
+    // 別のタブやアプリに切り替えたら自動でポーズする
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.#pause();
+    });
+    this.character = loadLastCharacter();
+    this.characterSelect = new CharacterSelect();
     this.reset();
+    this.state = 'title';
   }
 
   resize() {
@@ -40,7 +50,7 @@ export class Game {
   }
 
   reset() {
-    this.player = new Player(CONFIG.world.width / 2, CONFIG.world.height / 2);
+    this.player = new Player(CONFIG.world.width / 2, CONFIG.world.height / 2, this.character);
     this.beans = [];
     this.enemies = [];
     this.waves = [];
@@ -53,7 +63,7 @@ export class Game {
     this.state = 'playing';
     this.level = 1;
     this.xp = 0;
-    this.damageBonus = 1;
+    this.damageBonus = this.character.roast.damageRate;
     this.weapons = [new WEAPON_ORDER[0](this)];
     this.notice = null;
     for (let i = 1; i < this.debugLevel; i++) this.#levelUp();
@@ -135,6 +145,7 @@ export class Game {
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
       this.update(dt);
+      this.input.endFrame();
       this.draw();
       requestAnimationFrame(loop);
     };
@@ -142,11 +153,37 @@ export class Game {
   }
 
   update(dt) {
-    if (this.state !== 'playing') {
-      if (this.input.consumeTap()) this.reset();
+    if (this.state === 'title') {
+      if (this.input.consumeClick()) {
+        this.characterSelect.open(this.character);
+        this.state = 'select';
+      }
       return;
     }
-    this.input.consumeTap();
+    if (this.state === 'select') {
+      const result = this.characterSelect.update(this.input, this.viewW, this.viewH);
+      if (result === 'back') {
+        this.state = 'title';
+      } else if (result) {
+        this.character = result;
+        saveLastCharacter(result);
+        this.reset();
+      }
+      return;
+    }
+    if (this.state === 'paused') {
+      this.#updatePauseMenu();
+      return;
+    }
+    if (this.state !== 'playing') {
+      if (this.input.consumeClick()) this.reset();
+      return;
+    }
+    this.input.consumeClick();
+    if (this.input.wasPressed('Escape', 'KeyP')) {
+      this.#pause();
+      return;
+    }
 
     this.time += dt;
     if (!this.boss && this.time >= CONFIG.boss.timeSec) this.#spawnBoss();
@@ -165,6 +202,39 @@ export class Game {
 
     this.camera.x = this.player.x - this.viewW / 2;
     this.camera.y = this.player.y - this.viewH / 2;
+  }
+
+  #pause() {
+    if (this.state !== 'playing') return;
+    this.state = 'paused';
+    this.pauseIndex = 0;
+  }
+
+  // ポーズメニューの操作。矢印キーで選んで Space / Enter で決定、Esc / P で再開
+  #updatePauseMenu() {
+    const items = this.#pauseMenuItems();
+    if (this.input.wasPressed('ArrowUp', 'KeyW')) this.pauseIndex = (this.pauseIndex + items.length - 1) % items.length;
+    if (this.input.wasPressed('ArrowDown', 'KeyS')) this.pauseIndex = (this.pauseIndex + 1) % items.length;
+    const clicked = this.input.consumeClick();
+    if (this.input.wasPressed('Escape', 'KeyP')) {
+      this.state = 'playing';
+      return;
+    }
+    if (!clicked) return;
+    const pos = this.input.clickPos;
+    const item = pos ? items.find((it) => inRect(pos, it)) : items[this.pauseIndex];
+    item?.action();
+  }
+
+  #pauseMenuItems() {
+    const w = Math.min(240, this.viewW - 64);
+    const h = 48;
+    const x = (this.viewW - w) / 2;
+    const y = this.viewH / 2 - 10;
+    return [
+      { label: '再開', x, y, w, h, action: () => { this.state = 'playing'; } },
+      { label: 'タイトルへ戻る', x, y: y + h + 16, w, h, action: () => { this.reset(); this.state = 'title'; } },
+    ];
   }
 
   #updatePlayer(dt) {
@@ -323,8 +393,16 @@ export class Game {
     if (this.state === 'clear') this.#drawDawn();
     else this.#drawDarkness();
 
-    this.#drawStick();
+    if (this.state === 'title') {
+      this.#drawTitle();
+      return;
+    }
+    if (this.state === 'select') {
+      this.characterSelect.draw(ctx, this.viewW, this.viewH);
+      return;
+    }
     this.#drawHud();
+    if (this.state === 'paused') this.#drawPauseMenu();
     this.#drawOverlay();
   }
 
@@ -372,26 +450,10 @@ export class Game {
     ctx.fillRect(0, 0, this.viewW, this.viewH);
   }
 
-  #drawStick() {
-    const s = this.input.stick;
-    if (!s.active) return;
-    const { ctx } = this;
-    const r = this.input.stickRadius;
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.beginPath();
-    ctx.arc(s.originX, s.originY, r, 0, Math.PI * 2);
-    ctx.fill();
-    const d = this.input.direction();
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.beginPath();
-    ctx.arc(s.originX + d.x * r, s.originY + d.y * r, r * 0.4, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
   #drawHud() {
     const { ctx } = this;
     const c = CONFIG.colors;
-    const ratio = Math.max(0, this.player.caffeine / CONFIG.player.maxCaffeine);
+    const ratio = Math.max(0, this.player.caffeine / this.player.maxCaffeine);
     const x = 16;
     const y = 16;
     const w = Math.min(240, this.viewW - 32);
@@ -410,7 +472,7 @@ export class Game {
     ctx.font = '14px system-ui, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.fillText(`Lv ${this.level}   カフェイン  ${Math.max(0, Math.ceil(this.player.caffeine))}`, x, y + 34);
+    ctx.fillText(`${this.character.name}   Lv ${this.level}   カフェイン  ${Math.max(0, Math.ceil(this.player.caffeine))}`, x, y + 34);
     ctx.fillText(`生存時間  ${formatTime(this.time)}`, x, y + 54);
     if (!this.boss) ctx.fillText(`眠気が来るまで  ${formatTime(CONFIG.boss.timeSec - this.time)}`, x, y + 74);
 
@@ -465,8 +527,59 @@ export class Game {
     }
   }
 
+  // 起動時のタイトル画面。ゲームの場面を背景に、名前とスタート案内を重ねる
+  #drawTitle() {
+    const { ctx } = this;
+    const c = CONFIG.colors;
+    const cx = this.viewW / 2;
+    const cy = this.viewH / 2;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, this.viewW, this.viewH);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 48px system-ui, sans-serif';
+    ctx.fillStyle = c.hudBar;
+    ctx.fillText(CONFIG.title.name, cx, cy - 60);
+
+    ctx.font = '16px system-ui, sans-serif';
+    ctx.fillStyle = c.text;
+    ctx.fillText(CONFIG.title.subtitle, cx, cy - 15);
+    ctx.font = '13px system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
+    ctx.fillText('珈琲豆を拾ってカフェインを保ち、朝まで生き延びろ', cx, cy + 20);
+
+    // スタート案内はゆっくり点滅させる
+    ctx.globalAlpha = 0.5 + 0.5 * Math.sin(performance.now() / 300);
+    ctx.font = 'bold 18px system-ui, sans-serif';
+    ctx.fillStyle = c.xpBar;
+    ctx.fillText('クリック / Space でスタート', cx, cy + 80);
+    ctx.globalAlpha = 1;
+  }
+
+  #drawPauseMenu() {
+    const { ctx } = this;
+    const c = CONFIG.colors;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, this.viewW, this.viewH);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = c.text;
+    ctx.font = 'bold 28px system-ui, sans-serif';
+    ctx.fillText('ポーズ中', this.viewW / 2, this.viewH / 2 - 60);
+
+    ctx.font = 'bold 18px system-ui, sans-serif';
+    this.#pauseMenuItems().forEach((it, i) => {
+      const selected = i === this.pauseIndex;
+      ctx.fillStyle = selected ? c.hudBar : c.hudBg;
+      ctx.fillRect(it.x, it.y, it.w, it.h);
+      ctx.fillStyle = selected ? '#3b2418' : c.text;
+      ctx.fillText(it.label, it.x + it.w / 2, it.y + it.h / 2);
+    });
+  }
+
   #drawOverlay() {
-    if (this.state === 'playing') return;
+    if (this.state === 'playing' || this.state === 'paused') return;
     const { ctx } = this;
     const cleared = this.state === 'clear';
     if (!cleared) {
@@ -480,6 +593,6 @@ export class Game {
     ctx.fillText(cleared ? '朝が来た！' : '眠りに落ちた…', this.viewW / 2, this.viewH / 2 - 30);
     ctx.font = '16px system-ui, sans-serif';
     ctx.fillText(`生存時間  ${formatTime(this.time)}`, this.viewW / 2, this.viewH / 2 + 10);
-    ctx.fillText('タップ / Space でもう一度', this.viewW / 2, this.viewH / 2 + 40);
+    ctx.fillText('クリック / Space でもう一度', this.viewW / 2, this.viewH / 2 + 40);
   }
 }

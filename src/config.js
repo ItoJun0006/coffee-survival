@@ -1,4 +1,18 @@
 export const CONFIG = {
+  title: { name: 'コーヒーサバイバル', subtitle: '〜 眠気に負けるな 〜' },
+  // 操作キャラ。品種 × 焙煎度の組み合わせで 1 体になる（仮実装）
+  // 性能は焙煎度ごとの倍率。unlocked: false の品種は選択画面に鍵付きで出る
+  characters: {
+    defaultId: 'arabica-medium',
+    varieties: [
+      { id: 'arabica', name: 'アラビカ', unlocked: true },
+    ],
+    roasts: [
+      { id: 'light', name: '浅煎り', trait: 'すばやい', color: '#c9955e', crease: '#8a5a32', speedRate: 1.15, maxCaffeine: 85, damageRate: 1 },
+      { id: 'medium', name: '中煎り', trait: 'バランス型', color: '#8b5a2b', crease: '#4e2f16', speedRate: 1, maxCaffeine: 100, damageRate: 1 },
+      { id: 'dark', name: '深煎り', trait: '力強い', color: '#4a2c1a', crease: '#22130a', speedRate: 0.9, maxCaffeine: 100, damageRate: 1.25 },
+    ],
+  },
   world: { width: 2000, height: 2000 },
   player: {
     radius: 18,
@@ -81,7 +95,6 @@ export const CONFIG = {
   colors: {
     ground: '#2a1a12',
     grid: '#33221a',
-    player: '#c8a27a',
     playerSlowed: '#8fa3c8',
     bean: '#8b5a3c',
     fakeBean: '#7d5a78',
