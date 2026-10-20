@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,4 +31,4 @@
 
 ## Notes
 
-- FR-005（弾の大きさ・発生頻度のほかに入れるアイテム）が要確認。着手する前に `/speckit-clarify` で詰めてから `/speckit-plan` に進む。
+- 要確認だった FR-005（アイテムの種類）は、4 種類・所持 2 種類までに決まった。着手する前に `/speckit-clarify` で詰めてから `/speckit-plan` に進む。
