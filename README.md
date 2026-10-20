@@ -1,6 +1,6 @@
 # コーヒーサバイバル
 
-珈琲をテーマにしたサバイバルゲーム。スマホ・PC のブラウザで遊べる HTML5 Canvas ゲーム。
+珈琲をテーマにしたサバイバルゲーム。PC のブラウザで遊ぶ HTML5 Canvas ゲーム。
 
 ## 構成
 
@@ -8,11 +8,10 @@
 
 ```
 index.html             エントリポイント
-manifest.webmanifest   ホーム画面追加用の Web App Manifest
-css/style.css          全画面・タッチ向けスタイル
+css/style.css          全画面表示のスタイル
 src/main.js            起動処理
 src/game.js            ゲームループ・描画・状態管理
-src/input.js           キーボード / タッチ（仮想スティック）入力
+src/input.js           キーボード / マウスクリック入力
 src/config.js          ゲームバランス・色などの定数
 src/entities/          プレイヤー・アイテム等のエンティティ
 assets/                画像・アイコン等
@@ -26,25 +25,17 @@ ES Modules を使うため、ファイルを直接開くのではなくローカ
 python3 -m http.server 8000
 ```
 
-PC では http://localhost:8000 を開く。
-
-### スマホで遊ぶ
-
-PC とスマホを同じ Wi-Fi に接続し、PC の IP アドレスを確認する。
-
-```bash
-ipconfig getifaddr en0
-```
-
-スマホのブラウザで `http://<PCのIPアドレス>:8000` を開く。共有メニューから「ホーム画面に追加」すると全画面で起動できる。
+http://localhost:8000 を開く。
 
 ## 操作
 
-| 操作 | PC | スマホ |
-| --- | --- | --- |
-| 移動 | WASD / 矢印キー | 画面をドラッグ（仮想スティック） |
-| ポーズ | Esc / P | 右上の ⏸ ボタン |
-| リトライ | Space / Enter | タップ |
+| 操作 | キー |
+| --- | --- |
+| スタート | Space / Enter / クリック |
+| 移動 | WASD / 矢印キー |
+| ポーズ | Esc / P |
+| ポーズメニューの選択 | ↑↓（W / S）で選んで Space / Enter、またはクリック |
+| リトライ | Space / Enter / クリック |
 
 ## ルール
 
