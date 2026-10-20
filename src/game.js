@@ -6,6 +6,8 @@ import { Enemy } from './entities/enemy.js';
 import { Boss } from './entities/boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
 import { WEAPON_ORDER } from './weapons/index.js';
+import { loadLastCharacter, saveLastCharacter } from './characters.js';
+import { CharacterSelect } from './character-select.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -32,6 +34,8 @@ export class Game {
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) this.#pause();
     });
+    this.character = loadLastCharacter();
+    this.characterSelect = new CharacterSelect();
     this.reset();
     this.state = 'title';
   }
@@ -46,7 +50,7 @@ export class Game {
   }
 
   reset() {
-    this.player = new Player(CONFIG.world.width / 2, CONFIG.world.height / 2);
+    this.player = new Player(CONFIG.world.width / 2, CONFIG.world.height / 2, this.character);
     this.beans = [];
     this.enemies = [];
     this.waves = [];
@@ -59,7 +63,7 @@ export class Game {
     this.state = 'playing';
     this.level = 1;
     this.xp = 0;
-    this.damageBonus = 1;
+    this.damageBonus = this.character.roast.damageRate;
     this.weapons = [new WEAPON_ORDER[0](this)];
     this.notice = null;
     for (let i = 1; i < this.debugLevel; i++) this.#levelUp();
@@ -150,7 +154,21 @@ export class Game {
 
   update(dt) {
     if (this.state === 'title') {
-      if (this.input.consumeClick()) this.state = 'playing';
+      if (this.input.consumeClick()) {
+        this.characterSelect.open(this.character);
+        this.state = 'select';
+      }
+      return;
+    }
+    if (this.state === 'select') {
+      const result = this.characterSelect.update(this.input, this.viewW, this.viewH);
+      if (result === 'back') {
+        this.state = 'title';
+      } else if (result) {
+        this.character = result;
+        saveLastCharacter(result);
+        this.reset();
+      }
       return;
     }
     if (this.state === 'paused') {
@@ -379,6 +397,10 @@ export class Game {
       this.#drawTitle();
       return;
     }
+    if (this.state === 'select') {
+      this.characterSelect.draw(ctx, this.viewW, this.viewH);
+      return;
+    }
     this.#drawHud();
     if (this.state === 'paused') this.#drawPauseMenu();
     this.#drawOverlay();
@@ -431,7 +453,7 @@ export class Game {
   #drawHud() {
     const { ctx } = this;
     const c = CONFIG.colors;
-    const ratio = Math.max(0, this.player.caffeine / CONFIG.player.maxCaffeine);
+    const ratio = Math.max(0, this.player.caffeine / this.player.maxCaffeine);
     const x = 16;
     const y = 16;
     const w = Math.min(240, this.viewW - 32);
@@ -450,7 +472,7 @@ export class Game {
     ctx.font = '14px system-ui, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.fillText(`Lv ${this.level}   カフェイン  ${Math.max(0, Math.ceil(this.player.caffeine))}`, x, y + 34);
+    ctx.fillText(`${this.character.name}   Lv ${this.level}   カフェイン  ${Math.max(0, Math.ceil(this.player.caffeine))}`, x, y + 34);
     ctx.fillText(`生存時間  ${formatTime(this.time)}`, x, y + 54);
     if (!this.boss) ctx.fillText(`眠気が来るまで  ${formatTime(CONFIG.boss.timeSec - this.time)}`, x, y + 74);
 
