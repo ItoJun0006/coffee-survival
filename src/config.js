@@ -39,19 +39,22 @@ export const CONFIG = {
     // 全攻撃を手に入れた後のレベルアップで上がる攻撃力
     damageBonusPerLevel: 0.1,
   },
+  // レベルアップで出る攻撃の候補の数と、攻撃の強化。Lv が 1 上がるごとに
+  // ダメージが damagePerLevel、攻撃の間隔が intervalPerLevel の割合で変わる
+  weaponLevels: { choices: 3, max: 5, damagePerLevel: 0.25, intervalPerLevel: 0.08 },
   // 攻撃。element が hot の攻撃はボスに効きやすく、ice は効きにくい
   weapons: {
-    beanGun: { name: '豆マシンガン', element: 'none', intervalSec: 0.35, speed: 520, radius: 6, damage: 1, range: 450 },
-    mill: { name: 'ミル・トルネード', element: 'none', count: 2, orbitRadius: 70, bladeRadius: 12, angularSpeed: 3, damage: 1, hitCooldownSec: 0.5 },
-    mug: { name: 'マグカップ投げ', element: 'none', intervalSec: 1.6, speed: 380, radius: 14, damage: 2, range: 320, hitCooldownSec: 0.4 },
-    drip: { name: 'ドリップの雨', element: 'hot', intervalSec: 1.2, drops: 3, radius: 40, delaySec: 0.6, damage: 3, range: 500 },
-    steam: { name: 'スチーム噴射', element: 'hot', intervalSec: 1.8, range: 140, angleDeg: 70, damage: 2, knockback: 300 },
-    puddle: { name: 'こぼれ珈琲', element: 'hot', intervalSec: 2, radius: 50, durationSec: 4, damage: 1, tickSec: 0.5 },
-    ice: { name: 'アイス珈琲', element: 'ice', intervalSec: 1.5, shards: 6, speed: 360, radius: 7, damage: 1, range: 300, freezeSec: 1.2 },
-    espresso: { name: 'エスプレッソ・ショット', element: 'hot', intervalSec: 2.5, range: 600, width: 10, damage: 6 },
-    press: { name: 'フレンチプレス', element: 'none', intervalSec: 4, radius: 90, delaySec: 0.8, damage: 10, range: 400 },
-    latte: { name: 'ラテアート', element: 'none', intervalSec: 6, radius: 130, durationSec: 2.5, damage: 2, tickSec: 0.5, healPerSec: 3 },
-    shockwave: { name: 'カフェイン・ショックウェーブ', element: 'none', intervalSec: 3, minCaffeineRatio: 0.7, speed: 400, maxRadius: 250, thickness: 20, damage: 4, knockback: 400 },
+    beanGun: { name: '豆マシンガン', desc: '近い敵に豆を\n連射する', element: 'none', intervalSec: 0.35, speed: 520, radius: 6, damage: 1, range: 450 },
+    mill: { name: 'ミル・トルネード', desc: '2 枚の刃が\nまわりを回り続ける', element: 'none', count: 2, orbitRadius: 70, bladeRadius: 12, angularSpeed: 3, damage: 1, hitCooldownSec: 0.5 },
+    mug: { name: 'マグカップ投げ', desc: '投げると戻ってくる。\n敵を貫通する', element: 'none', intervalSec: 1.6, speed: 380, radius: 14, damage: 2, range: 320, hitCooldownSec: 0.4 },
+    drip: { name: 'ドリップの雨', desc: '敵の頭上に\n熱い雫を降らせる', element: 'hot', intervalSec: 1.2, drops: 3, radius: 40, delaySec: 0.6, damage: 3, range: 500 },
+    steam: { name: 'スチーム噴射', desc: '扇形に蒸気を吹き、\n敵を押し返す', element: 'hot', intervalSec: 1.8, range: 140, angleDeg: 70, damage: 2, knockback: 300 },
+    puddle: { name: 'こぼれ珈琲', desc: '足元に熱い水たまりを作り、\nダメージを与え続ける', element: 'hot', intervalSec: 2, radius: 50, durationSec: 4, damage: 1, tickSec: 0.5 },
+    ice: { name: 'アイス珈琲', desc: '氷を全方向に飛ばし、\n当たった敵を凍らせる', element: 'ice', intervalSec: 1.5, shards: 6, speed: 360, radius: 7, damage: 1, range: 300, freezeSec: 1.2 },
+    espresso: { name: 'エスプレッソ・ショット', desc: '一直線に\n敵を貫く', element: 'hot', intervalSec: 2.5, range: 600, width: 10, damage: 6 },
+    press: { name: 'フレンチプレス', desc: '近い敵を真上から\n押しつぶす（大ダメージ）', element: 'none', intervalSec: 4, radius: 90, delaySec: 0.8, damage: 10, range: 400 },
+    latte: { name: 'ラテアート', desc: 'ハートの中の敵にダメージ。\n中にいると回復する', element: 'none', intervalSec: 6, radius: 130, durationSec: 2.5, damage: 2, tickSec: 0.5, healPerSec: 3 },
+    shockwave: { name: 'カフェイン・ショックウェーブ', desc: 'カフェインが 7 割以上のとき\n衝撃波で押し返す', element: 'none', intervalSec: 3, minCaffeineRatio: 0.7, speed: 400, maxRadius: 250, thickness: 20, damage: 4, knockback: 400 },
   },
   // 倒した敵が落とす経験値の粒。magnetRadius 以内に近づくと吸い寄せられる
   // maxCount を超えたら新しい粒は作らず、今ある粒に経験値をまとめる

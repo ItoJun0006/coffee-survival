@@ -1,3 +1,5 @@
+import { CONFIG } from '../config.js';
+
 export const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 export const angleTo = (from, to) => Math.atan2(to.y - from.y, to.x - from.x);
 
@@ -16,21 +18,32 @@ export class Weapon {
     this.game = game;
     this.config = config;
     this.timer = 0;
+    this.level = 1;
   }
 
   get name() {
     return this.config.name;
   }
 
+  get desc() {
+    return this.config.desc;
+  }
+
+  // 強化によるダメージの倍率（Lv 1 で 1 倍）
+  get damageRate() {
+    return 1 + CONFIG.weaponLevels.damagePerLevel * (this.level - 1);
+  }
+
   // 発動間隔が経過していれば true。発動したら this.timer = 0 に戻す
-  // 間隔はキャラの攻撃間隔の倍率で伸び縮みする
+  // 間隔はキャラの攻撃間隔の倍率と、強化の段階で伸び縮みする
   tick(dt) {
     this.timer += dt;
-    return this.timer >= this.config.intervalSec * this.game.attackIntervalRate;
+    const levelRate = 1 - CONFIG.weaponLevels.intervalPerLevel * (this.level - 1);
+    return this.timer >= this.config.intervalSec * this.game.attackIntervalRate * levelRate;
   }
 
   hit(target, damage = this.config.damage) {
-    this.game.dealDamage(target, damage, this.config.element);
+    this.game.dealDamage(target, damage * this.damageRate, this.config.element);
   }
 
   update() {}

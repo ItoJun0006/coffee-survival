@@ -10,6 +10,7 @@ import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { loadLastCharacter, saveLastCharacter } from './characters.js';
 import { CharacterSelect } from './character-select.js';
+import { LevelUpMenu } from './level-up-menu.js';
 import { sound } from './sound.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
@@ -39,6 +40,7 @@ export class Game {
     });
     this.character = loadLastCharacter();
     this.characterSelect = new CharacterSelect();
+    this.levelUpMenu = new LevelUpMenu();
     sound.init();
     this.reset();
     this.state = 'title';
@@ -74,8 +76,13 @@ export class Game {
     this.damageBonus = this.character.roast.damageRate;
     this.attackIntervalRate = this.character.roast.attackIntervalRate;
     this.weapons = [new WEAPON_ORDER[0](this)];
-    this.notice = null;
-    for (let i = 1; i < this.debugLevel; i++) this.#levelUp();
+    this.pendingLevelUps = 0;
+    // 動作確認用の ?level=N は、まだ持っていない攻撃を優先して自動で選ぶ
+    for (let i = 1; i < this.debugLevel; i++) {
+      this.level += 1;
+      const choices = this.#levelUpChoices();
+      this.#applyChoice(choices.find((c) => c.isNew) ?? choices[0]);
+    }
     this.notice = null;
   }
 
@@ -89,25 +96,59 @@ export class Game {
     const before = this.level;
     while (this.xp >= this.xpToNext) {
       this.xp -= this.xpToNext;
-      this.#levelUp();
+      this.level += 1;
+      this.pendingLevelUps += 1;
     }
-    if (this.level > before) sound.play('levelUp');
+    if (this.level > before) {
+      sound.play('levelUp');
+      if (this.state === 'playing') this.#openLevelUp();
+    }
   }
 
-  // 次の攻撃を手に入れる。全部そろった後は攻撃力が上がる
-  #levelUp() {
-    this.level += 1;
-    const Next = WEAPON_ORDER[this.weapons.length];
-    let text;
-    if (Next) {
-      const weapon = new Next(this);
-      this.weapons.push(weapon);
-      text = `${weapon.name} を手に入れた！`;
-    } else {
-      this.damageBonus += CONFIG.leveling.damageBonusPerLevel;
-      text = `攻撃力アップ（×${this.damageBonus.toFixed(1)}）`;
+  // 攻撃の候補：まだ持っていない攻撃（新しいインスタンス）と、Lv が上限未満の持っている攻撃
+  #levelUpChoices() {
+    const max = CONFIG.weaponLevels.max;
+    return WEAPON_ORDER.flatMap((W) => {
+      const owned = this.weapons.find((w) => w instanceof W);
+      if (!owned) return [{ weapon: new W(this), isNew: true }];
+      return owned.level < max ? [{ weapon: owned, isNew: false }] : [];
+    });
+  }
+
+  // 候補をランダムに選んで、選択画面を開く。候補がなければ攻撃力全体を上げる
+  #openLevelUp() {
+    const all = this.#levelUpChoices();
+    for (let i = all.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [all[i], all[j]] = [all[j], all[i]];
     }
+    const choices = all.slice(0, CONFIG.weaponLevels.choices);
+    if (choices.length) {
+      this.levelUpMenu.open(choices, this.level);
+      this.state = 'levelup';
+      return;
+    }
+    this.damageBonus += CONFIG.leveling.damageBonusPerLevel;
+    this.notice = { title: `レベル ${this.level}`, text: `攻撃力アップ（×${this.damageBonus.toFixed(1)}）`, until: this.time + 2.5 };
+    this.pendingLevelUps = 0;
+  }
+
+  #applyChoice(choice) {
+    const { weapon } = choice;
+    if (choice.isNew) this.weapons.push(weapon);
+    else weapon.level += 1;
+    const text = choice.isNew ? `${weapon.name} を手に入れた！` : `${weapon.name} が Lv ${weapon.level} になった！`;
     this.notice = { title: `レベル ${this.level}`, text, until: this.time + 2.5 };
+  }
+
+  #updateLevelUp() {
+    const choice = this.levelUpMenu.update(this.input, this.viewW, this.viewH);
+    if (!choice) return;
+    this.#applyChoice(choice);
+    this.pendingLevelUps -= 1;
+    this.state = 'playing';
+    // 一度にいくつも上がったときは、続けて選ぶ
+    if (this.pendingLevelUps > 0) this.#openLevelUp();
   }
 
   // ---- 攻撃から使うヘルパー ----
@@ -190,6 +231,10 @@ export class Game {
     }
     if (this.state === 'paused') {
       this.#updatePauseMenu();
+      return;
+    }
+    if (this.state === 'levelup') {
+      this.#updateLevelUp();
       return;
     }
     if (this.state !== 'playing') {
@@ -480,6 +525,7 @@ export class Game {
     } else {
       this.#drawHud();
       if (this.state === 'paused') this.#drawPauseMenu();
+      if (this.state === 'levelup') this.levelUpMenu.draw(ctx, this.viewW, this.viewH);
       this.#drawOverlay();
     }
     this.#drawSoundIndicator();
@@ -576,7 +622,7 @@ export class Game {
     // 手に入れた攻撃の一覧
     ctx.font = '11px system-ui, sans-serif';
     ctx.fillStyle = 'rgba(243, 230, 216, 0.6)';
-    this.weapons.forEach((wp, i) => ctx.fillText(`・${wp.name}`, x, y + 98 + i * 14));
+    this.weapons.forEach((wp, i) => ctx.fillText(`・${wp.name}  Lv ${wp.level}`, x, y + 98 + i * 14));
 
     this.#drawNotice();
     if (this.boss && !this.boss.dead) this.#drawBossHud();
@@ -676,7 +722,7 @@ export class Game {
   }
 
   #drawOverlay() {
-    if (this.state === 'playing' || this.state === 'paused') return;
+    if (this.state === 'playing' || this.state === 'paused' || this.state === 'levelup') return;
     const { ctx } = this;
     const cleared = this.state === 'clear';
     if (!cleared) {
