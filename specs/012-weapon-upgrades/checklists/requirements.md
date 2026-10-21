@@ -1,4 +1,4 @@
-# Specification Quality Checklist: 残り 10 種類の武器に Lv ごとの強化と MAX の見た目を付ける
+# Specification Quality Checklist: 8 種類の武器に Lv ごとの強化と MAX の見た目を付ける
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-10-22

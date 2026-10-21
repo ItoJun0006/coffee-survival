@@ -2,7 +2,7 @@
 description: "Task list for 012-weapon-upgrades"
 ---
 
-# Tasks: 残り 10 種類の武器に Lv ごとの強化と MAX の見た目を付ける
+# Tasks: 8 種類の武器に Lv ごとの強化と MAX の見た目を付ける
 
 **Input**: Design documents from `/specs/012-weapon-upgrades/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/weapon-upgrades.md, quickstart.md
@@ -57,7 +57,7 @@ description: "Task list for 012-weapon-upgrades"
 
 ## Phase 3: User Story 1 - どの武器も、育てると撃ち方・効き方が変わる（Priority: P1）🎯 MVP
 
-**Goal**: 10 種類の武器が Lv 2・4・6 で特別な強化、Lv 8 で MAX の変化を受け、カードに次の Lv で変わることが出る（FR-001〜FR-013）
+**Goal**: 8 種類の武器が Lv 2・4・6 で特別な強化、Lv 8 で MAX の変化を受け、カードに次の Lv で変わることが出る（FR-001〜FR-011）
 
 **Independent Test**: quickstart §1。`?weapons=<id>:N` で Lv を変え、spec の表どおりに変わるかを武器ごとに見る
 
@@ -81,7 +81,7 @@ description: "Task list for 012-weapon-upgrades"
 
 ## Phase 4: User Story 2 - MAX の武器はひと目で分かる（Priority: P2）
 
-**Goal**: 10 種類それぞれの Lv 8 の見た目を、3 案から選んで実装する（FR-015・FR-016）
+**Goal**: 8 種類それぞれの Lv 8 の見た目を、3 案から選んで実装する（FR-015・FR-016）
 
 **Independent Test**: quickstart §2。`?weapons=<id>:7` と `:8` を見比べる
 
@@ -114,15 +114,10 @@ description: "Task list for 012-weapon-upgrades"
 - [x] T050 [US2] アイス珈琲の MAX の見た目の 3 案を作る（src/weapons/ice.js、src/config.js `ice.maxVisual`）。結晶の腕の先までを当たる半径にする
 - [ ] T051 [US2] アイス珈琲の 3 案の比較画像を見せて選んでもらう
 - [ ] T052 [US2] アイス珈琲で選んだ案だけを残す（src/weapons/ice.js、src/config.js）
-- [x] T053 [US2] フレンチプレスの MAX の見た目の 3 案を作る（src/weapons/press.js、src/config.js `press.maxVisual`）
-- [ ] T054 [US2] フレンチプレスの 3 案の比較画像を見せて選んでもらう
-- [ ] T055 [US2] フレンチプレスで選んだ案だけを残す（src/weapons/press.js、src/config.js）
-- [x] T056 [US2] ラテアートの MAX の見た目の 3 案を作る（src/weapons/latte.js、src/config.js `latte.maxVisual`）
-- [ ] T057 [US2] ラテアートの 3 案の比較画像を見せて選んでもらう
-- [ ] T058 [US2] ラテアートで選んだ案だけを残す（src/weapons/latte.js、src/config.js）
-- [ ] T059 [US2] quickstart §2 を 10 種類すべてで行う（Lv 7 と 8 の見比べ、当たる範囲との一致、見間違えないこと）
+- [ ] T053 [US2] フレンチプレスとラテアートを攻撃の一覧から外す（FR-017）：src/weapons/index.js の `WEAPON_ORDER` から除き、src/weapons/press.js・src/weapons/latte.js と src/config.js の `press`・`latte` を消す
+- [ ] T059 [US2] quickstart §2 を 8 種類すべてで行う（Lv 7 と 8 の見比べ、当たる範囲との一致、見間違えないこと）
 
-**Checkpoint**: 10 種類すべての MAX がひと目で分かる
+**Checkpoint**: 8 種類すべての MAX がひと目で分かる
 
 ---
 
@@ -132,15 +127,15 @@ description: "Task list for 012-weapon-upgrades"
 
 **Independent Test**: quickstart §3
 
-- [ ] T060 [US3] quickstart §3 の表（ミル・こぼれ珈琲・ラテアート・エスプレッソ）を、Lv 1 と Lv 8 の両方で確かめる。MAX のこぼれ跡やストリームでも、重なり・当たる範囲が正しいこと
+- [ ] T060 [US3] quickstart §3 の表（ミル・こぼれ珈琲・エスプレッソ）を、Lv 1 と Lv 8 の両方で確かめる。MAX のこぼれ跡やストリームでも、重なり・当たる範囲が正しいこと
 
 ---
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [ ] T061 quickstart §4：MAX の武器 3 つ（例：`?weapons=mill:8,ice:8,puddle:8`）で敵 150 体まで遊び、1 フレームが 16.7ms 以内か確かめる。重い武器があれば、光の作り置き・照合する敵の絞り込みで軽くする（SC-004）
-- [ ] T062 Edge Cases を確かめる：範囲アップ Lv 8 と重ねたときの大きさ（プレス・ラテ・ショックウェーブ）、攻撃の間隔の下限 0.3 倍、ボスに効かないもの（凍り・押し返し・足どめ）、ドリップ MAX のボス戦の強さ、アイスの凍らせ続け、ラテの回復が毎秒 2.5 を上回らないこと。強すぎる・弱すぎるものは src/config.js の値で調整する
-- [ ] T063 [P] specs/012-weapon-upgrades/spec.md の表を、調整した最終の値と選んだ MAX の見た目に合わせて書き直し、Status を Implemented にする。specs/007-weapon-max-level/spec.md の FR-002 と Assumptions（「豆マシンガン以外の 10 種類の特別な強化と MAX の見た目は範囲外」）を、012 で決めたことに合わせて直す
+- [ ] T062 Edge Cases を確かめる：範囲アップ Lv 8 と重ねたときの大きさ（ショックウェーブ・スチーム）、攻撃の間隔の下限 0.3 倍、ボスに効かないもの（凍り・押し返し・足どめ）、ドリップ MAX のボス戦の強さ、アイスの凍らせ続け。強すぎる・弱すぎるものは src/config.js の値で調整する
+- [ ] T063 [P] specs/012-weapon-upgrades/spec.md の表を、調整した最終の値と選んだ MAX の見た目に合わせて書き直し、Status を Implemented にする。specs/007-weapon-max-level/spec.md の FR-002 と Assumptions（「豆マシンガン以外の 10 種類の特別な強化と MAX の見た目は範囲外」）を、012 で決めたこと（プレス・ラテを外すことを含む）に合わせて直す
 - [ ] T064 [P] specs/002-weapon-visuals/spec.md の FR-003（Lv が上がるほど見た目を豪華に）と、012 の MAX の見た目との関係を確かめ、食い違いがあればユーザーに報告する（勝手に直さない）
 - [ ] T065 README.md・CLAUDE.md に、武器の強化や確認用 URL パラメータ（`?weapons`・`?maxVariant`）と食い違う記述がないか確かめ、あればユーザーに報告する（断りなく編集しない）
 - [ ] T066 quickstart §5（移動・ポーズ・リトライ・コンソールのエラー）を最後にもう一度行う
@@ -170,8 +165,7 @@ description: "Task list for 012-weapon-upgrades"
 | こぼれ珈琲 | T012（T009 も） | T022 | T044 → T045 → T046 |
 | エスプレッソ | T014 | T023 | T047 → T048 → T049 |
 | アイス | — （T010） | T024 | T050 → T051 → T052 |
-| プレス | — | T025 | T053 → T054 → T055 |
-| ラテ | T013 | T026 | T056 → T057 → T058 |
+| プレス・ラテ | T013 | T025・T026 | T053（一覧から外す） |
 
 ### Within Each Weapon
 
@@ -210,13 +204,13 @@ Task: "T032 [US2] マグカップ投げの 3 案を作る"
 ### MVP First（User Story 1）
 
 1. Phase 1・2 を終える（確認用の仕組み・共通の仕組み・不具合の修正）
-2. Phase 3 を終える（10 種類の強化）
+2. Phase 3 を終える（8 種類の強化）
 3. **止めて確かめる**：quickstart §1 を全武器で行い、遊べる区切りとしてコミットする
 
 ### Incremental Delivery
 
 1. Phase 1・2 → 区切り
-2. 武器 1 種類ずつ US1 → 確認 → コミット（MVP は 10 種類そろった時点）
+2. 武器 1 種類ずつ US1 → 確認 → コミット（MVP は 8 種類そろった時点）
 3. 武器 1 種類ずつ US2（3 案 → 選択 → 実装）→ 確認 → コミット
 4. US3・Polish で全体を確かめて仕様を最終の値に合わせる
 

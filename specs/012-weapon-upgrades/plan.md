@@ -1,11 +1,11 @@
-# Implementation Plan: 残り 10 種類の武器に Lv ごとの強化と MAX の見た目を付ける
+# Implementation Plan: 8 種類の武器に Lv ごとの強化と MAX の見た目を付ける
 
 **Branch**: `012-weapon-upgrades` | **Date**: 2026-10-22 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/012-weapon-upgrades/spec.md`
 
 ## Summary
 
-豆マシンガン（007）と同じ形で、残り 10 種類の武器に Lv 2・4・6 の特別な強化と Lv 8（MAX）の大きな変化を入れ、MAX の見た目を付ける。共通の強化（ダメージ +25%・間隔 −8%）は 10 種類では毎 Lv のまま。強化の値はすべて `CONFIG.weapons.<id>.upgrades` に置き、「`*Rate` はかけ算、それ以外は上書き」で重ねる仕組みを `Weapon`（base.js）に移して全武器で共有する。武器ごとに、今の不具合（FR-014）を先に直し → 強化 → MAX の見た目（3 案から選ぶ）の順に、1 種類ずつ独立して進める。
+豆マシンガン（007）と同じ形で、8 種類の武器に Lv 2・4・6 の特別な強化と Lv 8（MAX）の大きな変化を入れ、MAX の見た目を付ける。共通の強化（ダメージ +25%・間隔 −8%）は 8 種類では毎 Lv のまま。強化の値はすべて `CONFIG.weapons.<id>.upgrades` に置き、「`*Rate` はかけ算、それ以外は上書き」で重ねる仕組みを `Weapon`（base.js）に移して全武器で共有する。武器ごとに、今の不具合（FR-014）を先に直し → 強化 → MAX の見た目（3 案から選ぶ）の順に、1 種類ずつ独立して進める。
 
 ## Technical Context
 
@@ -17,7 +17,7 @@
 **Project Type**: ブラウザゲーム（ビルド不要の静的ファイル）
 **Performance Goals**: 敵 150 体・MAX の武器 3 つで 60fps（1 フレーム 16.7ms 以内）
 **Constraints**: 調整する数値は `src/config.js` の `CONFIG` に集める。当たる範囲と、はっきり描く部分の大きさを一致させる。絵はプログラムで描き、ドット絵の層（008）を通す
-**Scale/Scope**: 武器 10 種類 × 強化 4 段（Lv 2・4・6・8）＋ MAX の見た目 10 種類（各 3 案）＋不具合の修正 4 件
+**Scale/Scope**: 武器 8 種類 × 強化 4 段（Lv 2・4・6・8）＋ MAX の見た目 8 種類（各 3 案）＋不具合の修正 3 件
 
 ## Constitution Check
 
@@ -65,7 +65,7 @@ src/
     ├── bean-gun.js      # 共通の仕組みに合わせる（挙動は変えない）
     ├── mill.js  mug.js  shockwave.js
     ├── drip.js  steam.js  puddle.js  espresso.js
-    └── ice.js   press.js  latte.js
+    └── ice.js           # フレンチプレス・ラテアートは攻撃の一覧から外す（FR-017）
 ```
 
 **Structure Decision**: 今の構成のまま。武器ごとのファイルに強化と MAX の描き方を足し、全武器で共通の処理だけを `src/weapons/base.js` に置く。新しいファイルは作らない。
