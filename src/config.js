@@ -43,7 +43,7 @@ export const CONFIG = {
   // 敵が落とす経験値の粒を拾うと経験値が入り、レベルアップごとに攻撃が 1 つ増える
   leveling: {
     baseXp: 5,
-    xpGrowth: 2.5,
+    xpGrowth: 4,
     enemyDropChance: 0.4,
     maxDroppedBeans: 60,
     // 全攻撃を手に入れた後のレベルアップで上がる攻撃力
