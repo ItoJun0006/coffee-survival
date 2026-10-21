@@ -1,4 +1,4 @@
-# コーヒーサバイバル Constitution
+# 珈琲サバイバル Constitution
 
 ## Core Principles
 
@@ -77,4 +77,4 @@
   - PATCH：言い回しや誤字の修正
 - PR のレビューでは、変更がこの憲法に沿っているかを確認する。
 
-**Version**: 2.0.0 | **Ratified**: 2026-10-20 | **Last Amended**: 2026-10-21
+**Version**: 2.0.1 | **Ratified**: 2026-10-20 | **Last Amended**: 2026-10-21

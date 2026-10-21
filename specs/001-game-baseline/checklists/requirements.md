@@ -1,4 +1,4 @@
-# Specification Quality Checklist: コーヒーサバイバル 全体仕様（ベースライン）
+# Specification Quality Checklist: 珈琲サバイバル 全体仕様（ベースライン）
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-10-20

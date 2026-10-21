@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-コーヒーサバイバル：珈琲をテーマにしたブラウザ向けサバイバルゲーム（HTML5 Canvas / 素の JavaScript、ビルド不要）。構成と起動方法は README.md を参照。
+珈琲サバイバル：珈琲をテーマにしたブラウザ向けサバイバルゲーム（HTML5 Canvas / 素の JavaScript、ビルド不要）。構成と起動方法は README.md を参照。
 
 ## 開発方針
 
