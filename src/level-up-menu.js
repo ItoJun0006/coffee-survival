@@ -1,6 +1,7 @@
 import { CONFIG } from './config.js';
 import { drawItemIcon } from './item-icons.js';
 import { font } from './font.js';
+import { stage } from './stage.js';
 
 const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 
@@ -9,16 +10,18 @@ const CARD_H = 240;
 const GAP = 24;
 const ELEMENT_LABEL = { none: '', hot: '熱い', ice: '冷たい' };
 
-const KIND_LABEL = { weapon: '攻撃', item: '強化アイテム', bonus: 'ボーナス', rare: 'レア強化' };
+const KIND_LABEL = { weapon: '攻撃', item: '強化アイテム', bonus: 'ボーナス', rare: 'レア強化', carry: '持っていく攻撃' };
 
-// 攻撃とアイテムの Lv の表示。最大 Lv は「MAX」と出す
-export const levelLabel = (level) => (level >= CONFIG.weaponLevels.max ? 'Lv MAX' : `Lv ${level}`);
+// 攻撃とアイテムの Lv の表示。今のステージの最大 Lv は「MAX」と出す
+export const levelLabel = (level) => (level >= stage.maxLevel ? 'Lv MAX' : `Lv ${level}`);
 
 // レベルアップで出る候補を選ぶ画面。choices は { kind, name, desc, element, level, isNew } の配列
 export class LevelUpMenu {
-  open(choices, level) {
+  // heading を渡すと、見出し（title）と説明（lead）をレベルアップ以外のものにする
+  open(choices, level, heading = null) {
     this.choices = choices;
     this.level = level;
+    this.heading = heading;
     this.index = 0;
   }
 
@@ -53,12 +56,12 @@ export class LevelUpMenu {
     ctx.textBaseline = 'middle';
     ctx.fillStyle = c.xpBar;
     ctx.font = font(28, true);
-    ctx.fillText(`レベル ${this.level}！`, viewW / 2, cards[0].y - 64);
+    ctx.fillText(this.heading?.title ?? `レベル ${this.level}！`, viewW / 2, cards[0].y - 64);
     ctx.fillStyle = c.text;
     ctx.font = font(15);
     const hasRare = this.choices.some((ch) => ch.kind === 'rare');
     const lead = this.choices[0].kind === 'bonus' ? 'すべて最大まで強化した！ ボーナスを 1 つ選ぶ' : '攻撃かアイテムを 1 つ選ぶ';
-    ctx.fillText(hasRare ? `${lead}（レア強化が出た！）` : lead, viewW / 2, cards[0].y - 32);
+    ctx.fillText(this.heading?.lead ?? (hasRare ? `${lead}（レア強化が出た！）` : lead), viewW / 2, cards[0].y - 32);
 
     for (const card of cards) this.#drawCard(ctx, card, card.index === this.index);
 
@@ -73,6 +76,7 @@ export class LevelUpMenu {
     const cx = card.x + card.w / 2;
     // 攻撃は茶色、アイテムは緑、レア強化は専用の色の枠で見分ける
     const { camellia } = card.choice;
+    const overCap = level >= CONFIG.weaponLevels.max;
     const accent = kind === 'rare' ? CONFIG.camellia.kinds[camellia].color : kind === 'item' ? c.itemCard : c.hudBar;
     ctx.fillStyle = selected ? 'rgba(217, 160, 102, 0.25)' : c.hudBg;
     ctx.fillRect(card.x, card.y, card.w, card.h);
@@ -94,10 +98,16 @@ export class LevelUpMenu {
       ctx.font = font(14, true);
       ctx.fillStyle = accent;
       ctx.fillText('★ レア ★', cx, card.y + 40);
-    } else if (kind !== 'bonus') {
+    } else if (kind === 'carry') {
       ctx.font = font(14, true);
-      ctx.fillStyle = isNew ? c.xpBar : accent;
-      ctx.fillText(isNew ? 'NEW' : `Lv ${level} → ${level + 1 >= CONFIG.weaponLevels.max ? 'MAX' : level + 1}`, cx, card.y + 40);
+      ctx.fillStyle = accent;
+      ctx.fillText(`Lv ${level}`, cx, card.y + 40);
+    } else if (kind !== 'bonus') {
+      // Lv 8 から先は限界突破（エクストラステージ）
+      const next = level + 1 >= stage.maxLevel ? 'MAX' : level + 1;
+      ctx.font = font(14, true);
+      ctx.fillStyle = isNew || overCap ? c.xpBar : accent;
+      ctx.fillText(isNew ? 'NEW' : `${overCap ? '限界突破 ' : ''}Lv ${level} → ${next}`, cx, card.y + 40);
     }
 
     // アイコンがあるカードは、アイコンの下に名前と説明を置く
@@ -121,12 +131,14 @@ export class LevelUpMenu {
     this.#wrap(ctx, desc, card.w - 28).forEach((line, i) => ctx.fillText(line, cx, descY + i * 17));
     if (kind === 'bonus' || kind === 'rare') return;
 
-    // 強化の段階を ● で見せる
+    // 強化の段階を ● で見せる。限界突破は Lv 9〜16 を金色の ● で見せる
     const max = CONFIG.weaponLevels.max;
-    const next = level + 1;
+    const next = kind === 'carry' ? level : level + 1;
+    const filled = overCap && kind !== 'carry' ? next - max : next;
+    const dotColor = overCap && kind !== 'carry' ? c.xpBar : accent;
     ctx.font = font(14);
     for (let i = 0; i < max; i++) {
-      ctx.fillStyle = i < next ? accent : 'rgba(255,255,255,0.15)';
+      ctx.fillStyle = i < filled ? dotColor : 'rgba(255,255,255,0.15)';
       ctx.fillText('●', cx + (i - (max - 1) / 2) * 18, card.y + card.h - 24);
     }
   }

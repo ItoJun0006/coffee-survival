@@ -1,6 +1,7 @@
 import { CONFIG } from '../config.js';
 import { sound } from '../sound.js';
 import { flower, leaf } from '../item-icons.js';
+import { stage } from '../stage.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
@@ -123,14 +124,15 @@ export class Player {
 
   // dir: 入力方向（長さ 0〜1）、push: 外から加わる速度（px/秒）
   update(dt, dir, push = { x: 0, y: 0 }) {
-    const { width, height } = CONFIG.world;
+    const { width, height } = stage.world;
     const speed = this.speed * (this.slowTimer > 0 ? this.slowFactor : 1);
     const { x, y } = this;
     this.x = clamp(this.x + (dir.x * speed + push.x) * dt, this.radius, width - this.radius);
     this.y = clamp(this.y + (dir.y * speed + push.y) * dt, this.radius, height - this.radius);
     // このフレームで実際に動いた距離（壁で止まった分は含まない）
     this.moved = Math.hypot(this.x - x, this.y - y);
-    this.caffeine -= CONFIG.player.caffeineDecayPerSec * dt;
+    // エクストラステージでは、カフェインは時間で減らない
+    if (stage.caffeineDecay) this.caffeine -= CONFIG.player.caffeineDecayPerSec * dt;
     this.invincibleTimer = Math.max(0, this.invincibleTimer - dt);
     this.slowTimer = Math.max(0, this.slowTimer - dt);
     // 動いている間だけ弾ませ、目線を進む方向に向ける

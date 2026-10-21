@@ -1,4 +1,5 @@
 import { CONFIG } from './config.js';
+import { stage } from './stage.js';
 
 // 珈琲店の木の床。ドット 1 マスずつ色を決めた小さな絵を作り、それを size 倍に引き伸ばした「床の柄」を
 // 敷き詰めて描く。柄は最初に 1 回だけ作り、毎フレームは貼るだけなので軽い。
@@ -32,7 +33,7 @@ export class Floor {
 
   // ctx はワールド座標（カメラ分ずらした状態）で渡す。柄を必要な枚数だけ並べて貼り、マップの外にはみ出す分は切り取る
   draw(ctx, camera, viewW, viewH) {
-    const { width, height } = CONFIG.world;
+    const { width, height } = stage.world;
     const x0 = Math.max(0, camera.x);
     const y0 = Math.max(0, camera.y);
     const x1 = Math.min(width, camera.x + viewW);

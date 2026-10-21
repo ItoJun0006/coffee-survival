@@ -54,7 +54,14 @@ export const CONFIG = {
     plannedTotal: 66,
     placeholderUnlockText: '条件達成で解放',
   },
-  world: { width: 2000, height: 2000 },
+  // ステージ（仕様 011）。main＝1 面、extra＝1 面をクリアしたあとのエクストラステージ
+  //   world：マップの広さ、enemySpeedRate：敵の速さの倍率（enemySpeedRates で種類ごとに上書き）、
+  //   caffeineDecay：カフェインが時間で減るか、levelUpHealRate：レベルが 1 上がるごとに回復する量（上限に対する割合）、
+  //   maxLevel：攻撃とアイテムの上限の Lv、overCapChance：Lv 8 から先（限界突破）の候補が、レベルアップのたびに出る確率
+  stages: {
+    main: { name: '1 面', world: { width: 2000, height: 2000 }, enemySpeedRate: 1, enemySpeedRates: {}, caffeineDecay: true, levelUpHealRate: 0, maxLevel: 8, overCapChance: 0 },
+    extra: { name: 'エクストラステージ', world: { width: 1414, height: 1414 }, enemySpeedRate: 0.85, enemySpeedRates: { ghost: 0.8 }, caffeineDecay: false, levelUpHealRate: 0.1, maxLevel: 16, overCapChance: 0.2 },
+  },
   player: {
     radius: 18,
     speed: 220,
@@ -82,7 +89,9 @@ export const CONFIG = {
   // レベルアップで出る攻撃の候補の数と、攻撃の強化。Lv が 1 上がるごとに
   // ダメージが damagePerLevel、攻撃の間隔が intervalPerLevel の割合で変わる
   // 攻撃の間隔は、キャラ・強化・アイテムが重なっても元の minIntervalRate 倍より短くしない
-  weaponLevels: { choices: 3, max: 8, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.3 },
+  // max は 1 面の上限。エクストラステージでは stages.extra.maxLevel まで上げられ（限界突破）、
+  // アイテムの限界突破した段階は、1 段階の効果が overCapItemRate 倍になる
+  weaponLevels: { choices: 3, max: 8, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.3, overCapItemRate: 0.5 },
   // 持てる数。weapons は最初の豆マシンガンを含む
   slots: { weapons: 3, items: 2 },
   // ステータス強化アイテム。perLevel は 1 段階（Lv）ごとの効果。最大 Lv は weaponLevels.max と同じ
