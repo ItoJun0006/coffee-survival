@@ -390,7 +390,7 @@ export const CONFIG = {
     colors: { base: [54, 35, 24], tone: 0.18, gap: [30, 19, 13], grain: 0.08, knot: 0.2 },
   },
   night: { maxDarkness: 0.55 },
-  // プレイ中の背景：夜の焙煎工房（background.js）。配置は seed から毎回同じに決まる（当たり判定はない）
+  // プレイ中の背景：夜の珈琲店の店内（background.js）。配置は seed から毎回同じに決まる（当たり判定はない）
   // 床・小物の色は、拾うもの（豆・経験値の粒）や敵より目立たない暗い色にする。
   // floor はタイルの床で、木の床（上の floor）を使わないときだけ描く
   scenery: {
