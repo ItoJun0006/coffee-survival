@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,4 +31,4 @@
 
 ## Notes
 
-- FR-002（フォントの雰囲気）が要確認。着手する前に `/speckit-clarify` で詰めてから `/speckit-plan` に進む。
+- 要確認だった FR-002（フォントの雰囲気）は、Yusei Magic の 1 種類に決まった。着手する前に `/speckit-clarify` で詰めてから `/speckit-plan` に進む。
