@@ -10,7 +10,6 @@ export class Floor {
     small.height = periodDots;
     const sctx = small.getContext('2d');
     const img = sctx.createImageData(periodDots, periodDots);
-    const plankAt = PLANKS[CONFIG.floor.style];
     for (let y = 0; y < periodDots; y++) {
       for (let x = 0; x < periodDots; x++) {
         const [r, g, b] = dotColor(plankAt(x, y));
@@ -29,20 +28,26 @@ export class Floor {
     const tctx = this.tile.getContext('2d');
     tctx.imageSmoothingEnabled = false;
     tctx.drawImage(small, 0, 0, this.tile.width, this.tile.height);
-    this.pattern = null;
   }
 
-  // ctx はワールド座標（カメラ分ずらした状態）で渡す
+  // ctx はワールド座標（カメラ分ずらした状態）で渡す。柄を必要な枚数だけ並べて貼り、マップの外にはみ出す分は切り取る
   draw(ctx, camera, viewW, viewH) {
-    this.pattern ??= ctx.createPattern(this.tile, 'repeat');
     const { width, height } = CONFIG.world;
     const x0 = Math.max(0, camera.x);
     const y0 = Math.max(0, camera.y);
     const x1 = Math.min(width, camera.x + viewW);
     const y1 = Math.min(height, camera.y + viewH);
     if (x1 <= x0 || y1 <= y0) return;
-    ctx.fillStyle = this.pattern;
-    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    const t = this.tile.width;
+    for (let ty = Math.floor(y0 / t) * t; ty < y1; ty += t) {
+      for (let tx = Math.floor(x0 / t) * t; tx < x1; tx += t) {
+        const sx = Math.max(x0, tx);
+        const sy = Math.max(y0, ty);
+        const w = Math.min(x1, tx + t) - sx;
+        const h = Math.min(y1, ty + t) - sy;
+        ctx.drawImage(this.tile, sx - tx, sy - ty, w, h, sx, sy, w, h);
+      }
+    }
   }
 }
 
@@ -55,49 +60,15 @@ function hash(a, b = 0, c = 0) {
 }
 
 // 板 1 枚の中のどこにあるかを返す。id＝板ごとの番号、u＝長い方向の位置、v＝短い方向の位置、len＝板の長さ
-const PLANKS = {
-  // 板張り：横長の板を、継ぎ目をずらして並べる
-  planks(x, y) {
-    const { width, length } = CONFIG.floor.planks;
-    const row = Math.floor(y / width);
-    const off = Math.floor(hash(row, 7) * length);
-    const col = Math.floor((x + off) / length);
-    // 柄のつなぎ目で同じ板が別の色にならないよう、番号を柄の幅でくり返す
-    return { id: hash(row, col % (CONFIG.floor.periodDots / length)), u: (x + off) % length, v: y % width, len: length, wid: width };
-  },
-  // 寄木：短い板を数枚まとめた四角を、向きを交互に変えて並べる
-  parquet(x, y) {
-    const { block, count } = CONFIG.floor.parquet;
-    const bx = Math.floor(x / block);
-    const by = Math.floor(y / block);
-    const lx = x % block;
-    const ly = y % block;
-    const wid = block / count;
-    const flat = (bx + by) % 2 === 0;
-    const across = flat ? ly : lx;
-    const k = Math.floor(across / wid);
-    return { id: hash(bx, by, k), u: flat ? lx : ly, v: across % wid, len: block, wid };
-  },
-  // ヘリンボーン：短い板を、縦と横で階段のように組み合わせる
-  herringbone(x, y) {
-    const w = CONFIG.floor.herringbone.width;
-    const a = Math.floor(x / w);
-    const b = Math.floor(y / w);
-    const d = a - b;
-    // 柄 1 枚の中で階段が n 段くり返す。つなぎ目で同じ板が別の色にならないよう、番号を n でくり返す
-    const n = CONFIG.floor.periodDots / (4 * w);
-    const id = (k, j, t) => hash(((k % (2 * n)) + 2 * n) % (2 * n), ((j % n) + n) % n, t);
-    const m = ((d % 4) + 4) % 4;
-    if (m === 0 || m === 3) {
-      const j = Math.floor((d + 1) / 4);
-      const k = a - 2 * j;
-      return { id: id(k, j, 1), u: (b + 2 * j - k) * w + (y % w), v: x % w, len: w * 2, wid: w };
-    }
-    const j = Math.floor((d - 1) / 4);
-    const k = b + 2 * j;
-    return { id: id(k, j, 2), u: (a - 2 * j - k - 1) * w + (x % w), v: y % w, len: w * 2, wid: w };
-  },
-};
+// 横長の板を、継ぎ目を列ごとにずらして並べる
+function plankAt(x, y) {
+  const { width, length } = CONFIG.floor.planks;
+  const row = Math.floor(y / width);
+  const off = Math.floor(hash(row, 7) * length);
+  const col = Math.floor((x + off) / length);
+  // 柄のつなぎ目で同じ板が別の色にならないよう、番号を柄の幅でくり返す
+  return { id: hash(row, col % (CONFIG.floor.periodDots / length)), u: (x + off) % length, v: y % width, len: length, wid: width };
+}
 
 // 板の中の位置から、そのドットの色を決める
 function dotColor({ id, u, v, len, wid }) {
