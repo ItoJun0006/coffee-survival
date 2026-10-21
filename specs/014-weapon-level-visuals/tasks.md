@@ -15,9 +15,9 @@ description: "Task list for 014-weapon-level-visuals"
 
 ## Phase 1: 共通の仕組みと 3 案
 
-- [ ] T001 [US1] src/weapons/base.js に `visualTier`・`levelSpots()`・`levelFxBelow`・`drawLevelFx(ctx, below)` を足し、src/game.js の描画から呼ぶ。確認用の URL パラメータ `?levelVariant=A|B|C` を src/game.js に足す
-- [ ] T002 [US1] 3 案（FR-005 の A・B・C）の描き方を `drawLevelFx` に作り、設定を `CONFIG.weaponLevelVisual` に置く
-- [ ] T003 [P] [US1] 9 つの武器（src/weapons/bean-gun.js・mill.js・mug.js・shockwave.js・drip.js・steam.js・puddle.js・espresso.js・ice.js）に `levelSpots()` を足す
+- [x] T001 [US1] src/weapons/base.js に `visualTier`・`levelSpots()`・`levelFxBelow`・`drawLevelFx(ctx, below)` を足し、src/game.js の描画から呼ぶ。確認用の URL パラメータ `?levelVariant=A|B|C` を src/game.js に足す
+- [x] T002 [US1] 3 案（FR-005 の A・B・C）の描き方を `drawLevelFx` に作り、設定を `CONFIG.weaponLevelVisual` に置く
+- [x] T003 [P] [US1] 9 つの武器（src/weapons/bean-gun.js・mill.js・mug.js・shockwave.js・drip.js・steam.js・puddle.js・espresso.js・ice.js）に `levelSpots()` を足す
 - [ ] T004 [US1] 武器ごとに、同じ場面の Lv 1・2・4・6・8 を 3 案ぶん並べた比較画像を作ってユーザーに見せ、1 案を選んでもらう（ユーザーの返事を待つ）
 
 ## Phase 2: 選んだ案を残す
