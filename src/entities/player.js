@@ -58,42 +58,14 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   ctx.restore();
 }
 
-// スキン「椿」。椿の花の絵は、大きさ 80 を基準にしたアイコンの絵（item-icons.js）を使う
+// スキン「椿」（頭に大きな椿の髪飾り）。椿の花の絵は、大きさ 80 を基準にしたアイコンの絵（item-icons.js）を使う
 function drawCamelliaSkin(ctx, r) {
-  const k = r / 40;
-  const at = (x, y, size, draw) => {
-    ctx.save();
-    ctx.translate(x * r, y * r);
-    ctx.scale(k * size, k * size);
-    draw();
-    ctx.restore();
-  };
-  const look = CONFIG.camellia.skin.look;
-  if (look === 'A') {
-    // A：頭に大きな椿の髪飾り
-    at(-0.5, -0.82, 1, () => {
-      leaf(ctx, 14, 10, 12, 0.6);
-      flower(ctx, 0, 0, 18);
-    });
-  } else if (look === 'B') {
-    // B：椿の花冠
-    at(0, -0.95, 1, () => {
-      leaf(ctx, -16, 4, 9, -0.4);
-      leaf(ctx, 16, 4, 9, 0.4);
-      flower(ctx, -24, 6, 11);
-      flower(ctx, 24, 6, 11);
-      flower(ctx, 0, -2, 13);
-    });
-  } else {
-    // C：体をぐるりと囲む椿の首飾り（花をまとう）
-    for (let i = 0; i < 5; i++) {
-      const a = Math.PI * (0.12 + i * 0.19);
-      at(Math.cos(a) * 0.82, Math.sin(a) * 0.72 + 0.12, 0.55, () => {
-        leaf(ctx, 12, 8, 10, 0.5 + i);
-        flower(ctx, 0, 0, 15);
-      });
-    }
-  }
+  ctx.save();
+  ctx.translate(-0.5 * r, -0.82 * r);
+  ctx.scale(r / 40, r / 40);
+  leaf(ctx, 14, 10, 12, 0.6);
+  flower(ctx, 0, 0, 18);
+  ctx.restore();
 }
 
 export class Player {

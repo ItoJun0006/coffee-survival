@@ -116,8 +116,8 @@ export const CONFIG = {
     },
     // 1 回の挑戦で 3 種類そろえると、実績を解除してスキンを手に入れる
     achievement: { id: 'skin-camellia', text: '実績解除：椿三輪　アラビカのスキン「椿」を手に入れた！' },
-    // スキンを付けられる品種。look は見た目の候補（A・B・C）で、選んでもらったら 1 つに絞る
-    skin: { name: '椿', variety: 'arabica', look: 'A' },
+    // スキン「椿」を付けられる品種
+    skin: { name: '椿', variety: 'arabica' },
   },
   // 攻撃。element が hot の攻撃はボスに効きやすく、ice は効きにくい
   weapons: {
