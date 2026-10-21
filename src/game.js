@@ -15,6 +15,7 @@ import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu, levelLabel } from './level-up-menu.js';
 import { drawItemIcon } from './item-icons.js';
 import { PixelLayer } from './pixel-layer.js';
+import { Floor } from './floor.js';
 import { sound } from './sound.js';
 import { font } from './font.js';
 
@@ -38,6 +39,7 @@ export class Game {
     this.debugBoss = params.has('boss');
     this.debugLevel = Number(params.get('level')) || 1;
     this.pixelLayer = new PixelLayer();
+    this.floor = new Floor();
     this.resize();
     window.addEventListener('resize', () => this.resize());
     // 別のタブやアプリに切り替えたら自動でポーズする
@@ -698,7 +700,8 @@ export class Game {
 
     ctx.save();
     ctx.translate(-this.camera.x, -this.camera.y);
-    this.#drawGrid();
+    if (CONFIG.floor.enabled) this.floor.draw(ctx, this.camera, this.viewW, this.viewH);
+    else this.#drawGrid();
     ctx.restore();
 
     // 絵（攻撃・豆・粒・敵・ボス・プレイヤー）は、ドット絵にする層に描く。背景と文字はくっきりしたまま

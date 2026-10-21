@@ -173,6 +173,19 @@ export const CONFIG = {
     title: 'ビッグウェーブ！',
     text: '眠気が押し寄せてくる…',
   },
+  // 珈琲店の木の床（仕様 005）。style：planks＝板張り、parquet＝寄木、herringbone＝ヘリンボーン
+  // size はドット 1 マスの大きさ（pixelArt.size と合わせる）、periodDots は柄 1 枚の大きさ（ドットの数）
+  // enabled が false の間は、今までの方眼の背景を描く（3 案から選ぶまでは false）
+  floor: {
+    enabled: false,
+    style: 'planks',
+    size: 3,
+    periodDots: 192,
+    planks: { width: 8, length: 32 },
+    parquet: { block: 16, count: 4 },
+    herringbone: { width: 6 },
+    colors: { base: [54, 35, 24], tone: 0.18, gap: [30, 19, 13], grain: 0.08, knot: 0.2 },
+  },
   night: { maxDarkness: 0.55 },
   // ラスボス：眠気の化身 ネムリーヌ
   boss: {
