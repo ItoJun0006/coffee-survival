@@ -433,10 +433,11 @@ export class Game {
     if (!this.player.alive) this.#finish('gameover');
     else if (this.boss?.dead) this.#finish('clear');
 
-    // ドット絵のときは、画面の位置をドットの大きさごとにそろえて、止まっている絵がちらつかないようにする
-    const snap = CONFIG.pixelArt.enabled ? CONFIG.pixelArt.size : 1;
-    this.camera.x = Math.round((this.player.x - this.viewW / 2) / snap) * snap;
-    this.camera.y = Math.round((this.player.y - this.viewH / 2) / snap) * snap;
+    // 背景は画面の点（表示倍率 125% などでは 1px より細かい）単位でなめらかに動かす
+    // （3px ごとにそろえると、動きが 3・3・6px と不ぞろいになって画面が揺れる）
+    const dpr = window.devicePixelRatio || 1;
+    this.camera.x = Math.round((this.player.x - this.viewW / 2) * dpr) / dpr;
+    this.camera.y = Math.round((this.player.y - this.viewH / 2) * dpr) / dpr;
   }
 
   // ゲームオーバーかクリアで終わる。BGM は静かに消し、終わりの音を鳴らす
@@ -792,7 +793,8 @@ export class Game {
     const pixel = CONFIG.pixelArt.enabled;
     const wctx = pixel ? this.pixelLayer.begin() : ctx;
     wctx.save();
-    wctx.translate(-this.camera.x, -this.camera.y);
+    // ドット絵の層は、プレイヤーをいつも画面の同じ位置に描く（小数のずれでプレイヤーのドットが跳ねないように）
+    wctx.translate(this.viewW / 2 - this.player.x, this.viewH / 2 - this.player.y);
     for (const w of this.weapons) w.drawBelow(wctx);
     for (const b of this.beans) b.draw(wctx);
     for (const o of this.xpOrbs) o.draw(wctx);
