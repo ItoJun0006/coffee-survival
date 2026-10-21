@@ -29,7 +29,7 @@ export const CONFIG = {
     // 条件を満たすと解放されるキャラ。roast は性能と色（品種 × 焙煎度のキャラと同じ形）
     // unlock.type：bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
     //   plays＝ゲームを count 回始める、playTime＝累計プレイ時間が seconds 秒以上（例：{ type: 'playTime', seconds: 3600, text: '…' }）、
-    //   distance＝累計移動距離が pixels 以上（マップの端から端は 2000）、kills＝累計撃破数が count 以上
+    //   distance＝累計移動距離が pixels 以上（マップの端から端は 2000）、kills＝累計撃破数が count 以上、beans＝累計の拾った豆が count 以上
     // drawScale は見た目の大きさの倍率（当たる範囲は変わらない）
     specials: [
       {

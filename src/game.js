@@ -10,7 +10,7 @@ import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
 import { loadLastCharacter, saveLastCharacter, wearsSkin } from './characters.js';
-import { unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, saveProgress, pointCard } from './progress.js';
+import { unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard } from './progress.js';
 import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu, levelLabel } from './level-up-menu.js';
 import { drawItemIcon } from './item-icons.js';
@@ -481,7 +481,7 @@ export class Game {
     this.#checkUnlocks('plays', recordPlay());
   }
 
-  // 遊んでいる時間と動いた距離を累計に足す（倒した敵の数は #removeDeadEnemies で足す）。
+  // 遊んでいる時間と動いた距離を累計に足す（倒した敵の数は #removeDeadEnemies、拾った豆の数は #collectBeans で足す）。
   // ページを急に閉じても大きく失われないよう、5 秒ごとに保存して解放条件を調べる
   #recordProgress(dt) {
     addPlayTime(dt);
@@ -498,6 +498,7 @@ export class Game {
     this.#checkUnlocks('playTime', card.playSec);
     this.#checkUnlocks('distance', card.distance);
     this.#checkUnlocks('kills', card.kills);
+    this.#checkUnlocks('beans', card.beans);
   }
 
   // ---- キャラの性能と解放 ----
@@ -531,6 +532,7 @@ export class Game {
         playTime: () => value >= c.unlock.seconds,
         distance: () => value >= c.unlock.pixels,
         kills: () => value >= c.unlock.count,
+        beans: () => value >= c.unlock.count,
         allWeaponsMax: () => this.weapons.length >= CONFIG.slots.weapons && this.weapons.every((w) => w.isMax),
       }[type]();
       if (met && unlock(c.id)) this.#toast(`新しいキャラ「${c.name}」が解放された！`);
@@ -659,6 +661,7 @@ export class Game {
         p.drain(CONFIG.bean.fakeCaffeine);
       } else {
         p.heal(CONFIG.bean.caffeine);
+        addBeans(1);
       }
       return false;
     });
