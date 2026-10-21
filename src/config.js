@@ -92,6 +92,15 @@ export const CONFIG = {
     power: { name: '攻撃力アップ', desc: 'すべての攻撃の\nダメージが上がる', perLevel: 0.1 },
     xp: { name: '経験値アップ', desc: '経験値の粒から入る\n経験値が増える', perLevel: 0.15 },
   },
+  // レア強化（仕様 010）。レベルアップの選択画面を開くたびに chance の確率で、4 枚目のカードとして出る。
+  // アイテムの枠は使わず、1 回の挑戦で 1 回だけ受け取れる。intervalRate は攻撃の間隔、damageRate はダメージの倍率
+  rare: {
+    camellia: {
+      name: '椿の花', desc: 'すべての攻撃の間隔が\n大きく短くなるが、\nダメージが少し下がる', chance: 0, intervalRate: 0.6, damageRate: 0.8,
+      // 見た目の候補（A・B・C）。選んでもらったら 1 つに絞り、chance を 0.02 にする（それまでは出さない）
+      look: 'A',
+    },
+  },
   // 攻撃。element が hot の攻撃はボスに効きやすく、ice は効きにくい
   weapons: {
     // 豆マシンガンは Lv ごとに決まった強化を受ける。共通の強化（ダメージ・間隔）は commonLevels の Lv だけ
@@ -258,6 +267,7 @@ export const CONFIG = {
     xpBar: '#f0d58a',
     bossBar: '#9b7fd1',
     itemCard: '#8fc7a0',
+    rareCard: { A: '#e0566a', B: '#f0d58a', C: '#f2a7b8' },
     text: '#f3e6d8',
   },
 };

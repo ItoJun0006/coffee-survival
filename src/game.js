@@ -105,6 +105,8 @@ export class Game {
       this.#applyChoice(choices.find((c) => c.isNew && c.kind === 'weapon') ?? choices[0] ?? this.#bonusChoices()[1]);
     }
     this.notice = null;
+    // 受け取ったレア強化の id
+    this.rares = [];
     this.nextWaveAt = CONFIG.bigWave.firstSec;
     this.waveUntil = 0;
   }
@@ -140,13 +142,18 @@ export class Game {
     return 1 + CONFIG.items.area.perLevel * this.#itemLevel('area');
   }
 
-  // 発生頻度アップ：攻撃の間隔の倍率
+  // 発生頻度アップ：攻撃の間隔の倍率。椿の花を持っていれば、さらに短くなる
   get frequencyRate() {
-    return 1 - CONFIG.items.frequency.perLevel * this.#itemLevel('frequency');
+    return (1 - CONFIG.items.frequency.perLevel * this.#itemLevel('frequency')) * this.#rareRate('intervalRate');
   }
 
   get powerRate() {
-    return 1 + CONFIG.items.power.perLevel * this.#itemLevel('power');
+    return (1 + CONFIG.items.power.perLevel * this.#itemLevel('power')) * this.#rareRate('damageRate');
+  }
+
+  // 受け取ったレア強化の倍率をかけ合わせる
+  #rareRate(key) {
+    return this.rares.reduce((m, id) => m * CONFIG.rare[id][key], 1);
   }
 
   get xpRate() {
@@ -208,6 +215,20 @@ export class Game {
     };
   }
 
+  // レア強化のカード。まだ受け取っていなければ、chance の確率で出す
+  #rareChoices() {
+    return Object.entries(CONFIG.rare).flatMap(([id, cfg]) => {
+      if (this.rares.includes(id) || Math.random() >= cfg.chance) return [];
+      return [{
+        kind: 'rare', iconId: id, name: cfg.name, desc: cfg.desc, element: 'none', level: 0, isNew: true,
+        apply: () => {
+          this.rares.push(id);
+          return `${cfg.name} が咲いた！`;
+        },
+      }];
+    });
+  }
+
   // 攻撃もアイテムもすべて Lv 上限になったあとの候補
   #bonusChoices() {
     const p = this.player;
@@ -237,7 +258,7 @@ export class Game {
       [all[i], all[j]] = [all[j], all[i]];
     }
     const choices = all.slice(0, CONFIG.weaponLevels.choices);
-    this.levelUpMenu.open(choices.length ? choices : this.#bonusChoices(), this.level);
+    this.levelUpMenu.open([...(choices.length ? choices : this.#bonusChoices()), ...this.#rareChoices()], this.level);
     this.state = 'levelup';
   }
 
@@ -871,6 +892,17 @@ export class Game {
       ctx.textBaseline = 'top';
       ctx.fillStyle = 'rgba(243, 230, 216, 0.6)';
       ctx.fillText(`${CONFIG.items[it.id].name}  ${levelLabel(it.level)}`, x + 22, ly);
+      ly += 18;
+    }
+    // レア強化は枠とは別に出す
+    for (const id of this.rares) {
+      ly += 2;
+      drawItemIcon(ctx, id, x + 9, ly + 6, 18);
+      ctx.font = font(11);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = CONFIG.colors.rareCard[CONFIG.rare[id].look];
+      ctx.fillText(`${CONFIG.rare[id].name}  レア`, x + 22, ly);
       ly += 18;
     }
 

@@ -9,7 +9,7 @@ const CARD_H = 240;
 const GAP = 24;
 const ELEMENT_LABEL = { none: '', hot: '熱い', ice: '冷たい' };
 
-const KIND_LABEL = { weapon: '攻撃', item: '強化アイテム', bonus: 'ボーナス' };
+const KIND_LABEL = { weapon: '攻撃', item: '強化アイテム', bonus: 'ボーナス', rare: 'レア強化' };
 
 // 攻撃とアイテムの Lv の表示。最大 Lv は「MAX」と出す
 export const levelLabel = (level) => (level >= CONFIG.weaponLevels.max ? 'Lv MAX' : `Lv ${level}`);
@@ -56,26 +56,30 @@ export class LevelUpMenu {
     ctx.fillText(`レベル ${this.level}！`, viewW / 2, cards[0].y - 64);
     ctx.fillStyle = c.text;
     ctx.font = font(15);
-    ctx.fillText(this.choices[0].kind === 'bonus' ? 'すべて最大まで強化した！ ボーナスを 1 つ選ぶ' : '攻撃かアイテムを 1 つ選ぶ', viewW / 2, cards[0].y - 32);
+    const hasRare = this.choices.some((ch) => ch.kind === 'rare');
+    const lead = this.choices[0].kind === 'bonus' ? 'すべて最大まで強化した！ ボーナスを 1 つ選ぶ' : '攻撃かアイテムを 1 つ選ぶ';
+    ctx.fillText(hasRare ? `${lead}（レア強化が出た！）` : lead, viewW / 2, cards[0].y - 32);
 
     for (const card of cards) this.#drawCard(ctx, card, card.index === this.index);
 
     ctx.font = font(13);
     ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
-    ctx.fillText('←→ で選ぶ　Space / Enter / 1〜3 キー / クリックで決定', viewW / 2, cards[0].y + CARD_H + 32);
+    ctx.fillText(`←→ で選ぶ　Space / Enter / 1〜${this.choices.length} キー / クリックで決定`, viewW / 2, cards[0].y + CARD_H + 32);
   }
 
   #drawCard(ctx, card, selected) {
     const c = CONFIG.colors;
     const { kind, iconId, name, desc, element, level, isNew } = card.choice;
     const cx = card.x + card.w / 2;
-    // 攻撃は茶色、アイテムは緑の枠で見分ける
-    const accent = kind === 'item' ? c.itemCard : c.hudBar;
+    // 攻撃は茶色、アイテムは緑、レア強化は専用の色の枠で見分ける
+    const look = kind === 'rare' ? CONFIG.rare[iconId].look : null;
+    const accent = kind === 'rare' ? c.rareCard[look] : kind === 'item' ? c.itemCard : c.hudBar;
     ctx.fillStyle = selected ? 'rgba(217, 160, 102, 0.25)' : c.hudBg;
     ctx.fillRect(card.x, card.y, card.w, card.h);
+    if (kind === 'rare') drawRareCardBack(ctx, card, look, selected);
     ctx.strokeStyle = accent;
-    ctx.lineWidth = selected ? 3 : 1;
-    ctx.globalAlpha = selected ? 1 : 0.5;
+    ctx.lineWidth = selected || kind === 'rare' ? 3 : 1;
+    ctx.globalAlpha = selected || kind === 'rare' ? 1 : 0.5;
     ctx.strokeRect(card.x, card.y, card.w, card.h);
     ctx.globalAlpha = 1;
 
@@ -85,8 +89,12 @@ export class LevelUpMenu {
     ctx.fillStyle = accent;
     ctx.fillText(KIND_LABEL[kind], cx, card.y + 16);
 
-    // NEW か、強化の段階
-    if (kind !== 'bonus') {
+    // NEW か、強化の段階。レア強化は「レア」
+    if (kind === 'rare') {
+      ctx.font = font(14, true);
+      ctx.fillStyle = accent;
+      ctx.fillText('★ レア ★', cx, card.y + 40);
+    } else if (kind !== 'bonus') {
       ctx.font = font(14, true);
       ctx.fillStyle = isNew ? c.xpBar : accent;
       ctx.fillText(isNew ? 'NEW' : `Lv ${level} → ${level + 1 >= CONFIG.weaponLevels.max ? 'MAX' : level + 1}`, cx, card.y + 40);
@@ -111,7 +119,7 @@ export class LevelUpMenu {
     ctx.fillStyle = 'rgba(243, 230, 216, 0.8)';
     ctx.font = font(12);
     this.#wrap(ctx, desc, card.w - 28).forEach((line, i) => ctx.fillText(line, cx, descY + i * 17));
-    if (kind === 'bonus') return;
+    if (kind === 'bonus' || kind === 'rare') return;
 
     // 強化の段階を ● で見せる
     const max = CONFIG.weaponLevels.max;
@@ -141,4 +149,55 @@ export class LevelUpMenu {
     if (line) lines.push(line);
     return lines;
   }
+}
+
+// レア強化のカードの下地（見た目の候補 A・B・C）
+function drawRareCardBack(ctx, card, look, selected) {
+  const t = performance.now() / 1000;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(card.x, card.y, card.w, card.h);
+  ctx.clip();
+  if (look === 'A') {
+    // A：椿の赤で下地を染め、上と下に帯を入れる
+    ctx.fillStyle = selected ? 'rgba(224, 86, 106, 0.32)' : 'rgba(224, 86, 106, 0.18)';
+    ctx.fillRect(card.x, card.y, card.w, card.h);
+    ctx.fillStyle = 'rgba(224, 86, 106, 0.55)';
+    ctx.fillRect(card.x, card.y, card.w, 6);
+    ctx.fillRect(card.x, card.y + card.h - 6, card.w, 6);
+  } else if (look === 'B') {
+    // B：金色の枠が、ゆっくり脈打つように光る
+    ctx.restore();
+    ctx.save();
+    ctx.shadowColor = 'rgba(240, 213, 138, 0.9)';
+    ctx.shadowBlur = 14 + Math.sin(t * 3) * 8;
+    ctx.strokeStyle = 'rgba(240, 213, 138, 0.8)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(card.x, card.y, card.w, card.h);
+    ctx.shadowBlur = 0;
+    const g = ctx.createLinearGradient(card.x, card.y, card.x + card.w, card.y + card.h);
+    g.addColorStop(0, 'rgba(240, 213, 138, 0.04)');
+    g.addColorStop(0.5, 'rgba(240, 213, 138, 0.16)');
+    g.addColorStop(1, 'rgba(240, 213, 138, 0.04)');
+    ctx.fillStyle = g;
+    ctx.fillRect(card.x, card.y, card.w, card.h);
+  } else {
+    // C：淡い桃色の下地に、花びらがひらひら落ちる
+    ctx.fillStyle = 'rgba(242, 167, 184, 0.12)';
+    ctx.fillRect(card.x, card.y, card.w, card.h);
+    for (let i = 0; i < 7; i++) {
+      const fall = (t * 22 + i * 47) % (card.h + 20);
+      const px = card.x + ((i * 61) % card.w) + Math.sin(t * 1.5 + i) * 10;
+      const py = card.y - 10 + fall;
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(t + i);
+      ctx.fillStyle = 'rgba(242, 167, 184, 0.55)';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 5, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+  ctx.restore();
 }
