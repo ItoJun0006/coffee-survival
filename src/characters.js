@@ -20,13 +20,17 @@ const varietyCharacter = (variety, roast) => ({
     attackIntervalRate: round2(roast.attackIntervalRate * variety.rates.interval),
   },
   power: variety.power ? { id: variety.power, ...cfg.powers[variety.power] } : null,
-  unlock: variety.price ? { price: variety.price } : null,
+  unlock: variety.price ? { group: variety.id, name: variety.name, price: variety.price, require: variety.require ?? null } : null,
 });
 const varietyGroups = cfg.varieties.map((variety) => cfg.roasts.map((roast) => varietyCharacter(variety, roast)));
 
 // 選択画面に並べる全キャラ。1 段目に最初の品種（アラビカ）の 3 体と条件付きのキャラ、2 段目からほかの品種
 // （浅煎り → 中煎り → 深煎り）を並べる。plannedTotal に足りない分は、まだ中身のない「？？？」のマスにする
-const specialCharacters = cfg.specials.map((s) => ({ ...s, power: null }));
+const specialCharacters = cfg.specials.map((s) => ({
+  ...s,
+  power: null,
+  unlock: { group: s.id, name: s.name, price: s.price, require: s.require },
+}));
 const named = [...varietyGroups[0], ...specialCharacters, ...varietyGroups.slice(1).flat()];
 const placeholders = Array.from({ length: Math.max(0, cfg.plannedTotal - named.length) }, (_, i) => ({
   id: `placeholder-${i + 1}`,
@@ -39,8 +43,24 @@ export const CHARACTERS = [...named, ...placeholders];
 // 品種のキャラ 3 体（浅煎り・中煎り・深煎り）
 export const varietyMembers = (variety) => CHARACTERS.filter((c) => c.variety === variety);
 
-// 選んで遊べるか（中身があり、条件がないか、条件を満たして解放済み）
+// 選んで遊べるか（中身があり、最初から使えるか、買って解放済み）
 export const isAvailable = (c) => !c.placeholder && (!c.unlock || isUnlocked(c.id));
+
+// ---- 豆コインで買う（仕様 016 FR-014・FR-018） ----
+// 品種は 3 体まとめて、特別なキャラは 1 体ずつ買う。条件（require）のある豆は、条件を満たして
+// 「仕入れられる」ようになってから買える。仕入れられるかどうかは readyId の名前で保存する
+
+export const readyId = (group) => `ready-${group}`;
+
+// 一緒に買うキャラ（品種なら浅煎り・中煎り・深煎り、特別なキャラなら 1 体）
+export const groupMembers = (c) => (c.variety ? varietyMembers(c.variety) : [c]);
+
+export const canBuy = (c) => !!c.unlock?.price && (!c.unlock.require || isUnlocked(readyId(c.unlock.group)));
+
+// 条件のある豆の一覧 { group, name, price, require }
+export const CONDITIONS = [...cfg.varieties.filter((v) => v.require), ...cfg.specials].map((x) => ({
+  group: x.id, name: x.name, price: x.price, require: x.require,
+}));
 
 export const findCharacter = (id) => CHARACTERS.find((c) => c.id === id && isAvailable(c));
 

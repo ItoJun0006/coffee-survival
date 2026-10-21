@@ -9,7 +9,7 @@ import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
-import { loadLastCharacter, saveLastCharacter, wearsSkin } from './characters.js';
+import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin } from './characters.js';
 import { unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard, addCoins, coins } from './progress.js';
 import { coinText, drawCoin, drawCoinTally, tallyDone } from './coin-ui.js';
 import { CharacterSelect } from './character-select.js';
@@ -536,6 +536,7 @@ export class Game {
     saveProgress();
     this.#checkPointCardUnlocks();
     if (state === 'clear') this.#checkUnlocks('bossDefeat');
+    if (state === 'clear' && stage.id === 'extra') this.#checkUnlocks('extraClear');
   }
 
   // ---- 豆コイン（仕様 016） ----
@@ -626,20 +627,23 @@ export class Game {
   }
 
   // 解放の条件を調べ、満たしたキャラを解放して知らせる。value は起動の回数など
+  // 条件のある豆（特別なキャラ・高級品種）の条件を満たしたら、仕入れられるようにする（仕様 016 FR-018）
   #checkUnlocks(type, value) {
-    for (const c of CONFIG.characters.specials) {
-      if (c.unlock.type !== type) continue;
+    for (const c of CONDITIONS) {
+      const r = c.require;
+      if (r.type !== type) continue;
       const met = {
         bossDefeat: () => true,
-        launches: () => value >= c.unlock.count,
-        plays: () => value >= c.unlock.count,
-        playTime: () => value >= c.unlock.seconds,
-        distance: () => value >= c.unlock.pixels,
-        kills: () => value >= c.unlock.count,
-        beans: () => value >= c.unlock.count,
+        extraClear: () => true,
+        launches: () => value >= r.count,
+        plays: () => value >= r.count,
+        playTime: () => value >= r.seconds,
+        distance: () => value >= r.pixels,
+        kills: () => value >= r.count,
+        beans: () => value >= r.count,
         allWeaponsMax: () => this.weapons.length >= CONFIG.slots.weapons && this.weapons.every((w) => w.isMax),
       }[type]();
-      if (met && unlock(c.id)) this.#toast(`新しいキャラ「${c.name}」が解放された！`);
+      if (met && unlock(readyId(c.group))) this.#toast(CONFIG.coins.texts.ready.replace('{name}', c.name).replace('{price}', coinText(c.price)));
     }
   }
 

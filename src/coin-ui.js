@@ -40,32 +40,34 @@ export function drawCoin(ctx, x, y, s) {
   ctx.restore();
 }
 
-// ---- 品種を買うメニュー風のポップアップ ----
-// variety は品種の設定、members はその品種の 3 体（浅煎り・中煎り・深煎り）、have は今持っている豆コイン、
+// ---- 豆を買うメニュー風のポップアップ ----
+// offer は { name, origin, members, labels, trait, desc, price, requireText }。members は一緒に買うキャラ
+// （品種なら浅煎り・中煎り・深煎りの 3 体、特別なキャラなら 1 体）、labels はその下の名前、
+// requireText はまだ満たしていない条件の文（満たしていれば null）。have は今持っている豆コイン、
 // choice は選んでいるボタンの番号。押せるボタンの { x, y, w, h, action } を返す（action は 'order' / 'cancel'）
 export const MENU_SIZE = { w: 420, h: 310 };
 
-export function drawMenuPopup(ctx, cx, cy, variety, members, have, choice) {
+export function drawMenuPopup(ctx, cx, cy, offer, have, choice) {
   const m = cfg.menu;
   const { w, h } = MENU_SIZE;
   const x = cx - w / 2;
   const y = cy - h / 2;
-  const enough = have >= variety.price;
+  const enough = have >= offer.price && !offer.requireText;
   ctx.fillStyle = m.paper;
   ctx.fillRect(x, y, w, h);
   ctx.strokeStyle = m.frame;
   ctx.lineWidth = 3;
   ctx.strokeRect(x + 6, y + 6, w - 12, h - 12);
   text(ctx, m.head, cx, y + 26, { size: 11, bold: true, color: m.frame });
-  text(ctx, variety.name, cx, y + 52, { size: 22, bold: true, color: m.ink });
-  text(ctx, variety.origin, cx, y + 76, { size: 11, color: m.sub });
-  // 浅煎り・中煎り・深煎りの 3 体。足りないときは影にする
-  members.forEach((ch, i) => {
-    const px = cx - 90 + i * 90;
+  text(ctx, offer.name, cx, y + 52, { size: 22, bold: true, color: m.ink });
+  text(ctx, offer.origin, cx, y + 76, { size: 11, color: m.sub });
+  // 一緒に買うキャラ。買えないときは影にする
+  offer.members.forEach((ch, i) => {
+    const px = cx + (i - (offer.members.length - 1) / 2) * 90;
     ctx.save();
     ctx.translate(px, y + 122);
     if (enough) {
-      drawCharacter(ctx, ch, 22);
+      drawCharacter(ctx, ch, 22 * (ch.drawScale ?? 1));
     } else {
       ctx.globalAlpha = m.shadowAlpha;
       ctx.fillStyle = ch.roast.color;
@@ -74,18 +76,22 @@ export function drawMenuPopup(ctx, cx, cy, variety, members, have, choice) {
       ctx.fill();
     }
     ctx.restore();
-    text(ctx, ch.roast.name, px, y + 158, { size: 11, color: m.sub });
+    text(ctx, offer.labels[i], px, y + 158, { size: 11, color: m.sub });
   });
-  const power = CONFIG.characters.powers[variety.power];
-  text(ctx, `${variety.trait}　特別な力「${power.name}」`, cx, y + 182, { size: 13, bold: true, color: m.ink });
-  text(ctx, power.desc, cx, y + 202, { size: 12, color: m.sub });
+  text(ctx, offer.trait, cx, y + 182, { size: 13, bold: true, color: m.ink });
+  text(ctx, offer.desc, cx, y + 202, { size: 12, color: m.sub });
   // 値段の札
   ctx.fillStyle = m.tag;
   ctx.fillRect(x + w - 156, y + 220, 134, 34);
   drawCoin(ctx, x + w - 136, y + 237, 9);
-  text(ctx, coinText(variety.price), x + w - 118, y + 238, { size: 17, bold: true, color: m.tagText, align: 'left' });
-  text(ctx, `持っている ${coinText(have)}`, x + 28, y + 230, { size: 12, color: m.sub, align: 'left' });
-  if (!enough) text(ctx, `あと ${coinText(variety.price - have)}`, x + 28, y + 248, { size: 13, bold: true, color: m.alert, align: 'left' });
+  text(ctx, coinText(offer.price), x + w - 118, y + 238, { size: 17, bold: true, color: m.tagText, align: 'left' });
+  if (offer.requireText) {
+    // 条件を満たすまでは、条件を赤い字で出す
+    text(ctx, cfg.texts.require.replace('{text}', offer.requireText), x + 28, y + 238, { size: 12, bold: true, color: m.alert, align: 'left' });
+  } else {
+    text(ctx, `持っている ${coinText(have)}`, x + 28, y + 230, { size: 12, color: m.sub, align: 'left' });
+    if (!enough) text(ctx, `あと ${coinText(offer.price - have)}`, x + 28, y + 248, { size: 13, bold: true, color: m.alert, align: 'left' });
+  }
   const labels = enough ? [[m.order, 'order'], [m.cancel, 'cancel']] : [[m.close, 'cancel']];
   const bw = 120;
   const bh = 30;

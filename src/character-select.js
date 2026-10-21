@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { CHARACTERS, canWearSkin, describeStats, isAvailable, statBars, toggleSkin, varietyMembers, wearsSkin } from './characters.js';
+import { CHARACTERS, canBuy, canWearSkin, describeStats, groupMembers, isAvailable, statBars, toggleSkin, wearsSkin } from './characters.js';
 import { buyVariety, coins } from './progress.js';
 import { MENU_SIZE, coinText, drawCoin, drawMenuPopup } from './coin-ui.js';
 import { drawCharacter } from './entities/player.js';
@@ -39,10 +39,10 @@ export class CharacterSelect {
     this.menuButtons = [];
   }
 
-  // 買うメニュー：←→ で選び、Space / Enter かクリックで決める。注文したら、その品種の中煎りを選ぶ
+  // 買うメニュー：←→ で選び、Space / Enter かクリックで決める。注文したら、品種ならその中煎りを選ぶ
   #updateMenu(input, clicked) {
-    const variety = this.popup.variety;
-    const count = coins() >= variety.price ? 2 : 1;
+    const { unlock } = this.popup;
+    const count = canBuy(this.popup) && coins() >= unlock.price ? 2 : 1;
     if (input.wasPressed('Escape')) {
       this.popup = null;
       return;
@@ -56,10 +56,11 @@ export class CharacterSelect {
       if (!b) return;
       action = b.action;
     }
-    if (action === 'order') {
-      const members = varietyMembers(variety);
-      if (buyVariety(members.map((c) => c.id), variety.price)) {
-        this.onToast(CONFIG.coins.texts.unlocked.replace('{name}', variety.name));
+    if (action === 'order' && canBuy(this.popup)) {
+      const members = groupMembers(this.popup);
+      if (buyVariety(members.map((c) => c.id), unlock.price)) {
+        const t = CONFIG.coins.texts;
+        this.onToast((members.length > 1 ? t.unlocked : t.unlockedOne).replace('{name}', unlock.name));
         this.index = CHARACTERS.indexOf(members[1] ?? members[0]);
       }
     }
@@ -79,7 +80,7 @@ export class CharacterSelect {
   // 決めたらそのキャラ、Esc なら 'back'、どちらでもなければ null を返す
   update(input, viewW, viewH) {
     const clicked = input.consumeClick();
-    if (this.popup?.variety) {
+    if (this.popup?.unlock?.price) {
       this.#updateMenu(input, clicked);
       return null;
     }
@@ -225,7 +226,7 @@ export class CharacterSelect {
     } else {
       this.#drawSilhouette(ctx, cx, cy, 22, character.placeholder ? 0.07 : 0.14);
       const price = character.unlock?.price;
-      drawLock(ctx, cx, cy + 4, 10, price && coins() >= price ? CONFIG.coins.affordableLock : undefined);
+      drawLock(ctx, cx, cy + 4, 10, price && canBuy(character) && coins() >= price ? CONFIG.coins.affordableLock : undefined);
     }
 
     ctx.textAlign = 'center';
@@ -247,7 +248,7 @@ export class CharacterSelect {
     if (!open && character.unlock?.price) {
       drawCoin(ctx, cx - 22, card.y + 93, 4);
       ctx.font = font(10);
-      ctx.fillStyle = coins() >= character.unlock.price ? CONFIG.coins.affordableLock : 'rgba(243, 230, 216, 0.55)';
+      ctx.fillStyle = canBuy(character) && coins() >= character.unlock.price ? CONFIG.coins.affordableLock : 'rgba(243, 230, 216, 0.55)';
       ctx.fillText(coinText(character.unlock.price), cx + 4, card.y + 93);
     }
   }
@@ -348,11 +349,11 @@ export class CharacterSelect {
 
   #drawPopup(ctx, viewW, viewH) {
     const c = CONFIG.colors;
-    if (this.popup.variety) {
+    if (this.popup.unlock?.price) {
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.fillRect(0, 0, viewW, viewH);
       const cy = Math.max(MENU_SIZE.h / 2 + 10, viewH / 2);
-      this.menuButtons = drawMenuPopup(ctx, viewW / 2, cy, this.popup.variety, varietyMembers(this.popup.variety), coins(), this.menuChoice);
+      this.menuButtons = drawMenuPopup(ctx, viewW / 2, cy, menuOffer(this.popup), coins(), this.menuChoice);
       ctx.textAlign = 'center';
       ctx.font = font(12);
       ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
@@ -384,6 +385,24 @@ export class CharacterSelect {
     ctx.fillStyle = 'rgba(243, 230, 216, 0.6)';
     ctx.fillText('Esc / Space / Enter / クリックで閉じる', viewW / 2, y + h - 22);
   }
+}
+
+// 買うメニューに出す中身。品種は 3 体と特別な力、特別なキャラは 1 体と特徴
+function menuOffer(c) {
+  const { unlock } = c;
+  const members = groupMembers(c);
+  const v = c.variety;
+  const power = v ? CONFIG.characters.powers[v.power] : null;
+  return {
+    name: unlock.name,
+    origin: v ? v.origin : c.origin,
+    members,
+    labels: members.map((m) => (v ? m.roast.name : '')),
+    trait: v ? `${v.trait}　特別な力「${power.name}」` : c.roast.trait,
+    desc: v ? power.desc : c.desc,
+    price: unlock.price,
+    requireText: canBuy(c) ? null : unlock.require.text,
+  };
 }
 
 // 鍵マーク。(x, y) は鍵の本体の中心、s は大きさ、color は色（買える品種は金色）

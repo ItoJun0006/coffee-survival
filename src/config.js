@@ -19,7 +19,8 @@ export const CONFIG = {
   characters: {
     defaultId: 'arabica-medium',
     // 品種（仕様 016）。並びは選択画面の順（2 段目から）で、値段の安い順。品種 × 焙煎度（浅煎り・中煎り・深煎り）で 3 体になる
-    //   origin：由来（買うポップアップに出す）、trait：特徴の一言、price：豆コインの値段（アラビカは最初から使える）
+    //   origin：由来（買うポップアップに出す）、trait：特徴の一言、price：豆コインの値段（アラビカは最初から使える）、
+    //   require：買えるようになる条件（高級品種だけ。書き方は下の specials の require と同じ）
     //   power：特別な力（powers のキー）、rates：焙煎度の性能に掛ける倍率（speed＝移動の速さ、caffeine＝カフェイン上限、
     //   damage＝攻撃力、interval＝攻撃の間隔）
     //   pattern は見た目の模様。kind は模様の種類（絵は entities/variety-look.js）、color は模様の色、
@@ -63,6 +64,7 @@ export const CONFIG = {
       },
       {
         id: 'kona', name: 'コナ', origin: 'ハワイ島のコナ地区', trait: '軽快', price: 200, power: 'magnet',
+        require: { type: 'playTime', seconds: 7200, text: '累計プレイ時間が 2 時間になる' },
         rates: { speed: 1.05, caffeine: 0.95, damage: 0.95, interval: 1 }, pattern: { kind: 'flower', color: '#ff8fb1', lightColor: '#e8457a' },
       },
       {
@@ -103,10 +105,12 @@ export const CONFIG = {
       },
       {
         id: 'blue-mountain', name: 'ブルーマウンテン', origin: 'ジャマイカのブルーマウンテン山脈', trait: '万能', price: 400, power: 'magnet',
+        require: { type: 'kills', count: 5000, text: '倒した敵が累計 5,000 体になる' },
         rates: { speed: 0.98, caffeine: 0.98, damage: 0.98, interval: 1 }, pattern: { kind: 'mountains', color: '#6fa8dc', lightColor: '#3f6fb0' },
       },
       {
         id: 'geisha', name: 'ゲイシャ', origin: 'エチオピアのゲシャ村から広まった、高級な品種', trait: '一点豪華', price: 1000, power: 'area',
+        require: { type: 'extraClear', text: 'エクストラステージをクリアする' },
         rates: { speed: 1.05, caffeine: 0.85, damage: 1.1, interval: 1.05 }, pattern: { kind: 'sparkle', color: '#ffe9a8', lightColor: '#fffdf2' },
       },
     ],
@@ -115,28 +119,32 @@ export const CONFIG = {
       { id: 'medium', name: '中煎り', trait: 'バランス', color: '#8b5a2b', crease: '#4e2f16', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
       { id: 'dark', name: '深煎り', trait: 'パワー', color: '#4a2c1a', crease: '#22130a', speedRate: 0.8, maxCaffeine: 130, damageRate: 1.5, attackIntervalRate: 1.3 },
     ],
-    // 条件を満たすと解放されるキャラ。roast は性能と色（品種 × 焙煎度のキャラと同じ形）
-    // unlock.type：bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
+    // 特別なキャラ。require の条件を満たすと仕入れられるようになり、price の豆コインで買う（仕様 016 FR-018）。
+    // roast は性能と色（品種 × 焙煎度のキャラと同じ形）、origin と desc は買うポップアップに出す
+    // require.type：extraClear＝エクストラステージをクリア、bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
     //   plays＝ゲームを count 回始める、playTime＝累計プレイ時間が seconds 秒以上（例：{ type: 'playTime', seconds: 3600, text: '…' }）、
     //   distance＝累計移動距離が pixels 以上（マップの端から端は 2000）、kills＝累計撃破数が count 以上、beans＝累計の拾った豆が count 以上
     // drawScale は見た目の大きさの倍率（当たる範囲は変わらない）
     specials: [
       {
-        id: 'liberica-large', name: 'リベリカ大粒', drawScale: 1.15,
+        id: 'liberica-large', name: 'リベリカ大粒', drawScale: 1.15, price: 150,
+        origin: '大きくて硬いリベリカ種の豆', desc: 'カフェインの上限がとても多い',
         roast: { trait: '体力', color: '#7b5434', crease: '#3f2614', speedRate: 0.85, maxCaffeine: 180, damageRate: 1, attackIntervalRate: 1.05 },
-        unlock: { type: 'bossDefeat', text: 'ボスを倒してクリアすると解放' },
+        require: { type: 'bossDefeat', text: 'ボスを倒してクリアする' },
       },
       {
-        id: 'robusta-shot', name: '散弾ロブスタ', startWeapon: 'beanShotgun',
+        id: 'robusta-shot', name: '散弾ロブスタ', startWeapon: 'beanShotgun', price: 200,
+        origin: '苦みの強いロブスタ種の豆', desc: '最初の攻撃が豆ショットガン',
         roast: { trait: 'ショットガン', color: '#5b3b25', crease: '#2b180c', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
-        unlock: { type: 'allWeaponsMax', text: '1 回のプレイで、攻撃 3 つを\nすべて最大まで強化すると解放' },
+        require: { type: 'allWeaponsMax', text: '1 回のプレイで、攻撃 3 つをすべて最大まで強化する' },
       },
       {
-        id: 'baby', name: '赤ちゃん豆',
+        id: 'baby', name: '赤ちゃん豆', price: 300,
+        origin: '育つほど強くなる、小さな若い豆', desc: 'レベルが上がるほど強く、大きくなる',
         roast: { trait: '成長', color: '#d9a86c', crease: '#9a6a3e', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
         // Lv 1 で from 倍、maxLevel で to 倍になる。見た目の大きさも scaleFrom → scaleTo に育つ
         growth: { from: 0.6, to: 1.8, maxLevel: 30, scaleFrom: 0.7, scaleTo: 1.05 },
-        unlock: { type: 'launches', count: 3, text: 'ゲームを 3 回起動すると解放' },
+        require: { type: 'launches', count: 3, text: 'ゲームを 3 回起動する' },
       },
     ],
     // 選択画面に並べるマスの数（最終目標）。まだ中身のないマスは「？？？」として鍵付きで出す
@@ -189,6 +197,9 @@ export const CONFIG = {
     affordableLock: '#f0d58a',
     texts: {
       unlocked: '新しい品種『{name}』が解放された！（浅煎り・中煎り・深煎り）',
+      unlockedOne: '新しいキャラ『{name}』が解放された！',
+      ready: '『{name}』が仕入れられるようになった！（{price}）',
+      require: '条件：{text}',
     },
   },
   // ステージ（仕様 011）。main＝1 面、extra＝1 面をクリアしたあとのエクストラステージ
