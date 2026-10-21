@@ -28,9 +28,9 @@ description: "Task list for 012-weapon-upgrades"
 
 **Purpose**: 武器と Lv を指定して始められるようにし、以降の確認を速くする（research R8）
 
-- [ ] T001 確認用の URL パラメータ `?weapons=<id>:<Lv>[,<id>:<Lv>…]` を src/game.js に追加する。`constructor` で `URLSearchParams` から読み（今の `debugBoss`・`debugLevel` の隣）、`reset()` の最後で、指定した武器を `WEAPON_ORDER`（src/weapons/index.js）から作って `this.weapons` に入れ、`level` を設定する。`id` は `CONFIG.weapons` のキーで、クラスとの対応は `new W(this).config.name === CONFIG.weapons[id].name` で引く。最初から持っている豆マシンガン（または豆ショットガン）は残し、持てる数（`CONFIG.slots.weapons`、3 つ）を超える分は無視する。Lv は 1〜`CONFIG.weaponLevels.max` に収める
-- [ ] T002 確認用の URL パラメータ `?maxVariant=A|B|C` を src/game.js に追加し、src/weapons/base.js に `get maxVariant()` を足す（パラメータがあればそれを、なければ `this.config.maxVisual?.variant ?? 'A'` を返す）。MAX の見た目の 3 案（US2）の見比べに使う
-- [ ] T003 T001・T002 を確かめる：`?weapons=mill:8,drip:5` で始めるとミル Lv 8・ドリップ Lv 5 を持ち、左上の一覧に出る。`?weapons=` なしでは今までどおり始まる。移動・ポーズ・リトライ・コンソールのエラーを確認（quickstart §5）
+- [x] T001 確認用の URL パラメータ `?weapons=<id>:<Lv>[,<id>:<Lv>…]` を src/game.js に追加する。`constructor` で `URLSearchParams` から読み（今の `debugBoss`・`debugLevel` の隣）、`reset()` の最後で、指定した武器を `WEAPON_ORDER`（src/weapons/index.js）から作って `this.weapons` に入れ、`level` を設定する。`id` は `CONFIG.weapons` のキーで、クラスとの対応は `new W(this).config.name === CONFIG.weapons[id].name` で引く。最初から持っている豆マシンガン（または豆ショットガン）は残し、持てる数（`CONFIG.slots.weapons`、3 つ）を超える分は無視する。Lv は 1〜`CONFIG.weaponLevels.max` に収める
+- [x] T002 確認用の URL パラメータ `?maxVariant=A|B|C` を src/game.js に追加し、src/weapons/base.js に `get maxVariant()` を足す（パラメータがあればそれを、なければ `this.config.maxVisual?.variant ?? 'A'` を返す）。MAX の見た目の 3 案（US2）の見比べに使う
+- [x] T003 T001・T002 を確かめる：`?weapons=mill:8,drip:5` で始めるとミル Lv 8・ドリップ Lv 5 を持ち、左上の一覧に出る。`?weapons=` なしでは今までどおり始まる。移動・ポーズ・リトライ・コンソールのエラーを確認（quickstart §5）
 
 ---
 
