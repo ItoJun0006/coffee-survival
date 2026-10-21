@@ -134,7 +134,7 @@ description: "Task list for 012-weapon-upgrades"
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [ ] T061 quickstart §4：MAX の武器 3 つ（例：`?weapons=mill:8,ice:8,puddle:8`）で敵 150 体まで遊び、1 フレームが 16.7ms 以内か確かめる。重い武器があれば、光の作り置き・照合する敵の絞り込みで軽くする（SC-004）
-- [ ] T062 Edge Cases を確かめる：範囲アップ Lv 8 と重ねたときの大きさ（ショックウェーブ・スチーム）、攻撃の間隔の下限 0.3 倍、ボスに効かないもの（凍り・押し返し・足どめ）、ドリップ MAX のボス戦の強さ、アイスの凍らせ続け。強すぎる・弱すぎるものは src/config.js の値で調整する
+- [ ] T062 Edge Cases を確かめる：範囲アップ Lv 8 と重ねたときの大きさ（ショックウェーブ・スチーム）、攻撃の間隔の下限 0.25 倍、ボスに効かないもの（凍り・押し返し・足どめ）、ドリップ MAX のボス戦の強さ、アイスの凍らせ続け。強すぎる・弱すぎるものは src/config.js の値で調整する
 - [ ] T063 [P] specs/012-weapon-upgrades/spec.md の表を、調整した最終の値と選んだ MAX の見た目に合わせて書き直し、Status を Implemented にする。specs/007-weapon-max-level/spec.md の FR-002 と Assumptions（「豆マシンガン以外の 10 種類の特別な強化と MAX の見た目は範囲外」）を、012 で決めたこと（プレス・ラテを外すことを含む）に合わせて直す
 - [ ] T064 [P] specs/002-weapon-visuals/spec.md の FR-003（Lv が上がるほど見た目を豪華に）と、012 の MAX の見た目との関係を確かめ、食い違いがあればユーザーに報告する（勝手に直さない）
 - [ ] T065 README.md・CLAUDE.md に、武器の強化や確認用 URL パラメータ（`?weapons`・`?maxVariant`）と食い違う記述がないか確かめ、あればユーザーに報告する（断りなく編集しない）

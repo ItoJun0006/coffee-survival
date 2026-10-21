@@ -241,7 +241,7 @@ export const CONFIG = {
   // 攻撃の間隔は、キャラ・強化・アイテムが重なっても元の minIntervalRate 倍より短くしない
   // max は 1 面の上限。エクストラステージでは stages.extra.maxLevel まで上げられ（限界突破）、
   // アイテムの限界突破した段階は、1 段階の効果が overCapItemRate 倍になる
-  weaponLevels: { choices: 3, max: 8, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.3, overCapItemRate: 0.5 },
+  weaponLevels: { choices: 3, max: 8, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.25, overCapItemRate: 0.5 },
   // Lv 2・4・6 で上がる見た目の段階（仕様 014）：攻撃の縁（当たる範囲の内側）に光る線を描く。
   // tiers は段階が上がる Lv。MAX（Lv 8）は武器ごとの maxVisual で描く。配列の値は段階 1・2・3 の順。
   // colors は属性ごとの線の色、width は線の太さ（px）、alpha は濃さ
@@ -330,7 +330,8 @@ export const CONFIG = {
     // 豆マシンガン以外の 8 種類は、毎 Lv 共通の強化を受けたうえで、upgrades の Lv に特別な強化を受ける。
     // upgrades の値は Rate で終わるものはかけ算、それ以外は上書きで重なる。true の値は、その武器の同じ名前の設定を使い始める
     mill: {
-      name: 'ミル・トルネード', desc: '2 枚の刃が\nまわりを回り続ける', element: 'none', count: 2, orbitRadius: 70, bladeRadius: 12, angularSpeed: 3, damage: 1, hitCooldownSec: 0.5,
+      // knockback：刃に当たった敵を、プレイヤーから外向きに押し返す速さ（ボスには効かない）
+      name: 'ミル・トルネード', desc: '2 枚の刃が\nまわりを回り続け、\n敵を押し返す', element: 'none', count: 2, orbitRadius: 70, bladeRadius: 12, angularSpeed: 3, damage: 1, hitCooldownSec: 0.5, knockback: 200,
       upgrades: {
         2: { count: 3, desc: '刃が 3 枚になる' },
         4: { bladeRate: 1.35, desc: '刃が大きくなる' },

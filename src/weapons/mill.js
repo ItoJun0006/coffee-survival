@@ -55,7 +55,11 @@ export class Mill extends Weapon {
     for (const b of this.#blades()) {
       for (const t of near) {
         if (Math.hypot(t.x - b.x, t.y - b.y) >= blade + t.radius) continue;
-        if (this.hits.tryHit(t, g.time)) this.hit(t);
+        if (!this.hits.tryHit(t, g.time)) continue;
+        this.hit(t);
+        // プレイヤーから外向きに押し返す
+        const a = Math.atan2(t.y - p.y, t.x - p.x);
+        g.knockback(t, Math.cos(a) * c.knockback, Math.sin(a) * c.knockback);
       }
     }
   }
