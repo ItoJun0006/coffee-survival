@@ -9,26 +9,44 @@ export class Mug extends Weapon {
     this.hits = new HitTracker(this.config.hitCooldownSec);
   }
 
+  baseStats() {
+    return { count: 1, spreadDeg: 0, sizeRate: 1, rangeRate: 1, speedRate: 1 };
+  }
+
   update(dt) {
     const c = this.config;
     const g = this.game;
+    const s = this.stats;
     const p = g.player;
+    const range = c.range * s.rangeRate;
+    const speed = c.speed * s.speedRate;
     if (this.tick(dt)) {
-      const target = g.nearestTarget(c.range);
+      const target = g.nearestTarget(range);
       if (target) {
         this.timer = 0;
-        this.mugs.push({ x: p.x, y: p.y, angle: angleTo(p, target), travelled: 0, returning: false, spin: 0, spent: false });
+        const base = angleTo(p, target);
+        const step = (s.spreadDeg * Math.PI) / 180;
+        for (let i = 0; i < s.count; i++) {
+          const angle = base + (i - (s.count - 1) / 2) * step;
+          this.mugs.push({ x: p.x, y: p.y, angle, radius: c.radius * s.sizeRate, travelled: 0, returning: false, spin: 0, spent: false });
+        }
       }
     }
     for (const m of this.mugs) {
       if (m.returning) m.angle = angleTo(m, p);
-      m.x += Math.cos(m.angle) * c.speed * dt;
-      m.y += Math.sin(m.angle) * c.speed * dt;
+      m.x += Math.cos(m.angle) * speed * dt;
+      m.y += Math.sin(m.angle) * speed * dt;
       m.spin += dt * 12;
-      m.travelled += c.speed * dt;
-      if (!m.returning && m.travelled >= c.range) m.returning = true;
+      m.travelled += speed * dt;
+      if (!m.returning && m.travelled >= range) {
+        m.returning = true;
+        // MAX：折り返す瞬間に熱いしぶきが散る
+        if (s.splash) {
+          for (const t of g.targetsInCircle(m.x, m.y, c.splashRadius)) this.hit(t, c.splashDamage, c.splashElement);
+        }
+      }
       if (m.returning && dist(m, p) < p.radius) m.spent = true;
-      for (const t of g.targetsInCircle(m.x, m.y, c.radius)) {
+      for (const t of g.targetsInCircle(m.x, m.y, m.radius)) {
         if (this.hits.tryHit(t, g.time)) this.hit(t);
       }
     }
@@ -36,8 +54,8 @@ export class Mug extends Weapon {
   }
 
   draw(ctx) {
-    const r = this.config.radius;
     for (const m of this.mugs) {
+      const r = m.radius;
       ctx.save();
       ctx.translate(m.x, m.y);
       ctx.rotate(m.spin);
