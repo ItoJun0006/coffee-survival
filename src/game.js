@@ -678,7 +678,10 @@ export class Game {
     while (this.enemyTimer >= interval) {
       this.enemyTimer -= interval;
       const n = Math.floor(group) + (Math.random() < group % 1 ? 1 : 0);
-      for (let i = 0; i < n && this.enemies.length < maxCount; i++) this.#spawnEnemy(this.#pickEnemyType());
+      for (let i = 0; i < n && this.enemies.length < maxCount; i++) {
+        const { x, y } = this.#spawnPoint();
+        this.#spawnEnemy(this.#pickEnemyType(), x, y, 0);
+      }
     }
   }
 
@@ -703,6 +706,38 @@ export class Game {
   }
 
   // 既定では画面のすぐ外に出現させる
+  // 通常の敵が現れる場所。マップの内側で、画面に映っておらず、プレイヤーがいる角のまわりでもない所。
+  // まず画面のすぐ外の円周上を、だめなら少し遠い円周上を探し、それでもなければマップ全体から探す
+  #spawnPoint() {
+    const { width, height } = stage.world;
+    const { viewPad, cornerRadius, ringTries, ringSteps, anywhereTries } = CONFIG.spawn;
+    const p = this.player;
+    const halfW = this.viewW / 2 + viewPad;
+    const halfH = this.viewH / 2 + viewPad;
+    const corners = [[0, 0], [width, 0], [0, height], [width, height]];
+    const corner = corners.find(([cx, cy]) => Math.hypot(p.x - cx, p.y - cy) < cornerRadius);
+    const ok = (x, y) => x >= 0 && x <= width && y >= 0 && y <= height
+      && (Math.abs(x - p.x) > halfW || Math.abs(y - p.y) > halfH)
+      && !(corner && Math.hypot(x - corner[0], y - corner[1]) < cornerRadius);
+    const base = Math.hypot(halfW, halfH);
+    for (const step of ringSteps) {
+      for (let i = 0; i < ringTries; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const x = p.x + Math.cos(a) * base * step;
+        const y = p.y + Math.sin(a) * base * step;
+        if (ok(x, y)) return { x, y };
+      }
+    }
+    for (let i = 0; i < anywhereTries; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      if (ok(x, y)) return { x, y };
+    }
+    // マップが画面より狭いなどで見つからないときは、プレイヤーから一番遠い角に出す
+    const [fx, fy] = corners.reduce((a, b) => (Math.hypot(p.x - a[0], p.y - a[1]) > Math.hypot(p.x - b[0], p.y - b[1]) ? a : b));
+    return { x: fx, y: fy };
+  }
+
   #spawnEnemy(type, cx = this.player.x, cy = this.player.y, distance = Math.hypot(this.viewW, this.viewH) / 2 + 40) {
     const a = Math.random() * Math.PI * 2;
     const x = clamp(cx + Math.cos(a) * distance, 0, stage.world.width);

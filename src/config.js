@@ -187,6 +187,13 @@ export const CONFIG = {
     startGroup: 1,
     endGroup: 3,
     maxCount: 150,
+    // 現れる場所（001 の FR-030）。画面の端から viewPad 外側より遠く、プレイヤーが角から cornerRadius 以内にいるときはその角から cornerRadius 以上離す。
+    // 探し方：画面の外の円周上（半径を ringSteps 倍ずつ）を ringTries 回ずつ、だめならマップ全体を anywhereTries 回
+    viewPad: 40,
+    cornerRadius: 450,
+    ringTries: 8,
+    ringSteps: [1, 1.3, 1.7],
+    anywhereTries: 40,
   },
   // ビッグウェーブ：ときどき durationSec のあいだ、敵の出る量が spawnRate 倍になる。
   // 最初は firstSec、次からは前の始まりから minIntervalSec〜maxIntervalSec 後。ボスの stopBeforeBossSec 前からは来ない
