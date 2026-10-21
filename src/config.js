@@ -164,6 +164,26 @@ export const CONFIG = {
         8: { count: 6, pulse: { minRate: 0.65, maxRate: 1.45, periodSec: 2.4 }, desc: '刃が 6 枚になり、\n輪が伸び縮みする' },
       },
       commonDesc: 'ダメージが上がり、\n当たる間隔が縮む',
+      // Lv 8（MAX）の見た目の 3 案（variant で選ぶ）。trailArc は残像の弧の長さ（ラジアン）、edgeRate は明るい縁の幅（刃の半径に対する割合）
+      maxVisual: {
+        variant: 'A',
+        // A：真鍮〜銅色の刃・残像の弧・通り道の帯・舞う挽いた粉
+        A: {
+          band: 'rgba(120, 70, 35, 0.28)', blade: '#c98a45', edge: '#ffd9a0', edgeRate: 0.25, hub: '#6e3f1f',
+          trail: 3, trailArc: 0.7, trailColor: '#d08a45', trailAlpha: 0.45,
+          grounds: '#b07848', groundCount: 3, groundSpeed: 1.6, groundDist: 22, groundAlpha: 0.6,
+        },
+        // B：白銀の刃と、輪の中を渦巻く風の筋
+        B: {
+          blade: '#dfe6ea', edge: '#ffffff', edgeRate: 0.2, hub: '#6f7c84',
+          wind: '#eef4f6', windWidth: 3, windAlpha: 0.6, windSpin: 7, streaks: 8, streakArc: 0.9, trailArc: 0.9,
+        },
+        // C：削る熱で赤く光る刃と、飛び散る火花
+        C: {
+          blade: '#5e5a58', edge: '#ff9a3c', edgeRate: 0.22, hub: '#2e2622', glow: '#ff7a2a', glowScale: 2.2, glowAlpha: 0.55,
+          spark: '#ffd27a', sparkWidth: 3, sparks: 4, sparkSpeed: 2.2, sparkDist: 26, sparkLen: 6, sparkAlpha: 0.65,
+        },
+      },
     },
     mug: {
       areaKeys: ['splashRadius'],
@@ -177,6 +197,28 @@ export const CONFIG = {
         8: { count: 3, spreadDeg: 14, splash: true, speedRate: 0.85, desc: 'マグが 3 つになり、\n折り返しで熱いしぶき' },
       },
       commonDesc: 'ダメージが上がり、\n投げる間隔が縮む',
+      // MAX のしぶきの見た目が消えるまでの時間
+      splashFxSec: 0.35,
+      // Lv 8（MAX）の見た目の 3 案（variant で選ぶ）。tailGapSec は尾の 1 つ分が何秒前の位置か
+      maxVisual: {
+        variant: 'A',
+        // A：熱い珈琲でなみなみのマグ・オレンジの光と湯気・しぶきの円と雫
+        A: {
+          coffee: '#4a2a17', crema: '#c98a4b', glow: '#ff9a3c', glowScale: 2.2, glowAlpha: 0.5,
+          steam: '#f4efe6', steamAlpha: 0.5, wisps: 3, wispHeight: 26, wispSize: 4,
+          splashFill: 'rgba(110, 60, 30, 0.45)', splashEdge: '#e8964a', drop: '#7a4526', drops: 9, dropSize: 3,
+        },
+        // B：赤く焼けたほうろうのマグと炎の尾・放射状に飛ぶしぶき
+        B: {
+          body: '#d9542b', rim: '#fff1dc', coffee: '#3d2314', glow: '#ff7a2a', glowHot: '#ffc35a', glowAlpha: 0.6, tail: 4, tailGapSec: 0.035,
+          spike: '#ffb050', spikes: 14,
+        },
+        // C：キャラメル色の縁の白いマグと湯気の輪・王冠のように跳ねるしぶき
+        C: {
+          rim: '#d9a066', coffee: '#4a2a17', crema: '#d9a066', steam: '#f4efe6', steamAlpha: 0.45, tail: 3, tailGapSec: 0.05,
+          ring: '#f0c896', drop: '#9a5a30', drops: 12, dropSize: 4, dropLift: 8,
+        },
+      },
     },
     drip: {
       name: 'ドリップの雨', desc: '敵の頭上に\n熱い雫を降らせる', element: 'hot', intervalSec: 1.2, drops: 3, radius: 40, delaySec: 0.6, damage: 3, range: 500,
@@ -193,6 +235,30 @@ export const CONFIG = {
         8: { drops: 8, linger: true, damageRate: 0.75, desc: '雫が 8 つになり、\n着弾点に湯気が残る' },
       },
       commonDesc: 'ダメージが上がり、\n降らせる間隔が縮む',
+      // Lv 8（MAX）の見た目の 3 案（variant で選ぶ）。mist は着弾点に残る湯気の範囲、crown は着弾で跳ねる雫の数
+      maxVisual: {
+        variant: 'A',
+        // A：頭上に銅色のドリッパー・淡いオレンジの芯と光の雫・湯気の尾・湯気の輪
+        A: {
+          dripper: '#b8733a', dripperRim: '#e0a36a', dripperSize: 10, dripperLift: 40,
+          drop: '#a8602e', core: '#ffcf8a', glow: '#ff9a3c', glowRadius: 18, glowAlpha: 0.55,
+          steam: '#f4efe6', steamAlpha: 0.45, tail: 3, tailGap: 6,
+          splash: '#ffcf8a', crown: 6, mistFill: 'rgba(240, 225, 210, 0.18)', mistEdge: 'rgba(250, 240, 228, 0.8)', wisps: 4, wispHeight: 40,
+        },
+        // B：光る琥珀色の雨の筋・オレンジに光る湯気の範囲
+        B: {
+          drop: '#e0883a', glow: '#ffb050', glowRadius: 16, glowAlpha: 0.6, streak: '#ffc87a', streakAlpha: 0.6, streakLen: 34,
+          steam: '#ffe2c4', steamAlpha: 0.35,
+          splash: '#ffb050', crown: 8, mistFill: 'rgba(255, 140, 60, 0.22)', mistEdge: '#ff9a3c', wisps: 3, wispHeight: 30,
+        },
+        // C：狙った所の上に小さなドリッパーが現れて落とす・珈琲色の湯気の範囲
+        C: {
+          dripper: '#b8733a', dripperRim: '#e0a36a', dripperSize: 11,
+          drop: '#6b3e22', glow: '#ff9a3c', glowRadius: 14, glowAlpha: 0.45,
+          steam: '#f4efe6', steamAlpha: 0.5,
+          splash: '#c98a4b', crown: 6, mistFill: 'rgba(70, 38, 20, 0.45)', mistEdge: '#8a5a32', wisps: 5, wispHeight: 46,
+        },
+      },
     },
     steam: {
       areaKeys: ['range'],
@@ -207,6 +273,16 @@ export const CONFIG = {
         8: { angleDeg: 360, knockbackRate: 1.4, damageRate: 0.8, desc: '全方向に吹き、\n押し返しが強くなる' },
       },
       commonDesc: 'ダメージが上がり、\n吹く間隔が縮む',
+      // Lv 8（MAX）の見た目の 3 案（variant で選ぶ）。core は芯の暖色の光（coreScale は当たる半径に対する大きさ）
+      maxVisual: {
+        variant: 'A',
+        // A：もこもこした蒸気の雲（芯が暖色・外が白）。外周のかたまりが膨らむ
+        A: { core: '#ff9a50', coreScale: 0.8, coreAlpha: 0.6, cloud: '#fbf7f0', cloudAlpha: 0.9, lumps: 22, lumpSize: 18, inner: '#fff1e0', innerAlpha: 0.3 },
+        // B：全方向へ吹き出す蒸気の筋と、筋の先の湯気の玉
+        B: { core: '#ff9a50', coreScale: 0.6, coreAlpha: 0.6, jet: '#fbf7f0', jetWidth: 5, jetAlpha: 0.85, jets: 16, tipSize: 7 },
+        // C：外へ散っていく湯気の粒
+        C: { core: '#ffb070', coreScale: 0.7, coreAlpha: 0.5, puff: '#fbf7f0', puffs: 70, puffSize: 9, puffAlpha: 0.8, depth: 0.9 },
+      },
     },
     puddle: {
       name: 'こぼれ珈琲', desc: '足元に熱い水たまりを作り、\nダメージを与え続ける', element: 'hot', intervalSec: 2, radius: 50, durationSec: 4, damage: 1, tickSec: 0.5,
@@ -221,6 +297,26 @@ export const CONFIG = {
         8: { trail: true, desc: '歩いた跡に\n珈琲がこぼれ続ける' },
       },
       commonDesc: 'ダメージが上がり、\nこぼす間隔が縮む',
+      // Lv 8（MAX）の見た目の 3 案（variant で選ぶ）。bubbles・wisps・shimmers は普通の大きさの水たまり 1 つあたりの数
+      maxVisual: {
+        variant: 'A',
+        // A：濃い琥珀色の表面・オレンジの縁取り・ふくらんではじける泡・立ちのぼる湯気
+        A: {
+          surface: 'rgba(122, 62, 22, 0.65)', rim: '#e8863a', bubble: '#d9a066', bubbles: 6, bubbleSize: 4, bubbleSpeed: 0.7,
+          steam: '#f4efe6', steamAlpha: 0.45, wisps: 4, wispHeight: 36,
+        },
+        // B：回るクレマの渦と、まわりのオレンジの光
+        B: {
+          surface: 'rgba(80, 42, 20, 0.65)', rim: '#d9a066', glow: '#ff8a3c', glowScale: 1.25, glowAlpha: 0.35,
+          swirl: '#e0b07a', swirlAlpha: 0.7, arms: 2, spin: 1.2,
+          steam: '#f4efe6', steamAlpha: 0.35, wisps: 3, wispHeight: 30,
+        },
+        // C：芯が赤く光って煮え立つ表面と、ゆらめく熱
+        C: {
+          surface: 'rgba(90, 36, 16, 0.55)', rim: '#ff7a3c', heat: '#ff5a1e', heatAlpha: 0.7, bubble: '#ffb070', bubbles: 8, bubbleSize: 3, bubbleSpeed: 1.2,
+          shimmer: '#ffd2a0', shimmerAlpha: 0.4, shimmers: 4, shimmerHeight: 30,
+        },
+      },
     },
     ice: {
       name: 'アイス珈琲', desc: '氷を全方向に飛ばし、\n当たった敵を凍らせる', element: 'ice', intervalSec: 1.5, shards: 6, speed: 360, radius: 7, damage: 1, range: 300, freezeSec: 1.2, refreezeGuardSec: 0.6,
@@ -233,6 +329,16 @@ export const CONFIG = {
         8: { shards: 12, pierce: 3, damageRate: 0.7, desc: '氷が 12 個になり、\n3 体まで貫通' },
       },
       commonDesc: 'ダメージが上がり、\n飛ばす間隔が縮む',
+      // Lv 8（MAX）の見た目の 3 案（variant で選ぶ）。sparkle は後ろに残るきらめき（sparkleGap は 1 つ分の間隔 px）
+      maxVisual: {
+        variant: 'A',
+        // A：白い芯とシアンの淡い光をまとい、回りながら飛ぶ 6 本腕の雪の結晶
+        A: { arm: '#e6f7ff', core: '#ffffff', glow: '#5fd0ff', glowScale: 2.6, glowAlpha: 0.6, spin: 6, sparkle: '#bff0ff', sparkles: 4, sparkleGap: 8, sparkleAlpha: 0.65 },
+        // B：進む向きにとがった氷の槍と、後ろに残る霜
+        B: { body: '#a8dcff', core: '#ffffff', width: 0.5, glow: '#5fa8ff', glowScale: 2.4, glowAlpha: 0.55, sparkle: '#d8f2ff', sparkles: 6, sparkleGap: 6, sparkleAlpha: 0.6 },
+        // C：回りながらきらめく八角の氷の宝石
+        C: { body: '#8fd6ff', core: '#ffffff', glow: '#7fe0ff', glowScale: 2.4, glowAlpha: 0.55, spin: 3, star: '#ffffff', starDist: 1.3, starSize: 0.8, twinkle: 9, sparkle: '#bff0ff', sparkles: 3, sparkleGap: 9, sparkleAlpha: 0.5 },
+      },
     },
     espresso: {
       name: 'エスプレッソ・ショット', desc: '一直線に\n敵を貫く', element: 'hot', intervalSec: 2.5, range: 600, width: 10, coreRate: 0.5, damage: 6,
@@ -248,6 +354,25 @@ export const CONFIG = {
         8: { stream: true, damageRate: 0.4, desc: '撃ち続けて\nなぎ払う' },
       },
       commonDesc: 'ダメージが上がり、\n撃つ間隔が縮む',
+      // Lv 8（MAX）の見た目の 3 案（variant で選ぶ）。haloRate・coreRate は当たる太さに対する太さ。playerGlow は撃っている間のプレイヤーの光
+      maxVisual: {
+        variant: 'A',
+        // A：クリーム色の芯・クレマ色の縁・ごく薄いオレンジの光の 3 層と、線の上を流れる湯気の粒
+        A: {
+          halo: 'rgba(255, 170, 100, 0.22)', haloRate: 2.2, rim: '#c98a4b', core: '#f6e3c2', coreRate: 0.45,
+          steam: '#fbf3e6', steamAlpha: 0.6, particles: 14, flow: 1.6, glow: '#ffb070', playerGlow: 34, playerGlowAlpha: 0.7,
+        },
+        // B：赤く光る縁と濃いエスプレッソの芯。先へ走る光の輪
+        B: {
+          halo: 'rgba(255, 90, 40, 0.25)', haloRate: 2, rim: '#ff6a2a', core: '#3d2314', coreRate: 0.5,
+          pulse: '#ffd27a', pulses: 6, flow: 2.2, glow: '#ff6a2a', tipGlow: 22, playerGlow: 34, playerGlowAlpha: 0.7,
+        },
+        // C：うねる液体の線と、先から飛び散る雫
+        C: {
+          rim: '#c98a4b', core: '#f6e3c2', coreRate: 0.25, waveWidth: 0.6, waves: 9, segments: 60, flow: 1.2,
+          drop: '#e0b07a', drops: 10, dropDist: 40, glow: '#ffb070', playerGlow: 30, playerGlowAlpha: 0.6,
+        },
+      },
     },
     press: {
       name: 'フレンチプレス', desc: '近い敵を真上から\n押しつぶす（大ダメージ）', element: 'none', intervalSec: 4, radius: 90, delaySec: 0.8, damage: 10, range: 400,
@@ -261,6 +386,30 @@ export const CONFIG = {
         8: { targets: 1, crowd: true, radiusRate: 1.6, damageRate: 1.5, knockback: 260, desc: '巨大なプレスが\n敵の群れに落ちる' },
       },
       commonDesc: 'ダメージが上がり、\n落とす間隔が縮む',
+      // Lv 8（MAX）の見た目の 3 案（variant で選ぶ）。widthRate・heightRate は当たる半径に対するプレスの大きさ、
+      // emptyRate は容器の上の空いている割合、fallHeight は落ち始める高さ、landSec は着地の見た目が消えるまでの時間
+      maxVisual: {
+        variant: 'A',
+        landSec: 0.4,
+        // A：予告円と残り時間の線・ガラスの容器のプレス・着地の衝撃の輪と挽いた粉
+        A: {
+          zone: 'rgba(240, 200, 150, 0.12)', ring: '#f0c896', timer: '#ff9a3c',
+          widthRate: 1.1, heightRate: 1.3, emptyRate: 0.45, fallHeight: 320, frame: '#8a8f93', glass: 'rgba(205, 228, 238, 0.5)', coffee: '#4a2a17', crema: '#c98a4b', lid: '#9aa0a4', knob: '#2e2a28', glow: '#fff1dc', glowAlpha: 0.15,
+          shock: '#fff1dc', grounds: '#8a5a32', groundCount: 18,
+        },
+        // B：濃くなっていく影と狙いの十字・銀色のプレス・縁の土ぼこりと床のひび
+        B: {
+          shadow: 'rgba(10, 6, 4, 0.5)', ring: '#ff8a5a',
+          widthRate: 1.1, heightRate: 1.3, emptyRate: 0.45, fallHeight: 320, frame: '#d6dde2', glass: 'rgba(205, 228, 238, 0.45)', coffee: '#3d2314', crema: '#b07848', lid: '#e6ecef', knob: '#6f7c84', glow: '#ffffff', glowAlpha: 0.12,
+          crack: '#f0c896', cracks: 9, dust: '#d8c8b0', dustCount: 16, dustSize: 16,
+        },
+        // C：外から縮んでくる輪・銅色のプレス・王冠のように跳ねる珈琲
+        C: {
+          ring: '#e0a36a', closing: '#ffcf8a', closingRings: 2, closingSpread: 0.5,
+          widthRate: 1.1, heightRate: 1.3, emptyRate: 0.45, fallHeight: 320, frame: '#b8733a', glass: 'rgba(205, 228, 238, 0.45)', coffee: '#4a2a17', crema: '#d9a066', lid: '#c98a45', knob: '#6e3f1f', glow: '#ffb070', glowAlpha: 0.2,
+          splash: 'rgba(110, 60, 30, 0.6)', drop: '#7a4526', drops: 16, dropLift: 16,
+        },
+      },
     },
     latte: {
       name: 'ラテアート', desc: 'ハートの中の敵にダメージ。\n中にいると回復する', element: 'none', intervalSec: 6, radius: 130, durationSec: 2.5, damage: 2, tickSec: 0.5, healPerSec: 3,
@@ -272,6 +421,26 @@ export const CONFIG = {
         8: { follow: true, healRate: 0.5, desc: '模様が足元に\nついてくる' },
       },
       commonDesc: 'ダメージが上がり、\n描く間隔が縮む',
+      // Lv 8（MAX）の見た目の 3 案（variant で選ぶ）。pulse はゆっくり脈打つ大きさの幅、heartSize は当たる半径に対するハートの大きさ
+      maxVisual: {
+        variant: 'A',
+        // A：チューリップ風の 3 重のハート・キャラメル色の縁・回る泡の点・回復中に浮かぶ白いハート
+        A: {
+          base: 'rgba(196, 150, 108, 0.45)', layers: ['#faf0e1', '#c98a4b', '#faf0e1'], heartSize: 0.55, pulse: 0.05, pulseSpeed: 2.5,
+          rim: '#b8733a', foam: '#fff6ea', foamDots: 14, spin: 0.6, healHeart: '#ffffff', healHearts: 4,
+        },
+        // B：ロゼッタ（葉の模様）と、回復中のやわらかな光
+        B: {
+          base: 'rgba(196, 150, 108, 0.45)', milk: '#faf0e1', lineWidth: 5, leaves: 7, pulse: 0.04, pulseSpeed: 2.5,
+          rim: '#d9a066', healGlow: 40, healGlowColor: '#ffe2b0',
+        },
+        // C：大きなハートと、縁の内側を回る小さなハートの輪
+        C: {
+          base: 'rgba(170, 120, 80, 0.45)', milk: '#faf0e1', heartSize: 0.5, pulse: 0.05, pulseSpeed: 2.5,
+          ringHeart: '#f3d9b5', ringHearts: 12, ringHeartSize: 8, spin: 0.5,
+          rim: '#c98a4b', healHeart: '#ffffff', healHearts: 3,
+        },
+      },
     },
     shockwave: {
       name: 'カフェイン・ショックウェーブ', desc: 'カフェインが 7 割以上のとき\n衝撃波で押し返す', element: 'none', intervalSec: 3, minCaffeineRatio: 0.7, speed: 400, maxRadius: 250, thickness: 20, damage: 4, knockback: 400,
@@ -283,6 +452,25 @@ export const CONFIG = {
         8: { waves: 3, waveGapSec: 0.15, caffeineCost: 4, desc: '3 重の波が出る。\nカフェインを 4 使う' },
       },
       commonDesc: 'ダメージが上がり、\n発動の間隔が縮む',
+      // Lv 8（MAX）の見た目の 3 案（variant で選ぶ）。flash は発動の瞬間にプレイヤーが光る時間と大きさ
+      maxVisual: {
+        variant: 'A',
+        // A：外側が白っぽい黄色・内側がオレンジの光る円環と火花。3 つ目の波は縁が太い
+        A: {
+          outer: '#fff2b0', inner: '#ff9a3c', edge: '#fffbe6', pushEdge: 6, spark: '#ffd27a', sparks: 18, sparkLen: 16, sparkAlpha: 0.65,
+          flash: '#ffd27a', flashSec: 0.25, flashRadius: 44,
+        },
+        // B：帯の中をジグザグに走る稲妻の輪
+        B: {
+          bolt: '#fff27a', width: 3, pushWidth: 6, zigPx: 14, haze: '#ffe066', hazeAlpha: 0.25,
+          flash: '#fff27a', flashSec: 0.25, flashRadius: 44,
+        },
+        // C：クレマ色の波紋と、縁に並ぶ泡
+        C: {
+          band: 'rgba(217, 160, 102, 0.55)', line: '#f3d9b5', foam: '#fff4e2', foamSize: 3, pushFoam: 5,
+          flash: '#f3d9b5', flashSec: 0.25, flashRadius: 40,
+        },
+      },
     },
   },
   // 倒した敵が落とす経験値の粒。magnetRadius 以内に近づくと吸い寄せられる

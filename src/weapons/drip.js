@@ -1,5 +1,6 @@
 import { CONFIG } from '../config.js';
 import { Weapon, HitTracker, dist } from './base.js';
+import { drawGlow, drawWisps, hash, circle } from './max-fx.js';
 
 // 敵の頭上に熱い雫を降らせる
 export class Drip extends Weapon {
@@ -25,7 +26,7 @@ export class Drip extends Weapon {
       if (candidates.length > 0) {
         this.timer = 0;
         for (const pos of s.spreadTargets ? this.#spreadPositions(candidates, s.drops) : this.#randomPositions(candidates, s.drops)) {
-          this.drops.push({ ...pos, timer: c.delaySec, splash: 0 });
+          this.drops.push({ ...pos, timer: c.delaySec, splash: 0, seed: Math.random() * 100 });
         }
       }
     }
@@ -35,7 +36,7 @@ export class Drip extends Weapon {
         if (d.timer <= 0) {
           for (const t of g.targetsInCircle(d.x, d.y, radius)) this.hit(t, c.damage * s.damageRate);
           d.splash = c.splashSec;
-          if (s.linger) this.mists.push({ x: d.x, y: d.y, life: c.linger.durationSec });
+          if (s.linger) this.mists.push({ x: d.x, y: d.y, life: c.linger.durationSec, seed: d.seed });
         }
       } else {
         d.splash -= dt;
@@ -86,27 +87,137 @@ export class Drip extends Weapon {
       ctx.ellipse(d.x, d.y, radius * (1 - d.timer / c.delaySec), radius * 0.5 * (1 - d.timer / c.delaySec), 0, 0, Math.PI * 2);
       ctx.fill();
     }
+    if (!this.isMax) return;
+    // 着弾点に残る湯気の範囲（はっきりした縁が当たる半径）
+    const v = c.maxVisual[this.maxVariant];
+    for (const m of this.mists) {
+      const k = Math.min(1, m.life / c.linger.durationSec * 2);
+      ctx.save();
+      ctx.globalAlpha = k;
+      ctx.fillStyle = v.mistFill;
+      circle(ctx, m.x, m.y, radius);
+      ctx.fill();
+      ctx.strokeStyle = v.mistEdge;
+      ctx.lineWidth = 3;
+      circle(ctx, m.x, m.y, radius - 1.5);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // しずくの形。先が上、(x, y) が下の丸の中心
+  #dropPath(ctx, x, y, size) {
+    ctx.beginPath();
+    ctx.moveTo(x, y - size * 2);
+    ctx.quadraticCurveTo(x + size * 1.35, y + size * 0.35, x, y + size);
+    ctx.quadraticCurveTo(x - size * 1.35, y + size * 0.35, x, y - size * 2);
   }
 
   draw(ctx) {
     const c = this.config;
     const radius = c.radius * this.stats.radiusRate;
+    const v = this.isMax ? c.maxVisual[this.maxVariant] : null;
+    const variant = this.maxVariant;
+    const t = this.game.time;
+    if (v?.dripper) this.#drawDripper(ctx, this.game.player.x, this.game.player.y - v.dripperLift, v);
     for (const d of this.drops) {
       if (d.timer > 0) {
         const y = d.y - (d.timer / c.delaySec) * c.fallHeight;
-        ctx.fillStyle = '#6b3e22';
-        ctx.beginPath();
-        ctx.moveTo(d.x, y - 12);
-        ctx.quadraticCurveTo(d.x + 8, y + 2, d.x, y + 6);
-        ctx.quadraticCurveTo(d.x - 8, y + 2, d.x, y - 12);
-        ctx.fill();
-      } else {
+        if (!v) {
+          ctx.fillStyle = '#6b3e22';
+          this.#dropPath(ctx, d.x, y, 6);
+          ctx.fill();
+        } else if (variant === 'A') {
+          // 淡いオレンジの芯と光をまとい、湯気の尾を引く
+          drawGlow(ctx, d.x, y, v.glowRadius, v.glow, v.glowAlpha);
+          ctx.save();
+          ctx.fillStyle = v.steam;
+          for (let i = 1; i <= v.tail; i++) {
+            ctx.globalAlpha = v.steamAlpha * (1 - i / (v.tail + 1));
+            circle(ctx, d.x + Math.sin(t * 9 + i + d.seed) * 2, y - 10 - i * v.tailGap, 3 + i * 0.6);
+            ctx.fill();
+          }
+          ctx.restore();
+          ctx.fillStyle = v.drop;
+          this.#dropPath(ctx, d.x, y, 6);
+          ctx.fill();
+          ctx.fillStyle = v.core;
+          this.#dropPath(ctx, d.x, y + 1, 3);
+          ctx.fill();
+        } else if (variant === 'B') {
+          // 光る琥珀色の雨の筋
+          drawGlow(ctx, d.x, y, v.glowRadius, v.glow, v.glowAlpha);
+          ctx.save();
+          ctx.lineCap = 'round';
+          ctx.strokeStyle = v.streak;
+          ctx.globalAlpha = v.streakAlpha;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(d.x, y - v.streakLen);
+          ctx.lineTo(d.x, y - 6);
+          ctx.stroke();
+          ctx.restore();
+          ctx.fillStyle = v.drop;
+          this.#dropPath(ctx, d.x, y, 5);
+          ctx.fill();
+        } else {
+          // 狙った所の上に小さなドリッパーが現れ、そこから落ちる
+          const top = d.y - c.fallHeight;
+          ctx.save();
+          ctx.globalAlpha = Math.min(1, (c.delaySec - d.timer) / 0.1, d.timer / 0.15);
+          this.#drawDripper(ctx, d.x, top, v);
+          ctx.restore();
+          drawGlow(ctx, d.x, y, v.glowRadius, v.glow, v.glowAlpha);
+          ctx.fillStyle = v.drop;
+          this.#dropPath(ctx, d.x, y, 6);
+          ctx.fill();
+        }
+      } else if (!v) {
         ctx.strokeStyle = `rgba(200, 140, 80, ${d.splash / c.splashSec})`;
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(d.x, d.y, radius * (1.3 - d.splash), 0, Math.PI * 2);
         ctx.stroke();
+      } else {
+        // 着弾：当たる半径ちょうどの輪と、跳ねる雫
+        const k = 1 - d.splash / c.splashSec;
+        ctx.save();
+        ctx.globalAlpha = 1 - k;
+        ctx.strokeStyle = v.splash;
+        ctx.lineWidth = 3;
+        circle(ctx, d.x, d.y, radius - 1.5);
+        ctx.stroke();
+        ctx.fillStyle = v.drop;
+        for (let i = 0; i < v.crown; i++) {
+          const a = (i / v.crown) * Math.PI * 2 + d.seed;
+          const rr = radius * (0.3 + 0.6 * k);
+          circle(ctx, d.x + Math.cos(a) * rr, d.y + Math.sin(a) * rr * 0.6 - Math.sin(k * Math.PI) * 10, 3);
+          ctx.fill();
+        }
+        ctx.restore();
       }
     }
+    if (!v) return;
+    // 湯気の範囲から立ちのぼる湯気
+    for (const m of this.mists) {
+      const k = Math.min(1, m.life / c.linger.durationSec * 2);
+      drawWisps(ctx, m.x, m.y, { count: v.wisps, height: v.wispHeight, spread: radius * 1.4, size: 5, color: v.steam, alpha: v.steamAlpha * k, time: t, speed: 1.4, seed: m.seed });
+    }
+  }
+
+  // 銅色の小さなドリッパー
+  #drawDripper(ctx, x, y, v) {
+    const w = v.dripperSize;
+    ctx.fillStyle = v.dripper;
+    ctx.beginPath();
+    ctx.moveTo(x - w, y - w * 0.6);
+    ctx.lineTo(x + w, y - w * 0.6);
+    ctx.lineTo(x + w * 0.35, y + w * 0.4);
+    ctx.lineTo(x - w * 0.35, y + w * 0.4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = v.dripperRim;
+    ctx.fillRect(x - w * 1.1, y - w * 0.75, w * 2.2, 3);
+    ctx.fillRect(x - w * 0.5, y + w * 0.4, w, 3);
   }
 }

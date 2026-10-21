@@ -1,5 +1,6 @@
 import { CONFIG } from '../config.js';
 import { Weapon, HitTracker, dist } from './base.js';
+import { drawGlow, hash, circle } from './max-fx.js';
 
 function heartPath(ctx, x, y, size) {
   ctx.beginPath();
@@ -51,6 +52,10 @@ export class Latte extends Weapon {
   }
 
   drawBelow(ctx) {
+    if (this.isMax) {
+      this.#drawMaxBelow(ctx);
+      return;
+    }
     for (const a of this.arts) {
       const k = Math.min(1, a.life / 0.5);
       ctx.fillStyle = `rgba(196, 150, 108, ${0.45 * k})`;
@@ -61,5 +66,104 @@ export class Latte extends Weapon {
       heartPath(ctx, a.x, a.y, a.radius * 0.6);
       ctx.fill();
     }
+  }
+
+  // 模様。当たる範囲ちょうどに縁を描く
+  #drawMaxBelow(ctx) {
+    const variant = this.maxVariant;
+    const v = this.config.maxVisual[variant];
+    const t = this.game.time;
+    for (const a of this.arts) {
+      const k = Math.min(1, a.life / 0.5);
+      const r = a.radius;
+      const pulse = 1 + v.pulse * Math.sin(t * v.pulseSpeed);
+      ctx.save();
+      ctx.globalAlpha = k;
+      ctx.fillStyle = v.base;
+      circle(ctx, a.x, a.y, r);
+      ctx.fill();
+      if (variant === 'A') {
+        // チューリップ風の 3 重のハート（ミルクとクレマを交互）
+        v.layers.forEach((color, i) => {
+          ctx.fillStyle = color;
+          const size = r * v.heartSize * (1 - i * 0.28) * pulse;
+          heartPath(ctx, a.x, a.y - r * 0.12 * i, size);
+          ctx.fill();
+        });
+      } else if (variant === 'B') {
+        // ロゼッタ（葉の模様）：軸に沿って重なる弧
+        ctx.strokeStyle = v.milk;
+        ctx.lineWidth = v.lineWidth;
+        ctx.lineCap = 'round';
+        const len = r * 0.7 * pulse;
+        for (let i = 0; i < v.leaves; i++) {
+          const q = i / (v.leaves - 1);
+          const y = a.y - len + q * len * 1.7;
+          const w = r * 0.55 * Math.sin((0.15 + q * 0.75) * Math.PI) * pulse;
+          ctx.beginPath();
+          ctx.moveTo(a.x - w, y - w * 0.35);
+          ctx.quadraticCurveTo(a.x, y + w * 0.45, a.x + w, y - w * 0.35);
+          ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y - len);
+        ctx.lineTo(a.x, a.y + len * 0.85);
+        ctx.stroke();
+        ctx.fillStyle = v.milk;
+        heartPath(ctx, a.x, a.y - len, r * 0.12);
+        ctx.fill();
+      } else {
+        // 大きなハートと、縁の内側を回る小さなハートの輪
+        ctx.fillStyle = v.milk;
+        heartPath(ctx, a.x, a.y, r * v.heartSize * pulse);
+        ctx.fill();
+        ctx.fillStyle = v.ringHeart;
+        const n = v.ringHearts;
+        for (let i = 0; i < n; i++) {
+          const ang = (i / n) * Math.PI * 2 + t * v.spin;
+          const d = r - v.ringHeartSize * 1.2;
+          heartPath(ctx, a.x + Math.cos(ang) * d, a.y + Math.sin(ang) * d, v.ringHeartSize);
+          ctx.fill();
+        }
+      }
+      // キャラメル色の縁（当たる範囲ちょうど）
+      ctx.strokeStyle = v.rim;
+      ctx.lineWidth = 3;
+      circle(ctx, a.x, a.y, r - 1.5);
+      ctx.stroke();
+      if (v.foam) {
+        // 縁の内側を回る泡の点
+        ctx.fillStyle = v.foam;
+        for (let i = 0; i < v.foamDots; i++) {
+          const ang = (i / v.foamDots) * Math.PI * 2 + t * v.spin;
+          circle(ctx, a.x + Math.cos(ang) * (r - 8), a.y + Math.sin(ang) * (r - 8), 2 + hash(i) * 1.5);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
+  }
+
+  // 回復中の見た目
+  draw(ctx) {
+    if (!this.isMax) return;
+    const p = this.game.player;
+    if (!this.arts.some((a) => dist(a, p) < a.radius)) return;
+    const variant = this.maxVariant;
+    const v = this.config.maxVisual[variant];
+    const t = this.game.time;
+    if (v.healGlow) drawGlow(ctx, p.x, p.y, v.healGlow, v.healGlowColor, 0.5 + 0.2 * Math.sin(t * 4));
+    if (!v.healHearts) return;
+    // プレイヤーのまわりから浮かぶ小さな白いハート
+    ctx.save();
+    ctx.fillStyle = v.healHeart;
+    for (let i = 0; i < v.healHearts; i++) {
+      const q = (t * 0.8 + i / v.healHearts) % 1;
+      ctx.globalAlpha = 0.85 * Math.sin(q * Math.PI);
+      const x = p.x + (hash(i * 5) - 0.5) * p.radius * 3;
+      heartPath(ctx, x + Math.sin((q + i) * 6) * 3, p.y - p.radius * 0.5 - q * 34, 5);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 }
