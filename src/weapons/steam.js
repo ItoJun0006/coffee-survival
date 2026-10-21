@@ -48,6 +48,17 @@ export class Steam extends Weapon {
     this.puffs = this.puffs.filter((f) => f.life > 0);
   }
 
+  // 扇のふち（当たる半径の端）に並べる
+  levelSpots() {
+    const p = this.game.player;
+    const { puffLifeSec, levelSpot } = this.config;
+    return this.puffs.flatMap((f) => Array.from({ length: levelSpot.count }, (_, i) => {
+      const a = f.angle - f.half + ((i + 0.5) / levelSpot.count) * f.half * 2;
+      const d = f.range - levelSpot.radius;
+      return { x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d, r: levelSpot.radius, k: f.life / puffLifeSec, seed: f.seed + i };
+    }));
+  }
+
   draw(ctx) {
     if (this.isMax) {
       this.#drawMax(ctx);

@@ -94,6 +94,24 @@ export const CONFIG = {
   // max は 1 面の上限。エクストラステージでは stages.extra.maxLevel まで上げられ（限界突破）、
   // アイテムの限界突破した段階は、1 段階の効果が overCapItemRate 倍になる
   weaponLevels: { choices: 3, max: 8, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.3, overCapItemRate: 0.5 },
+  // Lv 2・4・6 で上がる見た目の段階（仕様 014）。tiers は段階が上がる Lv。MAX（Lv 8）は武器ごとの maxVisual で描く。
+  // colors は属性ごとの段階 1・2・3 の色。配列の値は段階 1・2・3 の順
+  weaponLevelVisual: {
+    variant: 'A',
+    tiers: [2, 4, 6],
+    colors: {
+      hot: ['#c9733a', '#ff9a3c', '#ffd9a0'],
+      ice: ['#4f9fd8', '#7fd8ff', '#e0f8ff'],
+      none: ['#a07a58', '#d9a066', '#ffcf8a'],
+    },
+    // A：まわりの淡い光。scale は光の半径（はっきりした部分の半径に対する倍率）で、はみ出す幅は maxExtra（px）まで
+    A: { alpha: [0.25, 0.33, 0.42], scale: [1.7, 2.1, 2.5], maxExtra: [8, 12, 16] },
+    // B：縁（当たる範囲の内側）の光る線。width は線の太さ（px）
+    B: { width: [3, 3, 6], alpha: [0.75, 0.9, 1] },
+    // C：まわりの粒。count は目印 1 つあたりの数（大きな目印は半径 sizeStep ごとに数を増やし、maxCount まで）。
+    // size は粒の大きさ、reach は粒が飛ぶ・昇る距離（px）
+    C: { count: [2, 3, 5], sizeStep: 24, maxCount: 10, alpha: 0.65, speed: 1.4, size: 3, reach: 12 },
+  },
   // 持てる数。weapons は最初の豆マシンガンを含む
   slots: { weapons: 3, items: 2 },
   // ステータス強化アイテム。perLevel は 1 段階（Lv）ごとの効果。最大 Lv は weaponLevels.max と同じ
@@ -193,8 +211,8 @@ export const CONFIG = {
     },
     drip: {
       name: 'ドリップの雨', desc: '敵の頭上に\n熱い雫を降らせる', element: 'hot', intervalSec: 1.2, drops: 3, radius: 40, delaySec: 0.6, damage: 3, range: 500,
-      // 雫が落ち始める高さと、着弾の輪が消えるまでの時間
-      fallHeight: 220, splashSec: 0.3,
+      // 雫が落ち始める高さと、着弾の輪が消えるまでの時間。dropSize は落ちてくる雫の大きさ
+      fallHeight: 220, splashSec: 0.3, dropSize: 6,
       // 狙う敵が足りないとき、余った雫を落とすプレイヤーのまわりの範囲
       scatterRadius: 180,
       // MAX の、着弾点に残る湯気
@@ -219,6 +237,8 @@ export const CONFIG = {
       name: 'スチーム噴射', desc: '扇形に蒸気を吹き、\n敵を押し返す', element: 'hot', intervalSec: 1.8, range: 140, angleDeg: 70, damage: 2, knockback: 300,
       // 吹いた蒸気が消えるまでの時間
       puffLifeSec: 0.35,
+      // Lv 2・4・6 の見た目の目印（仕様 014）：扇のふちに count 個並べる。radius は目印の半径（px）
+      levelSpot: { count: 5, radius: 10 },
       upgrades: {
         2: { angleDeg: 100, desc: '扇が広がる' },
         4: { rangeRate: 1.3, desc: '蒸気が遠くまで届く' },
@@ -267,6 +287,8 @@ export const CONFIG = {
       name: 'エスプレッソ・ショット', desc: '一直線に\n敵を貫く', element: 'hot', intervalSec: 2.5, range: 600, width: 10, coreRate: 0.5, damage: 6,
       // 線が消えるまでの時間と、1 体しかいないときに 2 本目を撃つまでの時間
       beamLifeSec: 0.25, shotGapSec: 0.12,
+      // Lv 2・4・6 の見た目の目印（仕様 014）を線の上に置く間隔（px）
+      levelSpotGap: 60,
       // MAX のストリーム：durationSec 撃ち続け、狙った向きを中心に sweepDeg なぎ払う。同じ敵には hitCooldownSec ごと
       stream: { durationSec: 0.8, sweepDeg: 50, hitCooldownSec: 0.2 },
       upgrades: {
@@ -285,6 +307,8 @@ export const CONFIG = {
     },
     shockwave: {
       name: 'カフェイン・ショックウェーブ', desc: 'カフェインが 7 割以上のとき\n衝撃波で押し返す', element: 'none', intervalSec: 3, minCaffeineRatio: 0.7, speed: 400, maxRadius: 250, thickness: 20, damage: 4, knockback: 400,
+      // Lv 2・4・6 の見た目の目印（仕様 014）を 1 つの輪に置く数
+      levelSpotCount: 12,
       upgrades: {
         2: { minCaffeineRatio: 0.5, desc: 'カフェイン 5 割から\n発動する' },
         4: { radiusRate: 1.3, desc: '衝撃波が遠くまで\n広がる' },

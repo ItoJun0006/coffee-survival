@@ -94,6 +94,20 @@ export class Espresso extends Weapon {
     this.streams = this.streams.filter((s) => s.t < st.durationSec);
   }
 
+  // 線の上に等間隔に置く
+  levelSpots() {
+    const { beamLifeSec, levelSpotGap } = this.config;
+    const r = this.width / 2;
+    return this.beams.flatMap((b, n) => {
+      const len = Math.hypot(b.x2 - b.x1, b.y2 - b.y1);
+      const count = Math.floor(len / levelSpotGap);
+      return Array.from({ length: count }, (_, i) => {
+        const q = (i + 0.5) / count;
+        return { x: b.x1 + (b.x2 - b.x1) * q, y: b.y1 + (b.y2 - b.y1) * q, r, k: b.life / beamLifeSec, seed: n * 31 + i };
+      });
+    });
+  }
+
   draw(ctx) {
     if (this.isMax) {
       this.#drawMax(ctx);

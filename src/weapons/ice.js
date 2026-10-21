@@ -58,6 +58,10 @@ export class Ice extends Weapon {
     this.game.freeze(t, c.freezeSec * s.freezeRate, c.refreezeGuardSec);
   }
 
+  levelSpots() {
+    return this.shards.map((s) => ({ x: s.x, y: s.y, r: s.radius, seed: s.seed }));
+  }
+
   draw(ctx) {
     if (this.isMax) {
       this.#drawMax(ctx);

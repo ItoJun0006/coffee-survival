@@ -62,6 +62,8 @@ export class Game {
     });
     // ?maxVariant=A|B|C を付けて開くと、MAX の見た目の案を切り替えられる（動作確認用）
     this.debugMaxVariant = params.get('maxVariant');
+    // ?levelVariant=A|B|C を付けて開くと、Lv 2・4・6 の見た目の案を切り替えられる（動作確認用）
+    this.debugLevelVariant = params.get('levelVariant');
     this.pixelLayer = new PixelLayer();
     this.floor = new Floor();
     this.resize();
@@ -891,7 +893,10 @@ export class Game {
     wctx.save();
     // ドット絵の層は、プレイヤーをいつも画面の同じ位置に描く（小数のずれでプレイヤーのドットが跳ねないように）
     wctx.translate(this.viewW / 2 - this.player.x, this.viewH / 2 - this.player.y);
-    for (const w of this.weapons) w.drawBelow(wctx);
+    for (const w of this.weapons) {
+      w.drawBelow(wctx);
+      w.drawLevelFx(wctx, true);
+    }
     for (const b of this.beans) b.draw(wctx);
     for (const o of this.xpOrbs) o.draw(wctx);
     for (const w of this.waves) w.draw(wctx);
@@ -899,7 +904,10 @@ export class Game {
     for (const fx of this.effects) fx.draw(wctx);
     if (this.boss && !this.boss.dead) this.boss.draw(wctx);
     this.player.draw(wctx);
-    for (const w of this.weapons) w.draw(wctx);
+    for (const w of this.weapons) {
+      w.draw(wctx);
+      w.drawLevelFx(wctx, false);
+    }
     wctx.restore();
     if (pixel) this.pixelLayer.end(ctx);
 

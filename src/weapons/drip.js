@@ -77,6 +77,12 @@ export class Drip extends Weapon {
     });
   }
 
+  // 落ちてくる雫
+  levelSpots() {
+    const c = this.config;
+    return this.drops.filter((d) => d.timer > 0).map((d) => ({ x: d.x, y: d.y - (d.timer / c.delaySec) * c.fallHeight, r: c.dropSize, seed: d.seed }));
+  }
+
   drawBelow(ctx) {
     const c = this.config;
     const radius = c.radius * this.stats.radiusRate;
@@ -123,7 +129,7 @@ export class Drip extends Weapon {
         const y = d.y - (d.timer / c.delaySec) * c.fallHeight;
         if (!v) {
           ctx.fillStyle = '#6b3e22';
-          this.#dropPath(ctx, d.x, y, 6);
+          this.#dropPath(ctx, d.x, y, c.dropSize);
           ctx.fill();
         } else {
           // 狙った所の上に小さなドリッパーが現れ、そこから落ちる
@@ -134,7 +140,7 @@ export class Drip extends Weapon {
           ctx.restore();
           drawGlow(ctx, d.x, y, v.glowRadius, v.glow, v.glowAlpha);
           ctx.fillStyle = v.drop;
-          this.#dropPath(ctx, d.x, y, 6);
+          this.#dropPath(ctx, d.x, y, c.dropSize);
           ctx.fill();
         }
       } else if (!v) {

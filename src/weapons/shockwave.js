@@ -52,6 +52,18 @@ export class Shockwave extends Weapon {
     this.rings = this.rings.filter((ring) => ring.r < maxRadius);
   }
 
+  // 輪の上に等間隔に置く（目印の半径は帯の幅の半分）
+  levelSpots() {
+    const th = this.config.thickness;
+    const maxRadius = this.config.maxRadius * this.stats.radiusRate;
+    const n = this.config.levelSpotCount;
+    return this.rings.flatMap((ring) => Array.from({ length: n }, (_, i) => {
+      const a = (i / n) * Math.PI * 2 + ring.seed;
+      const d = Math.max(0, ring.r - th / 2);
+      return { x: ring.x + Math.cos(a) * d, y: ring.y + Math.sin(a) * d, r: th / 2, k: 1 - ring.r / maxRadius, seed: ring.seed + i };
+    }));
+  }
+
   draw(ctx) {
     if (this.isMax) {
       this.#drawMax(ctx);

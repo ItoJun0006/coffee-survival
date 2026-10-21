@@ -60,6 +60,11 @@ export class Mill extends Weapon {
     }
   }
 
+  levelSpots() {
+    const r = this.bladeRadius;
+    return this.#blades().map((b, i) => ({ x: b.x, y: b.y, r, seed: i * 13 }));
+  }
+
   // 刃の形（8 つの角の星形）。外側の角が半径 r
   #bladePath(ctx, r) {
     ctx.beginPath();

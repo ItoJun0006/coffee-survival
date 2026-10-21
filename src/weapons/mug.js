@@ -59,6 +59,10 @@ export class Mug extends Weapon {
     this.splashes = this.splashes.filter((sp) => sp.life > 0);
   }
 
+  levelSpots() {
+    return this.mugs.map((m) => ({ x: m.x, y: m.y, r: m.radius, seed: m.seed }));
+  }
+
   // マグの絵。大きさは当たる半径 r に収める（取っ手の先まで）
   #drawMug(ctx, m, { coffee = '#5a341f', crema = null }) {
     const r = m.radius;
