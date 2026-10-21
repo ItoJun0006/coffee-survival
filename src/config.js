@@ -4,10 +4,13 @@ export const CONFIG = {
   title: {
     name: '珈琲サバイバル',
     subtitle: '〜 眠気に負けるな 〜',
-    image: 'assets/images/title.jpg',
+    image: 'assets/images/title.webp',
     background: '#0a0807',
     zoom: { amount: 0.025, periodSec: 12 },
   },
+  // プレイ中の絵（キャラ・敵・攻撃など）のドット絵化。size は 1 マスの大きさ（px）。
+  // 縁取りは、濃さが solidAlpha 以上のマスの隣で、emptyAlpha 以下のマスに付ける。outline を null にすると縁取りなし
+  pixelArt: { enabled: true, size: 3, outline: [20, 12, 8], solidAlpha: 0.7, emptyAlpha: 0.15 },
   // 画面の文字のフォント。Yusei Magic は assets/fonts に置き、css/style.css で読み込む
   font: { family: '"Yusei Magic", system-ui, sans-serif' },
   // 操作キャラ。品種 × 焙煎度の組み合わせで 1 体になる（仮実装）
@@ -23,8 +26,42 @@ export const CONFIG = {
       { id: 'medium', name: '中煎り', trait: 'バランス', color: '#8b5a2b', crease: '#4e2f16', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
       { id: 'dark', name: '深煎り', trait: 'パワー', color: '#4a2c1a', crease: '#22130a', speedRate: 0.8, maxCaffeine: 130, damageRate: 1.5, attackIntervalRate: 1.3 },
     ],
+    // 条件を満たすと解放されるキャラ。roast は性能と色（品種 × 焙煎度のキャラと同じ形）
+    // unlock.type：bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
+    //   plays＝ゲームを count 回始める、playTime＝累計プレイ時間が seconds 秒以上（例：{ type: 'playTime', seconds: 3600, text: '…' }）、
+    //   distance＝累計移動距離が pixels 以上（マップの端から端は 2000）、kills＝累計撃破数が count 以上
+    // drawScale は見た目の大きさの倍率（当たる範囲は変わらない）
+    specials: [
+      {
+        id: 'liberica-large', name: 'リベリカ大粒', drawScale: 1.15,
+        roast: { trait: '体力', color: '#7b5434', crease: '#3f2614', speedRate: 0.85, maxCaffeine: 180, damageRate: 1, attackIntervalRate: 1.05 },
+        unlock: { type: 'bossDefeat', text: 'ボスを倒してクリアすると解放' },
+      },
+      {
+        id: 'robusta-shot', name: '散弾ロブスタ', startWeapon: 'beanShotgun',
+        roast: { trait: 'ショットガン', color: '#5b3b25', crease: '#2b180c', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
+        unlock: { type: 'allWeaponsMax', text: '1 回のプレイで、攻撃 3 つを\nすべて最大まで強化すると解放' },
+      },
+      {
+        id: 'baby', name: '赤ちゃん豆',
+        roast: { trait: '成長', color: '#d9a86c', crease: '#9a6a3e', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
+        // Lv 1 で from 倍、maxLevel で to 倍になる。見た目の大きさも scaleFrom → scaleTo に育つ
+        growth: { from: 0.6, to: 1.8, maxLevel: 30, scaleFrom: 0.7, scaleTo: 1.05 },
+        unlock: { type: 'launches', count: 3, text: 'ゲームを 3 回起動すると解放' },
+      },
+    ],
+    // 選択画面に並べるマスの数（最終目標）。まだ中身のないマスは「？？？」として鍵付きで出す
+    plannedTotal: 66,
+    placeholderUnlockText: '条件達成で解放',
   },
-  world: { width: 2000, height: 2000 },
+  // ステージ（仕様 011）。main＝1 面、extra＝1 面をクリアしたあとのエクストラステージ
+  //   world：マップの広さ、enemySpeedRate：敵の速さの倍率（enemySpeedRates で種類ごとに上書き）、
+  //   caffeineDecay：カフェインが時間で減るか、levelUpHealRate：レベルが 1 上がるごとに回復する量（上限に対する割合）、
+  //   maxLevel：攻撃とアイテムの上限の Lv、overCapChance：Lv 8 から先（限界突破）の候補が、レベルアップのたびに出る確率
+  stages: {
+    main: { name: '1 面', world: { width: 2000, height: 2000 }, enemySpeedRate: 1, enemySpeedRates: {}, caffeineDecay: true, levelUpHealRate: 0, maxLevel: 8, overCapChance: 0 },
+    extra: { name: 'エクストラステージ', world: { width: 1414, height: 1414 }, enemySpeedRate: 0.85, enemySpeedRates: { ghost: 0.8 }, caffeineDecay: false, levelUpHealRate: 0.1, maxLevel: 16, overCapChance: 0.2 },
+  },
   player: {
     radius: 18,
     speed: 220,
@@ -52,7 +89,9 @@ export const CONFIG = {
   // レベルアップで出る攻撃の候補の数と、攻撃の強化。Lv が 1 上がるごとに
   // ダメージが damagePerLevel、攻撃の間隔が intervalPerLevel の割合で変わる
   // 攻撃の間隔は、キャラ・強化・アイテムが重なっても元の minIntervalRate 倍より短くしない
-  weaponLevels: { choices: 3, max: 8, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.3 },
+  // max は 1 面の上限。エクストラステージでは stages.extra.maxLevel まで上げられ（限界突破）、
+  // アイテムの限界突破した段階は、1 段階の効果が overCapItemRate 倍になる
+  weaponLevels: { choices: 3, max: 8, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.3, overCapItemRate: 0.5 },
   // 持てる数。weapons は最初の豆マシンガンを含む
   slots: { weapons: 3, items: 2 },
   // ステータス強化アイテム。perLevel は 1 段階（Lv）ごとの効果。最大 Lv は weaponLevels.max と同じ
@@ -61,6 +100,24 @@ export const CONFIG = {
     frequency: { name: '発生頻度アップ', desc: 'すべての攻撃の\n間隔が短くなる', perLevel: 0.06 },
     power: { name: '攻撃力アップ', desc: 'すべての攻撃の\nダメージが上がる', perLevel: 0.1 },
     xp: { name: '経験値アップ', desc: '経験値の粒から入る\n経験値が増える', perLevel: 0.15 },
+  },
+  // レア強化「椿の花」（仕様 010）。レベルアップの選択画面を開くたびに chance の確率で、まだ受け取っていない種類が
+  // 4 枚目のカードとして出る。アイテムの枠は使わない。1 輪ごとに攻撃の間隔が intervalRate 倍、ダメージが damageRate 倍
+  camellia: {
+    chance: 0.02,
+    intervalRate: 0.75,
+    damageRate: 0.9,
+    desc: 'すべての攻撃の間隔が\n大きく短くなるが、\nダメージが少し下がる',
+    // 種類ごとの名前とカードの色。見た目（アイコン・カードの下地）は item-icons.js と level-up-menu.js で描き分ける
+    kinds: {
+      yabu: { name: '椿の花・藪椿', color: '#e0566a' },
+      coffee: { name: '椿の花・珈琲椿', color: '#f0d58a' },
+      ochi: { name: '椿の花・落ち椿', color: '#f2a7b8' },
+    },
+    // 1 回の挑戦で 3 種類そろえると、実績を解除してスキンを手に入れる
+    achievement: { id: 'skin-camellia', text: '実績解除：椿三輪　アラビカのスキン「椿」を手に入れた！' },
+    // スキンを付けられる品種。look は見た目の候補（A・B・C）で、選んでもらったら 1 つに絞る
+    skin: { name: '椿', variety: 'arabica', look: 'A' },
   },
   // 攻撃。element が hot の攻撃はボスに効きやすく、ice は効きにくい
   weapons: {
@@ -78,6 +135,20 @@ export const CONFIG = {
       commonDesc: 'ダメージが上がり、\n連射が速くなる',
       // Lv 8（MAX）の見た目。trail は残像の数と間隔（秒）、flash は撃った瞬間の光
       maxVisual: { glow: '#ffb347', core: '#ffe08a', glowScale: 2.4, trail: 4, trailGapSec: 0.018, flashSec: 0.12, flashRadius: 26 },
+    },
+    // 散弾ロブスタの最初の武器。豆マシンガンと同じ枠で、同じように強化できる。baseCount は最初の豆の数
+    beanShotgun: {
+      name: '豆ショットガン', desc: '近い敵に向けて\n豆を扇形にばらまく', element: 'none', intervalSec: 0.85, speed: 480, radius: 6, damage: 0.9, range: 300, flightRate: 1.1,
+      baseCount: 5, baseSpreadDeg: 14,
+      commonLevels: [3, 5, 7],
+      upgrades: {
+        2: { count: 6, spreadDeg: 13, desc: '豆が 6 つになる' },
+        4: { flightRate: 1.4, desc: '豆が遠くまで飛ぶ' },
+        6: { rangeRate: 1.3, desc: '遠くの敵も狙う' },
+        8: { count: 8, spreadDeg: 11, pierce: true, damageRate: 0.7, desc: '豆が 8 つになり、\n敵を貫通する（威力 7 割）' },
+      },
+      commonDesc: 'ダメージが上がり、\n連射が速くなる',
+      maxVisual: { glow: '#ffb347', core: '#ffe08a', glowScale: 2.4, trail: 4, trailGapSec: 0.018, flashSec: 0.12, flashRadius: 30 },
     },
     mill: { name: 'ミル・トルネード', desc: '2 枚の刃が\nまわりを回り続ける', element: 'none', count: 2, orbitRadius: 70, bladeRadius: 12, angularSpeed: 3, damage: 1, hitCooldownSec: 0.5 },
     mug: { name: 'マグカップ投げ', desc: '投げると戻ってくる。\n敵を貫通する', element: 'none', intervalSec: 1.6, speed: 380, radius: 14, damage: 2, range: 320, hitCooldownSec: 0.4 },
@@ -114,6 +185,30 @@ export const CONFIG = {
     startGroup: 1,
     endGroup: 3,
     maxCount: 150,
+  },
+  // ビッグウェーブ：ときどき durationSec のあいだ、敵の出る量が spawnRate 倍になる。
+  // 最初は firstSec、次からは前の始まりから minIntervalSec〜maxIntervalSec 後。ボスの stopBeforeBossSec 前からは来ない
+  bigWave: {
+    firstSec: 90,
+    minIntervalSec: 90,
+    maxIntervalSec: 130,
+    durationSec: 5,
+    spawnRate: 3,
+    // ビッグウェーブの間だけ、同時に出ている敵の上限をこの数に上げる
+    maxCount: 230,
+    stopBeforeBossSec: 30,
+    title: 'ビッグウェーブ！',
+    text: '眠気が押し寄せてくる…',
+  },
+  // 珈琲店の木の床（仕様 005）。横長の板を、継ぎ目をずらして並べた板張り
+  // size はドット 1 マスの大きさ（pixelArt.size と合わせる）、periodDots は柄 1 枚の大きさ（ドットの数）
+  // enabled を false にすると、今までの方眼の背景になる
+  floor: {
+    enabled: true,
+    size: 3,
+    periodDots: 192,
+    planks: { width: 8, length: 32 },
+    colors: { base: [54, 35, 24], tone: 0.18, gap: [30, 19, 13], grain: 0.08, knot: 0.2 },
   },
   night: { maxDarkness: 0.55 },
   // プレイ中の背景：夜の焙煎工房。配置は seed から毎回同じに決まる（当たり判定はない）
