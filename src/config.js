@@ -429,17 +429,23 @@ export const CONFIG = {
         steam: '#f4efe6', steamAlpha: 0.45, wisps: 4, wispHeight: 36,
       },
     },
+    // 氷を 1 つだけ、directions 方向からランダムに選んだ向きに飛ばす。敵に当たるか range まで飛んだら、その場で氷塊になり、
+    // blockRadius の中の敵にまとめてダメージを与えて凍らせる（仕様 012 FR-011。2026-10-23 に作り変えた）
     ice: {
-      name: 'アイス珈琲', desc: '氷を全方向に飛ばし、\n当たった敵を凍らせる', element: 'ice', intervalSec: 1.5, shards: 6, speed: 360, radius: 7, damage: 1, range: 300, freezeSec: 1.2, refreezeGuardSec: 0.6,
+      areaKeys: ['blockRadius'],
+      name: 'アイス珈琲', desc: '氷を 1 つ飛ばし、当たると\n氷塊になって周りを凍らせる', element: 'ice', intervalSec: 1.2, directions: 60, speed: 360, radius: 7, range: 300,
+      blockRadius: 60, damage: 3, freezeSec: 1.2, refreezeGuardSec: 0.6,
       upgrades: {
-        2: { shards: 8, desc: '氷が 8 個になる' },
+        2: { blockRate: 1.3, desc: '氷塊の範囲が\n広くなる' },
         4: { freezeRate: 1.35, desc: '長く凍らせる' },
-        // shatterRate：凍っている敵に当たったときのダメージの倍率（その敵の凍りは解ける）
+        // shatterRate：氷塊の範囲で凍っている敵へのダメージの倍率（その敵の凍りは解ける）
         6: { shatterRate: 1.6, desc: '凍った敵を砕いて\n大ダメージ' },
-        // pierce：1 個の氷が当たれる敵の数
-        8: { shards: 12, pierce: 3, damageRate: 0.7, desc: '氷が 12 個になり、\n3 体まで貫通' },
+        // floor：氷塊のあとに残る氷の床。sec だけ残り、tickSec ごとに上にいる敵を凍らせる
+        8: { floor: { sec: 1.5, tickSec: 0.25 }, desc: '氷塊のあとに\n氷の床が残る' },
       },
       commonDesc: 'ダメージが上がり、\n飛ばす間隔が縮む',
+      // 氷塊が割れる演出（blockSec 秒）と氷の床の見た目。look は見た目の候補（A・B・C）で、選んでもらったら 1 つに絞る
+      blockVisual: { look: 'A', blockSec: 0.45, ice: '#cfeaff', light: '#ffffff', deep: '#5fa8d8', glow: '#7fd8ff', floor: 'rgba(170, 225, 255, 0.28)', floorEdge: 'rgba(220, 245, 255, 0.6)' },
       // Lv 8（MAX）の見た目：白い芯とシアンの淡い光をまとい、回りながら飛ぶ 6 本腕の雪の結晶。sparkle は後ろに残るきらめき（sparkleGap は 1 つ分の間隔 px）
       maxVisual: { arm: '#e6f7ff', core: '#ffffff', glow: '#5fd0ff', glowScale: 2.6, glowAlpha: 0.6, spin: 6, sparkle: '#bff0ff', sparkles: 4, sparkleGap: 8, sparkleAlpha: 0.65 },
     },
