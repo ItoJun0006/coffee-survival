@@ -37,11 +37,13 @@ export class Background {
     const cfg = CONFIG.scenery;
     const { width, height } = stage.world;
     this.builtFor = `${width}x${height}`;
-    this.margin = cfg.wall.thickness;
+    // ドット絵にするときは、余白と絵の大きさをドットの大きさの倍数にして、ドットのマスをワールド座標の格子（木の床と同じ）にそろえる
+    const n = this.#dotSize();
+    this.margin = Math.ceil(cfg.wall.thickness / n) * n;
     this.rand = seededRandom(cfg.seed);
     this.lamps = this.#placeLamps();
-    this.layer.width = width + this.margin * 2;
-    this.layer.height = height + this.margin * 2;
+    this.layer.width = Math.ceil((width + this.margin * 2) / n) * n;
+    this.layer.height = Math.ceil((height + this.margin * 2) / n) * n;
     const ctx = this.layer.getContext('2d');
     ctx.translate(this.margin, this.margin);
     if (!CONFIG.floor.enabled) this.#drawFloor(ctx);
@@ -49,7 +51,52 @@ export class Background {
     this.#drawProps(ctx);
     this.#drawWall(ctx);
     this.#drawLampShades(ctx);
+    if (n > 1) this.#pixelate(n);
     this.#buildDark();
+  }
+
+  // ほぼ透明なマスのうち、左上のマスが「はっきりした絵」のマスに影を落とす
+  #addDotShadow(sctx, w, h) {
+    const { solidAlpha, emptyAlpha } = CONFIG.pixelArt;
+    const { color: [r, g, b], alpha } = CONFIG.scenery.dotShadow;
+    const solid = solidAlpha * 255;
+    const empty = emptyAlpha * 255;
+    const img = sctx.getImageData(0, 0, w, h);
+    const src = img.data;
+    const out = new Uint8ClampedArray(src);
+    for (let y = 1; y < h; y++) {
+      for (let x = 1; x < w; x++) {
+        const i = (y * w + x) * 4;
+        if (src[i + 3] > empty || src[i - (w + 1) * 4 + 3] <= solid) continue;
+        out[i] = r;
+        out[i + 1] = g;
+        out[i + 2] = b;
+        out[i + 3] = Math.round(alpha * 255);
+      }
+    }
+    sctx.putImageData(new ImageData(out, w, h), 0, 0);
+  }
+
+  // 背景をドット絵にするときのドットの大きさ。しないときは 1
+  #dotSize() {
+    return CONFIG.pixelArt.enabled && CONFIG.scenery.pixelate ? CONFIG.pixelArt.size : 1;
+  }
+
+  // 描いた絵を n px ごとに 1 点だけ拾って縮め（色を混ぜない）、右下 1 マスに影を付けて、ぼかさずに n 倍に戻す。
+  // 拾い方はプレイ中の絵（pixel-layer.js）と同じ
+  #pixelate(n) {
+    const small = document.createElement('canvas');
+    small.width = this.layer.width / n;
+    small.height = this.layer.height / n;
+    const sctx = small.getContext('2d');
+    sctx.imageSmoothingEnabled = false;
+    sctx.drawImage(this.layer, 0, 0, this.layer.width, this.layer.height, 0, 0, small.width, small.height);
+    this.#addDotShadow(sctx, small.width, small.height);
+    const ctx = this.layer.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, this.layer.width, this.layer.height);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(small, 0, 0, this.layer.width, this.layer.height);
   }
 
   #ensureBuilt() {

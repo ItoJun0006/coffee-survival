@@ -68,6 +68,8 @@ export const CONFIG = {
     maxCaffeine: 100,
     caffeineDecayPerSec: 2.5,
     invincibleSec: 0.6,
+    // 目の色。ドット絵のときは、白目 dotsW × dotsH マス、黒目 pupilW × pupilH マスの四角で描く
+    eyes: { white: '#fff8ee', pupil: '#1e120c', dotsW: 3, dotsH: 4, pupilW: 2, pupilH: 2 },
   },
   bean: {
     radius: 10,
@@ -216,6 +218,10 @@ export const CONFIG = {
   // floor はタイルの床で、木の床（上の floor）を使わないときだけ描く
   scenery: {
     seed: 20261021,
+    // true なら、壁・小物・ランプも木の床と同じ大きさ（pixelArt.size）のドット絵にする
+    pixelate: true,
+    // ドット絵にしたとき、はっきりした絵（不透明度が pixelArt.solidAlpha より上）の右下 1 マスに落とす影
+    dotShadow: { color: [0, 0, 0], alpha: 0.43 },
     outside: '#120c09',
     floor: {
       tileSize: 100,

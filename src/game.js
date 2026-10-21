@@ -783,13 +783,15 @@ export class Game {
     const { ctx } = this;
     ctx.save();
     ctx.translate(-this.camera.x, -this.camera.y);
+    // 床と背景もドット絵なので、小数の位置に貼るときに点を補間させない（ぼやけてキャラのドットとそろわなくなる）
+    ctx.imageSmoothingEnabled = false;
     // マップの外 → 木の床 → 壁・小物・ランプ の順に重ねる
     this.background.drawOutside(ctx, this.camera, this.viewW, this.viewH);
     if (CONFIG.floor.enabled) this.floor.draw(ctx, this.camera, this.viewW, this.viewH);
     this.background.draw(ctx, this.camera, this.viewW, this.viewH);
     ctx.restore();
 
-    // 絵（攻撃・豆・粒・敵・ボス・プレイヤー）は、ドット絵にする層に描く。背景と文字はくっきりしたまま
+    // 絵（攻撃・豆・粒・敵・ボス・プレイヤー）は、ドット絵にする層に描く。文字はくっきりしたまま
     const pixel = CONFIG.pixelArt.enabled;
     const wctx = pixel ? this.pixelLayer.begin() : ctx;
     wctx.save();

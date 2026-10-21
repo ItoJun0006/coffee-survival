@@ -6,10 +6,13 @@ import { stage } from '../stage.js';
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
 // 珈琲豆のキャラを描く。look は目線の向き（長さ 0〜1）、bob は歩くときの弾み（0〜1）、skin はスキン「椿」を付けているか
-export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 0, slowed = false, skin = false } = {}) {
+// dot はドット絵にするときのドットの大きさ（px）。0 ならなめらかな絵のまま
+export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 0, slowed = false, skin = false, dot = 0 } = {}) {
   const { color, crease } = character.roast;
+  const sx = 1 + bob * 0.06;
+  const sy = 1 - bob * 0.06;
   ctx.save();
-  ctx.scale(1 + bob * 0.06, 1 - bob * 0.06);
+  ctx.scale(sx, sy);
 
   ctx.fillStyle = color;
   ctx.beginPath();
@@ -29,18 +32,8 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   ctx.quadraticCurveTo(r * 0.22, -r * 0.35, 0, r * 0.15);
   ctx.stroke();
   // 目と口
-  for (const side of [-1, 1]) {
-    const ex = side * r * 0.38;
-    const ey = -r * 0.05;
-    ctx.fillStyle = '#fff8ee';
-    ctx.beginPath();
-    ctx.arc(ex, ey, r * 0.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#1e120c';
-    ctx.beginPath();
-    ctx.arc(ex + look.x * r * 0.08, ey + look.y * r * 0.08, r * 0.1, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  if (dot) drawDotEyes(ctx, r, look, dot, sx, sy);
+  else drawEyes(ctx, r, look);
   ctx.strokeStyle = '#fff8ee';
   ctx.lineWidth = Math.max(1.5, r * 0.08);
   ctx.beginPath();
@@ -54,6 +47,50 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
     ctx.beginPath();
     ctx.ellipse(0, 0, r * 0.82, r * 1.05, 0, 0, Math.PI * 2);
     ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawEyes(ctx, r, look) {
+  for (const side of [-1, 1]) {
+    const ex = side * r * 0.38;
+    const ey = -r * 0.05;
+    ctx.fillStyle = CONFIG.player.eyes.white;
+    ctx.beginPath();
+    ctx.arc(ex, ey, r * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = CONFIG.player.eyes.pupil;
+    ctx.beginPath();
+    ctx.arc(ex + look.x * r * 0.08, ey + look.y * r * 0.08, r * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ドット絵用の目。小さな丸は 1 マスより細くて欠けたり潰れたりするので、ドットのマス単位の四角で描く。
+// 幅と高さがマスの大きさのちょうど倍数なら、マスの格子とずれていても拾われるマスの数は変わらない。
+// 弾み（sx, sy の伸び縮み）は目の大きさにかけず、位置だけを動かす
+function drawDotEyes(ctx, r, look, dot, sx, sy) {
+  const { white, pupil, dotsW, dotsH, pupilW, pupilH } = CONFIG.player.eyes;
+  const w = dotsW * dot;
+  const h = dotsH * dot;
+  // 黒目の位置（白目の中のマス）。目線の向きで 1 マスずつ動かす
+  const step = (v, room) => Math.max(0, Math.min(room, Math.round(room / 2 + v * room)));
+  const px = step(look.x, dotsW - pupilW) * dot;
+  const py = step(look.y, dotsH - pupilH) * dot;
+  ctx.save();
+  ctx.scale(1 / sx, 1 / sy);
+  // 四角の端が点の途中にかかると、その点だけ背景と混ざった色になり、それが拾われると目がくすむ。
+  // ドット絵の層のマスの格子（画用紙の左上から dot px ごと）にぴったり合わせる
+  const t = ctx.getTransform();
+  const snapX = (x) => (Math.round((t.a * x + t.e) / dot) * dot - t.e) / t.a;
+  const snapY = (y) => (Math.round((t.d * y + t.f) / dot) * dot - t.f) / t.d;
+  for (const side of [-1, 1]) {
+    const x = snapX(side * r * 0.38 * sx - w / 2);
+    const y = snapY(-r * 0.05 * sy - h / 2);
+    ctx.fillStyle = white;
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = pupil;
+    ctx.fillRect(x + px, y + py, pupilW * dot, pupilH * dot);
   }
   ctx.restore();
 }
@@ -149,6 +186,7 @@ export class Player {
       bob: Math.abs(Math.sin(this.walkTime * 12)),
       slowed: this.slowTimer > 0,
       skin: this.skin,
+      dot: CONFIG.pixelArt.enabled ? CONFIG.pixelArt.size : 0,
     });
     ctx.restore();
   }
