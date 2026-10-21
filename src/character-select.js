@@ -1,5 +1,7 @@
 import { CONFIG } from './config.js';
-import { CHARACTERS, canWearSkin, describeStats, isAvailable, statBars, toggleSkin, wearsSkin } from './characters.js';
+import { CHARACTERS, canWearSkin, describeStats, isAvailable, statBars, toggleSkin, varietyMembers, wearsSkin } from './characters.js';
+import { buyVariety, coins } from './progress.js';
+import { MENU_SIZE, coinText, drawCoin, drawMenuPopup } from './coin-ui.js';
 import { drawCharacter } from './entities/player.js';
 import { font } from './font.js';
 
@@ -16,12 +18,51 @@ const TOP = 110;
 const WHEEL_STEP = 100;
 
 // キャラ選択画面。左に全キャラのマス（6 列、入りきらない段はスクロール）、右に選んでいるキャラの詳しい性能を出す。
-// まだ解放していないキャラは影と鍵で出し、決定しようとすると解放条件のポップアップを開く
+// まだ解放していないキャラは影と鍵で出し、決定しようとすると、品種のキャラなら買うメニュー（仕様 016）、
+// 条件で解放するキャラなら解放条件のポップアップを開く。onToast は、品種を買ったときの知らせを出す関数
 export class CharacterSelect {
-  constructor() {
+  constructor(onToast = () => {}) {
     this.index = 0;
     this.scrollRow = 0;
     this.wheel = 0;
+    this.popup = null;
+    this.onToast = onToast;
+    // 買うメニューで選んでいるボタンと、押せるボタンの場所（描いたときに決まる）
+    this.menuChoice = 0;
+    this.menuButtons = [];
+  }
+
+  // 鍵のキャラを決定しようとしたとき
+  #openPopup(character) {
+    this.popup = character;
+    this.menuChoice = 0;
+    this.menuButtons = [];
+  }
+
+  // 買うメニュー：←→ で選び、Space / Enter かクリックで決める。注文したら、その品種の中煎りを選ぶ
+  #updateMenu(input, clicked) {
+    const variety = this.popup.variety;
+    const count = coins() >= variety.price ? 2 : 1;
+    if (input.wasPressed('Escape')) {
+      this.popup = null;
+      return;
+    }
+    if (input.wasPressed('ArrowLeft', 'KeyA')) this.menuChoice = Math.max(0, this.menuChoice - 1);
+    if (input.wasPressed('ArrowRight', 'KeyD')) this.menuChoice = Math.min(count - 1, this.menuChoice + 1);
+    if (!clicked) return;
+    let action = this.menuButtons[this.menuChoice]?.action;
+    if (input.clickPos) {
+      const b = this.menuButtons.find((b) => inRect(input.clickPos, b));
+      if (!b) return;
+      action = b.action;
+    }
+    if (action === 'order') {
+      const members = varietyMembers(variety);
+      if (buyVariety(members.map((c) => c.id), variety.price)) {
+        this.onToast(CONFIG.coins.texts.unlocked.replace('{name}', variety.name));
+        this.index = CHARACTERS.indexOf(members[1] ?? members[0]);
+      }
+    }
     this.popup = null;
   }
 
@@ -38,6 +79,10 @@ export class CharacterSelect {
   // 決めたらそのキャラ、Esc なら 'back'、どちらでもなければ null を返す
   update(input, viewW, viewH) {
     const clicked = input.consumeClick();
+    if (this.popup?.variety) {
+      this.#updateMenu(input, clicked);
+      return null;
+    }
     if (this.popup) {
       if (clicked || input.wasPressed('Escape')) this.popup = null;
       return null;
@@ -70,12 +115,12 @@ export class CharacterSelect {
       if (!card) return null;
       if (card.index !== this.index) {
         this.index = card.index;
-        if (!isAvailable(card.character)) this.popup = card.character;
+        if (!isAvailable(card.character)) this.#openPopup(card.character);
         return null;
       }
     }
     if (isAvailable(this.selected)) return this.selected;
-    this.popup = this.selected;
+    this.#openPopup(this.selected);
     return null;
   }
 
@@ -179,14 +224,32 @@ export class CharacterSelect {
       ctx.restore();
     } else {
       this.#drawSilhouette(ctx, cx, cy, 22, character.placeholder ? 0.07 : 0.14);
-      drawLock(ctx, cx, cy + 4, 10);
+      const price = character.unlock?.price;
+      drawLock(ctx, cx, cy + 4, 10, price && coins() >= price ? CONFIG.coins.affordableLock : undefined);
     }
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = font(11, true);
     ctx.fillStyle = open ? c.text : 'rgba(243, 230, 216, 0.4)';
-    ctx.fillText(open ? character.name : '？？？', cx, card.y + 80);
+    const name = open ? character.name : '？？？';
+    if (ctx.measureText(name).width > card.w - 6 && name.includes(' ')) {
+      // マスに入りきらない名前（「ブルーマウンテン 浅煎り」など）は、品種名と焙煎度の 2 行にする
+      const [first, second] = [name.slice(0, name.lastIndexOf(' ')), name.slice(name.lastIndexOf(' ') + 1)];
+      if (ctx.measureText(first).width > card.w - 4) ctx.font = font(10, true);
+      ctx.fillText(first, cx, card.y + 76);
+      ctx.font = font(10);
+      ctx.fillText(second, cx, card.y + 90);
+    } else {
+      ctx.fillText(name, cx, card.y + 80);
+    }
+    // 買って解放する品種は、名前の下に値段を出す
+    if (!open && character.unlock?.price) {
+      drawCoin(ctx, cx - 22, card.y + 93, 4);
+      ctx.font = font(10);
+      ctx.fillStyle = coins() >= character.unlock.price ? CONFIG.coins.affordableLock : 'rgba(243, 230, 216, 0.55)';
+      ctx.fillText(coinText(character.unlock.price), cx + 4, card.y + 93);
+    }
   }
 
   // まだ解放していないキャラの、うっすら見える影
@@ -243,12 +306,12 @@ export class CharacterSelect {
       ctx.font = font(13);
       ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
       ctx.fillText('まだ解放されていない', cx, TOP + 170);
-      ctx.fillText('Space / Enter で解放条件を見る', cx, TOP + 194);
+      ctx.fillText(sel.unlock?.price ? `Space / Enter でメニューを見る（${coinText(sel.unlock.price)}）` : 'Space / Enter で解放条件を見る', cx, TOP + 194);
       return;
     }
     ctx.font = font(13);
     ctx.fillStyle = c.hudBar;
-    ctx.fillText(sel.roast.trait, cx, TOP + 166);
+    ctx.fillText(sel.variety ? `${sel.variety.trait}・${sel.roast.trait}` : sel.roast.trait, cx, TOP + 166);
 
     // 性能のバー。成長するキャラは、育ちきった長さを薄く重ねる
     const barX = x + 80;
@@ -273,6 +336,8 @@ export class CharacterSelect {
     ctx.font = font(12);
     ctx.fillStyle = 'rgba(243, 230, 216, 0.8)';
     const lines = describeStats(sel);
+    // 品種の特別な力（仕様 016）
+    if (sel.power) lines.push(`特別な力「${sel.power.name}」`, sel.power.desc);
     lines.forEach((line, i) => ctx.fillText(line, cx, TOP + 300 + i * 18));
     // スキンを付けられるキャラは、付け外しの案内を出す
     if (canWearSkin(sel)) {
@@ -283,6 +348,17 @@ export class CharacterSelect {
 
   #drawPopup(ctx, viewW, viewH) {
     const c = CONFIG.colors;
+    if (this.popup.variety) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(0, 0, viewW, viewH);
+      const cy = Math.max(MENU_SIZE.h / 2 + 10, viewH / 2);
+      this.menuButtons = drawMenuPopup(ctx, viewW / 2, cy, this.popup.variety, varietyMembers(this.popup.variety), coins(), this.menuChoice);
+      ctx.textAlign = 'center';
+      ctx.font = font(12);
+      ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
+      ctx.fillText('←→ で選ぶ　Space / Enter かクリックで決定　Esc でとじる', viewW / 2, cy + MENU_SIZE.h / 2 + 20);
+      return;
+    }
     const w = 380;
     const h = 200;
     const x = (viewW - w) / 2;
@@ -310,11 +386,11 @@ export class CharacterSelect {
   }
 }
 
-// 鍵マーク。(x, y) は鍵の本体の中心、s は大きさ
-function drawLock(ctx, x, y, s) {
+// 鍵マーク。(x, y) は鍵の本体の中心、s は大きさ、color は色（買える品種は金色）
+function drawLock(ctx, x, y, s, color = 'rgba(243, 230, 216, 0.75)') {
   ctx.save();
-  ctx.strokeStyle = 'rgba(243, 230, 216, 0.75)';
-  ctx.fillStyle = 'rgba(243, 230, 216, 0.75)';
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
   ctx.lineWidth = Math.max(2, s * 0.22);
   ctx.beginPath();
   ctx.arc(x, y - s * 0.35, s * 0.45, Math.PI, 0);

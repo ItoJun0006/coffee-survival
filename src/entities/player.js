@@ -2,10 +2,12 @@ import { CONFIG } from '../config.js';
 import { sound } from '../sound.js';
 import { flower, leaf } from '../item-icons.js';
 import { stage } from '../stage.js';
+import { drawPattern } from './variety-look.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
 // 珈琲豆のキャラを描く。look は目線の向き（長さ 0〜1）、bob は歩くときの弾み（0〜1）、skin はスキン「椿」を付けているか
+// 品種に模様（variety.pattern、仕様 016）があれば、豆の上に描く。模様は豆の輪郭の内側だけに描き、当たる範囲は変えない
 // dot はドット絵にするときのドットの大きさ（px）。0 ならなめらかな絵のまま
 export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 0, slowed = false, skin = false, dot = 0 } = {}) {
   const { color, crease } = character.roast;
@@ -18,6 +20,8 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   ctx.beginPath();
   ctx.ellipse(0, 0, r * 0.82, r * 1.05, 0, 0, Math.PI * 2);
   ctx.fill();
+  const pattern = character.variety?.pattern;
+  if (pattern) drawPattern(ctx, pattern.kind, (character.roast.id === 'light' && pattern.lightColor) || pattern.color, r, r * 0.82, r * 1.05);
   // つや
   ctx.fillStyle = 'rgba(255,255,255,0.18)';
   ctx.beginPath();
@@ -115,6 +119,11 @@ export class Player {
     this.maxCaffeine = character.roast.maxCaffeine;
     this.caffeine = this.maxCaffeine;
     this.invincibleTimer = 0;
+    // 品種の特別な力（仕様 016）：無敵時間・カフェインの減りの倍率・経験値の粒を吸い寄せる距離の倍率
+    const power = character.power;
+    this.invincibleSec = power?.invincibleSec ?? CONFIG.player.invincibleSec;
+    this.decayRate = power?.decayRate ?? 1;
+    this.magnetRate = power?.magnetRate ?? 1;
     this.slowTimer = 0;
     this.slowFactor = 1;
     this.look = { x: 0, y: 0 };
@@ -141,7 +150,7 @@ export class Player {
     // このフレームで実際に動いた距離（壁で止まった分は含まない）
     this.moved = Math.hypot(this.x - x, this.y - y);
     // エクストラステージでは、カフェインは時間で減らない
-    if (stage.caffeineDecay) this.caffeine -= CONFIG.player.caffeineDecayPerSec * dt;
+    if (stage.caffeineDecay) this.caffeine -= CONFIG.player.caffeineDecayPerSec * this.decayRate * dt;
     this.invincibleTimer = Math.max(0, this.invincibleTimer - dt);
     this.slowTimer = Math.max(0, this.slowTimer - dt);
     // 動いている間だけ弾ませ、目線を進む方向に向ける
@@ -159,7 +168,7 @@ export class Player {
   hit(amount) {
     if (this.invincibleTimer > 0) return;
     this.caffeine -= amount;
-    this.invincibleTimer = CONFIG.player.invincibleSec;
+    this.invincibleTimer = this.invincibleSec;
     sound.play('damage');
   }
 

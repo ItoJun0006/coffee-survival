@@ -10,7 +10,8 @@ import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
 import { loadLastCharacter, saveLastCharacter, wearsSkin } from './characters.js';
-import { unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard } from './progress.js';
+import { unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard, addCoins, coins } from './progress.js';
+import { coinText, drawCoin, drawCoinTally, tallyDone } from './coin-ui.js';
 import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu, levelLabel } from './level-up-menu.js';
 import { drawItemIcon } from './item-icons.js';
@@ -71,7 +72,7 @@ export class Game {
       if (document.hidden) this.#pause();
     });
     this.character = loadLastCharacter();
-    this.characterSelect = new CharacterSelect();
+    this.characterSelect = new CharacterSelect((text) => this.#toast(text));
     this.levelUpMenu = new LevelUpMenu();
     this.background = new Background();
     this.titleImage = new Image();
@@ -114,6 +115,9 @@ export class Game {
     this.moveDir = { x: 0, y: 0 };
     this.time = this.debugBoss ? CONFIG.boss.timeSec - 3 : 0;
     this.state = 'playing';
+    // そのプレイで倒した敵の数と、結果画面の豆コインの数え上げ（仕様 016）
+    this.runKills = 0;
+    this.coinTally = null;
     this.level = 1;
     this.xp = 0;
     // ボーナスで上がる攻撃力。キャラの攻撃力の倍率は characterDamageRate に分けて持つ
@@ -190,9 +194,9 @@ export class Game {
     return Math.min(lv, max) + Math.max(0, lv - max) * overCapItemRate;
   }
 
-  // 範囲アップ：弾と範囲の大きさの倍率
+  // 範囲アップ：弾と範囲の大きさの倍率。品種の特別な力「範囲アップ」も掛ける
   get areaRate() {
-    return 1 + CONFIG.items.area.perLevel * this.#itemSteps('area');
+    return (1 + CONFIG.items.area.perLevel * this.#itemSteps('area')) * this.#power('areaRate', 1);
   }
 
   // 発生頻度アップ：攻撃の間隔の倍率。椿の花を持っていれば、さらに短くなる
@@ -210,7 +214,23 @@ export class Game {
   }
 
   get xpRate() {
-    return 1 + CONFIG.items.xp.perLevel * this.#itemSteps('xp');
+    return (1 + CONFIG.items.xp.perLevel * this.#itemSteps('xp')) * this.#power('xpRate', 1);
+  }
+
+  // ---- 品種の特別な力（仕様 016） ----
+
+  // 選んだキャラの特別な力の値。力がないか、その種類でないときは fallback
+  #power(key, fallback) {
+    return this.character.power?.[key] ?? fallback;
+  }
+
+  get #moving() {
+    return !!(this.moveDir.x || this.moveDir.y);
+  }
+
+  // キャラの攻撃の間隔の倍率。走り撃ちは、動いている間だけ短くなる
+  get attackIntervalRate() {
+    return this.characterIntervalRate * (this.#moving ? this.#power('movingIntervalRate', 1) : 1);
   }
 
   // ---- レベルアップの候補 ----
@@ -384,6 +404,8 @@ export class Game {
 
   dealDamage(target, amount, element) {
     let m = this.damageBonus * this.characterDamageRate * this.powerRate;
+    // 踏ん張り：止まっている間だけダメージが上がる
+    if (!this.#moving) m *= this.#power('standingDamageRate', 1);
     if (target === this.boss) m *= CONFIG.boss.elementMultiplier[element] ?? 1;
     target.damage(amount * m);
     if (target.dead) this.#targetsDirty = true;
@@ -424,6 +446,10 @@ export class Game {
     if (this.input.wasPressed('Minus', 'NumpadSubtract')) this.#changeMusicVolume(-1);
     if (this.input.wasPressed('Equal', 'Semicolon', 'NumpadAdd')) this.#changeMusicVolume(1);
     sound.setPaused(this.state === 'paused');
+    // 知らせは、レベルアップの選択・ポーズ・持っていく攻撃の選択の間は進めず、閉じてから出す
+    if (this.state === 'paused' || this.state === 'levelup' || this.state === 'carry') {
+      for (const t of this.toasts) t.until += dt * 1000;
+    }
     if (this.state === 'title') {
       if (this.input.consumeClick()) {
         this.characterSelect.open(this.character);
@@ -461,7 +487,10 @@ export class Game {
       return;
     }
     if (this.state !== 'playing') {
-      if (this.input.consumeClick()) this.#startRun();
+      if (!this.input.consumeClick()) return;
+      // 豆コインの数え上げの途中なら、まず数え上げを飛ばす
+      if (this.coinTally && !tallyDone(this.coinTally, performance.now())) this.coinTally.skipped = true;
+      else this.#startRun();
       return;
     }
     this.input.consumeClick();
@@ -501,9 +530,26 @@ export class Game {
     this.state = state;
     sound.stopMusic();
     sound.play(state);
+    this.#earnCoins(state === 'clear');
     saveProgress();
     this.#checkPointCardUnlocks();
     if (state === 'clear') this.#checkUnlocks('bossDefeat');
+  }
+
+  // ---- 豆コイン（仕様 016） ----
+
+  // 1 回のプレイが終わったときに、生き延びた時間・倒した敵・クリアの分の豆コインを足し、結果画面の数え上げを始める
+  #earnCoins(cleared) {
+    const c = CONFIG.coins;
+    const labels = c.tally.labels;
+    const rows = [
+      { label: labels.time, detail: formatTime(this.time), value: Math.floor(this.time / 60) * c.perMinute },
+      { label: labels.kills, detail: `${this.runKills.toLocaleString('ja-JP')} 体`, value: Math.floor(this.runKills / c.killsPerCoin) },
+    ];
+    if (cleared) rows.push(stage.id === 'extra' ? { label: labels.extraClear, value: c.extraClear } : { label: labels.clear, value: c.clear });
+    const before = coins();
+    addCoins(rows.reduce((sum, r) => sum + r.value, 0));
+    this.coinTally = { rows, before, startedAt: performance.now(), skipped: false };
   }
 
   // ---- ポイントカード ----
@@ -572,7 +618,7 @@ export class Game {
     const k = this.#growthProgress();
     const m = g ? g.from + (g.to - g.from) * k : 1;
     this.characterDamageRate = r.damageRate * m;
-    this.attackIntervalRate = r.attackIntervalRate / m;
+    this.characterIntervalRate = r.attackIntervalRate / m;
     this.player.setStats(r.speedRate * m, Math.round(r.maxCaffeine * m));
     if (g) this.player.drawScale = g.scaleFrom + (g.scaleTo - g.scaleFrom) * k;
   }
@@ -716,7 +762,7 @@ export class Game {
       if (b.fake) {
         p.drain(CONFIG.bean.fakeCaffeine);
       } else {
-        p.heal(CONFIG.bean.caffeine);
+        p.heal(CONFIG.bean.caffeine * this.#power('beanHealRate', 1));
         addBeans(1);
       }
       return false;
@@ -863,6 +909,7 @@ export class Game {
     this.enemies = this.enemies.filter((e) => {
       if (!e.dead) return true;
       addKills(1);
+      this.runKills += 1;
       sound.play('defeat');
       this.effects.push(new DefeatEffect(e.x, e.y, e.config.color, e.radius));
       this.#dropXp(e.x, e.y, e.config.xp);
@@ -1129,6 +1176,9 @@ export class Game {
     ctx.font = font(13);
     ctx.fillStyle = 'rgba(243, 230, 216, 0.75)';
     ctx.fillText(`ポイントカード　プレイ ${plays} 回　累計 ${time}`, 16, this.viewH - 14);
+    // 今持っている豆コイン（仕様 016）
+    drawCoin(ctx, 24, this.viewH - 44, 7);
+    ctx.fillText(`${CONFIG.coins.name} ${coinText(coins())}`, 36, this.viewH - 36);
     ctx.restore();
   }
 
@@ -1238,10 +1288,17 @@ export class Game {
     ctx.fillText(cleared ? (extra ? 'エクストラステージクリア！' : '朝が来た！') : '眠りに落ちた…', this.viewW / 2, this.viewH / 2 - 30);
     ctx.font = font(16);
     ctx.fillText(`生存時間  ${formatTime(this.time)}`, this.viewW / 2, this.viewH / 2 + 10);
-    ctx.fillText(extra ? 'クリック / Space で 1 面からもう一度' : 'クリック / Space でもう一度', this.viewW / 2, this.viewH / 2 + 40);
+    // 豆コインの数え上げ（仕様 016）。明るいクリアの背景でも読めるよう、暗い地のパネルに描く
+    let y = this.viewH / 2 + 40;
+    if (this.coinTally) y = drawCoinTally(ctx, this.viewW / 2, this.viewH / 2 + 30, this.coinTally, performance.now()) + 26;
+    ctx.fillStyle = cleared ? '#3b2418' : CONFIG.colors.text;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = font(16);
+    ctx.fillText(extra ? 'クリック / Space で 1 面からもう一度' : 'クリック / Space でもう一度', this.viewW / 2, y);
     if (cleared && !extra) {
       ctx.font = font(18, true);
-      ctx.fillText('E：攻撃を 1 つ持ってエクストラステージへ', this.viewW / 2, this.viewH / 2 + 76);
+      ctx.fillText('E：攻撃を 1 つ持ってエクストラステージへ', this.viewW / 2, y + 36);
     }
   }
 }

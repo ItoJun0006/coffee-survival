@@ -26,7 +26,7 @@ export class XpOrb {
       this.collected = true;
       return;
     }
-    if (d < cfg.magnetRadius) {
+    if (d < cfg.magnetRadius * (player.magnetRate ?? 1)) {
       const step = Math.min(d, cfg.magnetSpeed * dt);
       this.x += (dx / d) * step;
       this.y += (dy / d) * step;
