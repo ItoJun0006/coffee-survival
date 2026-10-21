@@ -159,6 +159,20 @@ export const CONFIG = {
     endGroup: 3,
     maxCount: 150,
   },
+  // ビッグウェーブ：ときどき durationSec のあいだ、敵の出る量が spawnRate 倍になる。
+  // 最初は firstSec、次からは前の始まりから minIntervalSec〜maxIntervalSec 後。ボスの stopBeforeBossSec 前からは来ない
+  bigWave: {
+    firstSec: 90,
+    minIntervalSec: 90,
+    maxIntervalSec: 130,
+    durationSec: 5,
+    spawnRate: 3,
+    // ビッグウェーブの間だけ、同時に出ている敵の上限をこの数に上げる
+    maxCount: 230,
+    stopBeforeBossSec: 30,
+    title: 'ビッグウェーブ！',
+    text: '眠気が押し寄せてくる…',
+  },
   night: { maxDarkness: 0.55 },
   // ラスボス：眠気の化身 ネムリーヌ
   boss: {

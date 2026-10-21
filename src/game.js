@@ -103,6 +103,8 @@ export class Game {
       this.#applyChoice(choices.find((c) => c.isNew && c.kind === 'weapon') ?? choices[0] ?? this.#bonusChoices()[1]);
     }
     this.notice = null;
+    this.nextWaveAt = CONFIG.bigWave.firstSec;
+    this.waveUntil = 0;
   }
 
   get xpToNext() {
@@ -578,16 +580,30 @@ export class Game {
 
   #spawnEnemies(dt) {
     const s = CONFIG.spawn;
+    const wave = CONFIG.bigWave;
+    this.#updateBigWave();
+    const inWave = this.time < this.waveUntil;
     const t = Math.min(1, this.time / s.rampSec);
     const interval = s.startIntervalSec + (s.minIntervalSec - s.startIntervalSec) * t;
     // 1 回に出る数。2.5 体なら半々の確率で 2 体か 3 体
-    const group = s.startGroup + (s.endGroup - s.startGroup) * t;
+    const group = (s.startGroup + (s.endGroup - s.startGroup) * t) * (inWave ? wave.spawnRate : 1);
+    const maxCount = inWave ? wave.maxCount : s.maxCount;
     this.enemyTimer += dt;
     while (this.enemyTimer >= interval) {
       this.enemyTimer -= interval;
       const n = Math.floor(group) + (Math.random() < group % 1 ? 1 : 0);
-      for (let i = 0; i < n && this.enemies.length < s.maxCount; i++) this.#spawnEnemy(this.#pickEnemyType());
+      for (let i = 0; i < n && this.enemies.length < maxCount; i++) this.#spawnEnemy(this.#pickEnemyType());
     }
+  }
+
+  // 時間が来たらビッグウェーブを始め、次に来る時間を決める
+  #updateBigWave() {
+    const w = CONFIG.bigWave;
+    if (this.time < this.nextWaveAt) return;
+    if (this.nextWaveAt > CONFIG.boss.timeSec - w.stopBeforeBossSec) return;
+    this.waveUntil = this.nextWaveAt + w.durationSec;
+    this.nextWaveAt += w.minIntervalSec + Math.random() * (w.maxIntervalSec - w.minIntervalSec);
+    this.notice = { title: w.title, text: w.text, until: this.time + 2.5 };
   }
 
   #pickEnemyType() {
