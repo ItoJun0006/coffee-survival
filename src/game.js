@@ -782,18 +782,10 @@ export class Game {
     const { ctx } = this;
     ctx.save();
     ctx.translate(-this.camera.x, -this.camera.y);
-    this.background.draw(ctx, this.camera, this.viewW, this.viewH);
-    for (const w of this.weapons) w.drawBelow(ctx);
-    for (const b of this.beans) b.draw(ctx);
-    for (const o of this.xpOrbs) o.draw(ctx);
-    for (const w of this.waves) w.draw(ctx);
-    for (const e of this.enemies) e.draw(ctx);
-    for (const fx of this.effects) fx.draw(ctx);
-    if (this.boss && !this.boss.dead) this.boss.draw(ctx);
-    this.player.draw(ctx);
-    for (const w of this.weapons) w.draw(ctx);
+    // マップの外 → 木の床 → 壁・小物・ランプ の順に重ねる
+    this.background.drawOutside(ctx, this.camera, this.viewW, this.viewH);
     if (CONFIG.floor.enabled) this.floor.draw(ctx, this.camera, this.viewW, this.viewH);
-    else this.#drawGrid();
+    this.background.draw(ctx, this.camera, this.viewW, this.viewH);
     ctx.restore();
 
     // 絵（攻撃・豆・粒・敵・ボス・プレイヤー）は、ドット絵にする層に描く。背景と文字はくっきりしたまま
@@ -873,23 +865,6 @@ export class Game {
   }
 
   // 夜が深まる演出。ランプの周りは少し明るい。まぶたの帳の間はプレイヤーの周り以外が暗くなる
-  #drawGrid() {
-    const { ctx } = this;
-    const step = 80;
-    ctx.strokeStyle = CONFIG.colors.grid;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let x = 0; x <= stage.world.width; x += step) {
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, stage.world.height);
-    }
-    for (let y = 0; y <= stage.world.height; y += step) {
-      ctx.moveTo(0, y);
-      ctx.lineTo(stage.world.width, y);
-    }
-    ctx.stroke();
-  }
-
   #drawDarkness() {
     const { ctx } = this;
     if (!this.boss?.has('curtain')) {

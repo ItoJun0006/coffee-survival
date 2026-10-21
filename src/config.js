@@ -202,7 +202,7 @@ export const CONFIG = {
   },
   // 珈琲店の木の床（仕様 005）。横長の板を、継ぎ目をずらして並べた板張り
   // size はドット 1 マスの大きさ（pixelArt.size と合わせる）、periodDots は柄 1 枚の大きさ（ドットの数）
-  // enabled を false にすると、今までの方眼の背景になる
+  // enabled を false にすると、背景のタイルの床（scenery.floor）になる
   floor: {
     enabled: true,
     size: 3,
@@ -211,9 +211,10 @@ export const CONFIG = {
     colors: { base: [54, 35, 24], tone: 0.18, gap: [30, 19, 13], grain: 0.08, knot: 0.2 },
   },
   night: { maxDarkness: 0.55 },
-  // プレイ中の背景：夜の焙煎工房。配置は seed から毎回同じに決まる（当たり判定はない）
-  // 床・小物の色は、拾うもの（豆・経験値の粒）や敵より目立たない暗い色にする
-  stage: {
+  // プレイ中の背景：夜の焙煎工房（background.js）。配置は seed から毎回同じに決まる（当たり判定はない）
+  // 床・小物の色は、拾うもの（豆・経験値の粒）や敵より目立たない暗い色にする。
+  // floor はタイルの床で、木の床（上の floor）を使わないときだけ描く
+  scenery: {
     seed: 20261021,
     outside: '#120c09',
     floor: {
@@ -261,6 +262,8 @@ export const CONFIG = {
       poolRadius: 170,
       lightRadius: 210,
       strength: 0.7,
+      // 夜の暗さを描くときの縮小率（小さいほど軽い）。ドット絵の 1 マス（3px）に合わせて 1/3 にする
+      darkScale: 1 / 3,
     },
   },
   // ラスボス：眠気の化身 ネムリーヌ

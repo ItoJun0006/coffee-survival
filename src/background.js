@@ -1,4 +1,5 @@
 import { CONFIG } from './config.js';
+import { stage } from './stage.js';
 
 // 決まった seed から毎回同じ並びを作る乱数
 function seededRandom(seed) {
@@ -12,6 +13,9 @@ function seededRandom(seed) {
   };
 }
 
+// 夜の暗さの絵に足す、マップの外側の余白（画面の端がマップの外に出ても暗くできるように）
+const DARK_PAD = 1200;
+
 // 色（#rrggbb）を明るさ 1 + amount 倍にする
 function shade(hex, amount) {
   const n = parseInt(hex.slice(1), 16);
@@ -19,31 +23,50 @@ function shade(hex, amount) {
   return `rgb(${ch(n >> 16)}, ${ch((n >> 8) & 255)}, ${ch(n & 255)})`;
 }
 
-// プレイ中の背景（夜の焙煎工房）。動かない床・壁・小物は最初に 1 枚の絵にしておき、毎フレームは見えている部分だけ写す
+// プレイ中の背景（夜の焙煎工房）。動かない壁・小物・ランプは 1 枚の絵にしておき、毎フレームは見えている部分だけ写す。
+// 床は、木の床（floor.js）を使うときは描かず、使わないときだけタイルの床を描く。
+// マップの広さはステージ（stage.js）ごとに違うので、広さが変わったら絵を作り直す
 export class Background {
   constructor() {
-    const cfg = CONFIG.stage;
+    this.layer = document.createElement('canvas');
+    this.dark = document.createElement('canvas');
+    this.builtFor = null;
+  }
+
+  #build() {
+    const cfg = CONFIG.scenery;
+    const { width, height } = stage.world;
+    this.builtFor = `${width}x${height}`;
     this.margin = cfg.wall.thickness;
     this.rand = seededRandom(cfg.seed);
     this.lamps = this.#placeLamps();
-    this.layer = document.createElement('canvas');
-    this.layer.width = CONFIG.world.width + this.margin * 2;
-    this.layer.height = CONFIG.world.height + this.margin * 2;
+    this.layer.width = width + this.margin * 2;
+    this.layer.height = height + this.margin * 2;
     const ctx = this.layer.getContext('2d');
     ctx.translate(this.margin, this.margin);
-    this.#drawFloor(ctx);
+    if (!CONFIG.floor.enabled) this.#drawFloor(ctx);
     this.#drawLampPools(ctx);
     this.#drawProps(ctx);
     this.#drawWall(ctx);
     this.#drawLampShades(ctx);
-    this.dark = document.createElement('canvas');
+    this.#buildDark();
   }
 
-  // 床・壁・小物を描く。ctx はワールド座標に合わせてある
-  draw(ctx, camera, viewW, viewH) {
-    const m = this.margin;
-    ctx.fillStyle = CONFIG.stage.outside;
+  #ensureBuilt() {
+    const { width, height } = stage.world;
+    if (this.builtFor !== `${width}x${height}`) this.#build();
+  }
+
+  // マップの外側を塗る。床より先に呼ぶ。ctx はワールド座標に合わせてある
+  drawOutside(ctx, camera, viewW, viewH) {
+    ctx.fillStyle = CONFIG.scenery.outside;
     ctx.fillRect(camera.x, camera.y, viewW, viewH);
+  }
+
+  // 壁・小物・ランプ（木の床を使わないときは床も）を描く。床のあとに呼ぶ。ctx はワールド座標に合わせてある
+  draw(ctx, camera, viewW, viewH) {
+    this.#ensureBuilt();
+    const m = this.margin;
     // 見えている範囲と、絵の範囲の重なりだけを写す
     const sx = Math.max(0, Math.floor(camera.x + m));
     const sy = Math.max(0, Math.floor(camera.y + m));
@@ -53,42 +76,45 @@ export class Background {
     ctx.drawImage(this.layer, sx, sy, ex - sx, ey - sy, sx - m, sy - m, ex - sx, ey - sy);
   }
 
-  // 夜の暗さを、ランプの周りだけ弱めて画面に重ねる
+  // 夜の暗さを、ランプの周りだけ弱めて画面に重ねる。ランプは動かないので、
+  // マップ全体の「暗さの濃さ」の絵を最初に 1 回だけ小さく作り（#buildDark）、毎フレームは見えている部分を alpha の濃さで写す
   drawDarkness(ctx, camera, viewW, viewH, alpha) {
     if (alpha <= 0) return;
-    const { lightRadius, strength } = CONFIG.stage.lamps;
-    const dpr = window.devicePixelRatio || 1;
-    const w = Math.floor(viewW * dpr);
-    const h = Math.floor(viewH * dpr);
-    if (this.dark.width !== w || this.dark.height !== h) {
-      this.dark.width = w;
-      this.dark.height = h;
-    }
+    this.#ensureBuilt();
+    const k = CONFIG.scenery.lamps.darkScale;
+    const m = this.margin + DARK_PAD;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    // ぼかさずに引き伸ばし、ドット絵と同じ 3px のマスにそろえる（ぼかすより軽い）
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(this.dark, (camera.x + m) * k, (camera.y + m) * k, viewW * k, viewH * k, 0, 0, viewW, viewH);
+    ctx.restore();
+  }
+
+  #buildDark() {
+    const { lightRadius, strength, darkScale: k } = CONFIG.scenery.lamps;
+    this.dark.width = Math.ceil((this.layer.width + DARK_PAD * 2) * k);
+    this.dark.height = Math.ceil((this.layer.height + DARK_PAD * 2) * k);
     const d = this.dark.getContext('2d');
-    d.setTransform(dpr, 0, 0, dpr, 0, 0);
-    d.globalCompositeOperation = 'source-over';
-    d.clearRect(0, 0, viewW, viewH);
-    d.fillStyle = `rgba(5, 3, 20, ${alpha})`;
-    d.fillRect(0, 0, viewW, viewH);
+    d.setTransform(k, 0, 0, k, 0, 0);
+    d.fillStyle = 'rgb(5, 3, 20)';
+    d.fillRect(0, 0, this.layer.width + DARK_PAD * 2, this.layer.height + DARK_PAD * 2);
     d.globalCompositeOperation = 'destination-out';
+    d.translate(this.margin + DARK_PAD, this.margin + DARK_PAD);
     for (const l of this.lamps) {
-      const x = l.x - camera.x;
-      const y = l.y - camera.y;
-      if (x < -lightRadius || y < -lightRadius || x > viewW + lightRadius || y > viewH + lightRadius) continue;
-      const g = d.createRadialGradient(x, y, 0, x, y, lightRadius);
+      const g = d.createRadialGradient(l.x, l.y, 0, l.x, l.y, lightRadius);
       g.addColorStop(0, `rgba(0, 0, 0, ${strength})`);
       g.addColorStop(1, 'rgba(0, 0, 0, 0)');
       d.fillStyle = g;
       d.beginPath();
-      d.arc(x, y, lightRadius, 0, Math.PI * 2);
+      d.arc(l.x, l.y, lightRadius, 0, Math.PI * 2);
       d.fill();
     }
-    ctx.drawImage(this.dark, 0, 0, viewW, viewH);
   }
 
   #placeLamps() {
-    const { spacing, jitter } = CONFIG.stage.lamps;
-    const { width, height } = CONFIG.world;
+    const { spacing, jitter } = CONFIG.scenery.lamps;
+    const { width, height } = stage.world;
     const lamps = [];
     for (let y = spacing / 2; y < height; y += spacing) {
       for (let x = spacing / 2; x < width; x += spacing) {
@@ -100,8 +126,8 @@ export class Background {
 
   // 色むらのあるタイルと目地、染み、ひび
   #drawFloor(ctx) {
-    const f = CONFIG.stage.floor;
-    const { width, height } = CONFIG.world;
+    const f = CONFIG.scenery.floor;
+    const { width, height } = stage.world;
     const r = this.rand;
     for (let y = 0; y < height; y += f.tileSize) {
       for (let x = 0; x < width; x += f.tileSize) {
@@ -150,7 +176,7 @@ export class Background {
   }
 
   #drawLampPools(ctx) {
-    const { pool, poolRadius } = CONFIG.stage.lamps;
+    const { pool, poolRadius } = CONFIG.scenery.lamps;
     for (const l of this.lamps) {
       const g = ctx.createRadialGradient(l.x, l.y, 0, l.x, l.y, poolRadius);
       g.addColorStop(0, pool);
@@ -164,7 +190,7 @@ export class Background {
 
   // ランプは天井から下がっているので、小物と壁より上に描く
   #drawLampShades(ctx) {
-    const { shadeRadius: r, shade: shadeColor, shadeRim } = CONFIG.stage.lamps;
+    const { shadeRadius: r, shade: shadeColor, shadeRim } = CONFIG.scenery.lamps;
     for (const l of this.lamps) {
       ctx.fillStyle = shadeColor;
       ctx.beginPath();
@@ -187,8 +213,8 @@ export class Background {
 
   // 小物を、間隔をあけてばらばらに置く
   #drawProps(ctx) {
-    const p = CONFIG.stage.props;
-    const { width, height } = CONFIG.world;
+    const p = CONFIG.scenery.props;
+    const { width, height } = stage.world;
     const r = this.rand;
     const types = Object.entries(p.types);
     const total = types.reduce((s, [, t]) => s + t.weight, 0);
@@ -216,7 +242,7 @@ export class Background {
 
   // 焙煎機：丸いドラムと投入口、煙突。のぞき窓に火の色
   #roaster(ctx) {
-    const c = CONFIG.stage.props.colors;
+    const c = CONFIG.scenery.props.colors;
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.fillRect(-52, -34, 112, 82);
     ctx.fillStyle = c.ironDark;
@@ -250,7 +276,7 @@ export class Background {
 
   // 麻袋の山：縫い目の付いた袋をいくつか重ねる
   #sacks(ctx, n) {
-    const c = CONFIG.stage.props.colors;
+    const c = CONFIG.scenery.props.colors;
     for (let i = 0; i < n; i++) {
       const x = (i % 2) * 34 - 17 + (i >= 2 ? 10 : 0);
       const y = Math.floor(i / 2) * 26 - 13;
@@ -275,7 +301,7 @@ export class Background {
 
   // 木のパレット：板を並べ、すき間を空ける
   #pallet(ctx) {
-    const c = CONFIG.stage.props.colors;
+    const c = CONFIG.scenery.props.colors;
     ctx.fillStyle = c.woodDark;
     ctx.fillRect(-48, -38, 96, 76);
     ctx.fillStyle = c.wood;
@@ -286,7 +312,7 @@ export class Background {
 
   // 豆の保存缶：上から見た丸い缶
   #cans(ctx, n) {
-    const c = CONFIG.stage.props.colors;
+    const c = CONFIG.scenery.props.colors;
     for (let i = 0; i < n; i++) {
       const x = i * 30 - (n - 1) * 15;
       const y = (i % 2) * 10;
@@ -312,8 +338,8 @@ export class Background {
 
   // 外周のレンガの壁。マップの外側に、内側へ影を落として描く
   #drawWall(ctx) {
-    const w = CONFIG.stage.wall;
-    const { width, height } = CONFIG.world;
+    const w = CONFIG.scenery.wall;
+    const { width, height } = stage.world;
     const t = w.thickness;
     const rects = [
       [-t, -t, width + t * 2, t],
