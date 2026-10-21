@@ -7,6 +7,8 @@ export class Input {
     this.clickPos = null;
     // このフレームで押されたキー（押しっぱなしは含まない）
     this.justPressed = new Set();
+    // マウスホイールで回した量（下に回すと正）
+    this.wheel = 0;
 
     window.addEventListener('keydown', (e) => {
       this.keys.add(e.code);
@@ -17,6 +19,11 @@ export class Input {
       }
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
+
+    canvas.addEventListener('wheel', (e) => {
+      this.wheel += e.deltaY;
+      e.preventDefault();
+    }, { passive: false });
 
     canvas.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
@@ -44,6 +51,13 @@ export class Input {
     const c = this.clicked;
     this.clicked = false;
     return c;
+  }
+
+  // たまったホイールの量を取り出して 0 に戻す
+  consumeWheel() {
+    const w = this.wheel;
+    this.wheel = 0;
+    return w;
   }
 
   // 指定したキーのどれかがこのフレームで押されたか

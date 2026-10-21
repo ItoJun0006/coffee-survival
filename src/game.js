@@ -8,10 +8,13 @@ import { Boss } from './entities/boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
+import { BeanShotgun } from './weapons/bean-shotgun.js';
 import { loadLastCharacter, saveLastCharacter } from './characters.js';
+import { unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, saveProgress, pointCard } from './progress.js';
 import { CharacterSelect } from './character-select.js';
-import { LevelUpMenu } from './level-up-menu.js';
+import { LevelUpMenu, levelLabel } from './level-up-menu.js';
 import { drawItemIcon } from './item-icons.js';
+import { PixelLayer } from './pixel-layer.js';
 import { sound } from './sound.js';
 import { font } from './font.js';
 
@@ -34,6 +37,7 @@ export class Game {
     const params = new URLSearchParams(location.search);
     this.debugBoss = params.has('boss');
     this.debugLevel = Number(params.get('level')) || 1;
+    this.pixelLayer = new PixelLayer();
     this.resize();
     window.addEventListener('resize', () => this.resize());
     // 別のタブやアプリに切り替えたら自動でポーズする
@@ -43,7 +47,15 @@ export class Game {
     this.character = loadLastCharacter();
     this.characterSelect = new CharacterSelect();
     this.levelUpMenu = new LevelUpMenu();
+    this.titleImage = new Image();
+    this.titleImage.src = CONFIG.title.image;
     sound.init();
+    // 画面の上に数秒出す知らせ（キャラの解放など）。ゲームの時間ではなく実際の時間で消える
+    this.toasts = [];
+    this.#checkUnlocks('launches', recordLaunch());
+    // 前回までのポイントカードで条件を満たしていれば、ここで解放する（閉じる直前に満たした場合など）
+    this.#checkUnlocks('plays', pointCard().plays);
+    this.#checkPointCardUnlocks();
     this.reset();
     this.state = 'title';
   }
@@ -55,6 +67,7 @@ export class Game {
     this.canvas.width = Math.floor(this.viewW * dpr);
     this.canvas.height = Math.floor(this.viewH * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.pixelLayer.resize(this.viewW, this.viewH);
   }
 
   reset() {
@@ -75,14 +88,17 @@ export class Game {
     this.state = 'playing';
     this.level = 1;
     this.xp = 0;
-    this.damageBonus = this.character.roast.damageRate;
-    this.attackIntervalRate = this.character.roast.attackIntervalRate;
+    // ボーナスで上がる攻撃力。キャラの攻撃力の倍率は characterDamageRate に分けて持つ
+    this.damageBonus = 1;
     this.items = [];
-    this.weapons = [new WEAPON_ORDER[0](this)];
+    const StartWeapon = this.character.startWeapon === 'beanShotgun' ? BeanShotgun : WEAPON_ORDER[0];
+    this.weapons = [new StartWeapon(this)];
     this.pendingLevelUps = 0;
+    this.#applyCharacterStats();
     // 動作確認用の ?level=N は、まだ持っていない攻撃を優先して自動で選ぶ
     for (let i = 1; i < this.debugLevel; i++) {
       this.level += 1;
+      this.#applyCharacterStats();
       const choices = this.#levelUpChoices();
       this.#applyChoice(choices.find((c) => c.isNew && c.kind === 'weapon') ?? choices[0] ?? this.#bonusChoices()[1]);
     }
@@ -103,6 +119,7 @@ export class Game {
       this.pendingLevelUps += 1;
     }
     if (this.level > before) {
+      this.#applyCharacterStats();
       sound.play('levelUp');
       if (this.state === 'playing') this.#openLevelUp();
     }
@@ -157,7 +174,7 @@ export class Game {
     return {
       kind: 'weapon',
       name: weapon.name,
-      desc: weapon.desc,
+      desc: isNew ? weapon.desc : (weapon.upgradeDesc(weapon.level + 1) ?? weapon.desc),
       element: weapon.config.element,
       level: isNew ? 0 : weapon.level,
       isNew,
@@ -229,6 +246,7 @@ export class Game {
     const choice = this.levelUpMenu.update(this.input, this.viewW, this.viewH);
     if (!choice) return;
     this.#applyChoice(choice);
+    this.#checkUnlocks('allWeaponsMax');
     this.pendingLevelUps -= 1;
     this.state = 'playing';
     // 一度にいくつも上がったときは、続けて選ぶ
@@ -261,7 +279,7 @@ export class Game {
   }
 
   dealDamage(target, amount, element) {
-    let m = this.damageBonus * this.powerRate;
+    let m = this.damageBonus * this.characterDamageRate * this.powerRate;
     if (target === this.boss) m *= CONFIG.boss.elementMultiplier[element] ?? 1;
     target.damage(amount * m);
     sound.play('hit');
@@ -309,7 +327,7 @@ export class Game {
       } else if (result) {
         this.character = result;
         saveLastCharacter(result);
-        this.reset();
+        this.#startRun();
       }
       return;
     }
@@ -322,7 +340,7 @@ export class Game {
       return;
     }
     if (this.state !== 'playing') {
-      if (this.input.consumeClick()) this.reset();
+      if (this.input.consumeClick()) this.#startRun();
       return;
     }
     this.input.consumeClick();
@@ -332,6 +350,7 @@ export class Game {
     }
 
     this.time += dt;
+    this.#recordProgress(dt);
     if (!this.boss && this.time >= CONFIG.boss.timeSec) this.#spawnBoss();
 
     this.#updatePlayer(dt);
@@ -349,8 +368,10 @@ export class Game {
     if (!this.player.alive) this.#finish('gameover');
     else if (this.boss?.dead) this.#finish('clear');
 
-    this.camera.x = this.player.x - this.viewW / 2;
-    this.camera.y = this.player.y - this.viewH / 2;
+    // ドット絵のときは、画面の位置をドットの大きさごとにそろえて、止まっている絵がちらつかないようにする
+    const snap = CONFIG.pixelArt.enabled ? CONFIG.pixelArt.size : 1;
+    this.camera.x = Math.round((this.player.x - this.viewW / 2) / snap) * snap;
+    this.camera.y = Math.round((this.player.y - this.viewH / 2) / snap) * snap;
   }
 
   // ゲームオーバーかクリアで終わる。BGM は静かに消し、終わりの音を鳴らす
@@ -358,6 +379,79 @@ export class Game {
     this.state = state;
     sound.stopMusic();
     sound.play(state);
+    saveProgress();
+    this.#checkPointCardUnlocks();
+    if (state === 'clear') this.#checkUnlocks('bossDefeat');
+  }
+
+  // ---- ポイントカード ----
+
+  // ゲームを始める（キャラ選択から、またはゲームオーバー・クリアからのやり直し）。プレイ回数を 1 増やす
+  #startRun() {
+    this.reset();
+    this.playTimeUnsaved = 0;
+    this.#checkUnlocks('plays', recordPlay());
+  }
+
+  // 遊んでいる時間と動いた距離を累計に足す（倒した敵の数は #removeDeadEnemies で足す）。
+  // ページを急に閉じても大きく失われないよう、5 秒ごとに保存して解放条件を調べる
+  #recordProgress(dt) {
+    addPlayTime(dt);
+    addDistance(this.player.moved ?? 0);
+    this.playTimeUnsaved = (this.playTimeUnsaved ?? 0) + dt;
+    if (this.playTimeUnsaved < 5) return;
+    this.playTimeUnsaved = 0;
+    saveProgress();
+    this.#checkPointCardUnlocks();
+  }
+
+  #checkPointCardUnlocks() {
+    const card = pointCard();
+    this.#checkUnlocks('playTime', card.playSec);
+    this.#checkUnlocks('distance', card.distance);
+    this.#checkUnlocks('kills', card.kills);
+  }
+
+  // ---- キャラの性能と解放 ----
+
+  // 成長するキャラ（赤ちゃん豆）の今の倍率。Lv 1 で from、maxLevel 以上で to
+  #growthProgress() {
+    const g = this.character.growth;
+    return g ? Math.min(1, (this.level - 1) / (g.maxLevel - 1)) : 0;
+  }
+
+  // キャラの性能を、今のレベルに合わせて反映する
+  #applyCharacterStats() {
+    const r = this.character.roast;
+    const g = this.character.growth;
+    const k = this.#growthProgress();
+    const m = g ? g.from + (g.to - g.from) * k : 1;
+    this.characterDamageRate = r.damageRate * m;
+    this.attackIntervalRate = r.attackIntervalRate / m;
+    this.player.setStats(r.speedRate * m, Math.round(r.maxCaffeine * m));
+    if (g) this.player.drawScale = g.scaleFrom + (g.scaleTo - g.scaleFrom) * k;
+  }
+
+  // 解放の条件を調べ、満たしたキャラを解放して知らせる。value は起動の回数など
+  #checkUnlocks(type, value) {
+    for (const c of CONFIG.characters.specials) {
+      if (c.unlock.type !== type) continue;
+      const met = {
+        bossDefeat: () => true,
+        launches: () => value >= c.unlock.count,
+        plays: () => value >= c.unlock.count,
+        playTime: () => value >= c.unlock.seconds,
+        distance: () => value >= c.unlock.pixels,
+        kills: () => value >= c.unlock.count,
+        allWeaponsMax: () => this.weapons.length >= CONFIG.slots.weapons && this.weapons.every((w) => w.isMax),
+      }[type]();
+      if (met && unlock(c.id)) this.#toast(`新しいキャラ「${c.name}」が解放された！`);
+    }
+  }
+
+  #toast(text) {
+    this.toasts.push({ text, until: performance.now() + 4500 });
+    sound.play('levelUp');
   }
 
   #changeMusicVolume(steps) {
@@ -407,7 +501,7 @@ export class Game {
     return [
       { label: '再開', x, y, w, h, action: () => { this.state = 'playing'; } },
       { label: `音楽の音量  ◀ ${sound.musicVolume}% ▶`, x, y: y + gap, w, h, adjust: (d) => sound.changeMusicVolume(d) },
-      { label: 'タイトルへ戻る', x, y: y + gap * 2, w, h, action: () => { this.reset(); this.state = 'title'; } },
+      { label: 'タイトルへ戻る', x, y: y + gap * 2, w, h, action: () => { saveProgress(); this.reset(); this.state = 'title'; } },
     ];
   }
 
@@ -570,6 +664,7 @@ export class Game {
     const { enemyDropChance, maxDroppedBeans } = CONFIG.leveling;
     this.enemies = this.enemies.filter((e) => {
       if (!e.dead) return true;
+      addKills(1);
       sound.play('defeat');
       this.effects.push(new DefeatEffect(e.x, e.y, e.config.color, e.radius));
       this.#dropXp(e.x, e.y, e.config.xp);
@@ -588,16 +683,24 @@ export class Game {
     ctx.save();
     ctx.translate(-this.camera.x, -this.camera.y);
     this.#drawGrid();
-    for (const w of this.weapons) w.drawBelow(ctx);
-    for (const b of this.beans) b.draw(ctx);
-    for (const o of this.xpOrbs) o.draw(ctx);
-    for (const w of this.waves) w.draw(ctx);
-    for (const e of this.enemies) e.draw(ctx);
-    for (const fx of this.effects) fx.draw(ctx);
-    if (this.boss && !this.boss.dead) this.boss.draw(ctx);
-    this.player.draw(ctx);
-    for (const w of this.weapons) w.draw(ctx);
     ctx.restore();
+
+    // 絵（攻撃・豆・粒・敵・ボス・プレイヤー）は、ドット絵にする層に描く。背景と文字はくっきりしたまま
+    const pixel = CONFIG.pixelArt.enabled;
+    const wctx = pixel ? this.pixelLayer.begin() : ctx;
+    wctx.save();
+    wctx.translate(-this.camera.x, -this.camera.y);
+    for (const w of this.weapons) w.drawBelow(wctx);
+    for (const b of this.beans) b.draw(wctx);
+    for (const o of this.xpOrbs) o.draw(wctx);
+    for (const w of this.waves) w.draw(wctx);
+    for (const e of this.enemies) e.draw(wctx);
+    for (const fx of this.effects) fx.draw(wctx);
+    if (this.boss && !this.boss.dead) this.boss.draw(wctx);
+    this.player.draw(wctx);
+    for (const w of this.weapons) w.draw(wctx);
+    wctx.restore();
+    if (pixel) this.pixelLayer.end(ctx);
 
     if (this.state === 'clear') this.#drawDawn();
     else this.#drawDarkness();
@@ -613,6 +716,31 @@ export class Game {
       this.#drawOverlay();
     }
     this.#drawSoundIndicator();
+    this.#drawToasts();
+  }
+
+  // キャラの解放などの知らせ。最後の 0.5 秒で薄くなって消える
+  #drawToasts() {
+    const now = performance.now();
+    this.toasts = this.toasts.filter((t) => t.until > now);
+    const { ctx } = this;
+    this.toasts.forEach((t, i) => {
+      const y = 70 + i * 44;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (t.until - now) / 500);
+      ctx.font = font(17, true);
+      const w = ctx.measureText(t.text).width + 40;
+      ctx.fillStyle = 'rgba(20, 12, 8, 0.85)';
+      ctx.fillRect(this.viewW / 2 - w / 2, y - 18, w, 36);
+      ctx.strokeStyle = CONFIG.colors.xpBar;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(this.viewW / 2 - w / 2, y - 18, w, 36);
+      ctx.fillStyle = CONFIG.colors.xpBar;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(t.text, this.viewW / 2, y);
+      ctx.restore();
+    });
   }
 
   // 画面右上に、音あり／消音の状態を小さく出す
@@ -713,7 +841,7 @@ export class Game {
     };
     ctx.font = font(11);
     line(`攻撃 ${this.weapons.length}/${slots.weapons}`, 'rgba(243, 230, 216, 0.85)');
-    for (const wp of this.weapons) line(`・${wp.name}  Lv ${wp.level}`, 'rgba(243, 230, 216, 0.6)');
+    for (const wp of this.weapons) line(`・${wp.name}  ${levelLabel(wp.level)}`, 'rgba(243, 230, 216, 0.6)');
     ly += 4;
     line(`アイテム ${this.items.length}/${slots.items}`, c.itemCard);
     for (const it of this.items) {
@@ -723,7 +851,7 @@ export class Game {
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
       ctx.fillStyle = 'rgba(243, 230, 216, 0.6)';
-      ctx.fillText(`${CONFIG.items[it.id].name}  Lv ${it.level}`, x + 22, ly);
+      ctx.fillText(`${CONFIG.items[it.id].name}  ${levelLabel(it.level)}`, x + 22, ly);
       ly += 18;
     }
 
@@ -775,7 +903,70 @@ export class Game {
   }
 
   // 起動時のタイトル画面。ゲームの場面を背景に、名前とスタート案内を重ねる
+  // 起動時のタイトル画面。イラストが読み込めていればイラスト、まだなら文字だけで描く
   #drawTitle() {
+    const img = this.titleImage;
+    if (img.complete && img.naturalWidth) this.#drawTitleArt(img);
+    else this.#drawTitleText();
+    this.#drawPointCard();
+  }
+
+  // タイトル画面の左下に、ポイントカード（プレイ回数・累計プレイ時間）を出す
+  #drawPointCard() {
+    const { ctx } = this;
+    const { plays, playSec } = pointCard();
+    const min = Math.floor(playSec / 60);
+    const time = min >= 60 ? `${Math.floor(min / 60)} 時間 ${String(min % 60).padStart(2, '0')} 分` : `${min} 分`;
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.font = font(13);
+    ctx.fillStyle = 'rgba(243, 230, 216, 0.75)';
+    ctx.fillText(`ポイントカード　プレイ ${plays} 回　累計 ${time}`, 16, this.viewH - 14);
+    ctx.restore();
+  }
+
+  // ロゴ入りのイラストを、欠けないように画面いっぱいに表示し、下に案内を重ねる
+  #drawTitleArt(img) {
+    const { ctx, viewW, viewH } = this;
+    const c = CONFIG.colors;
+    const { background, zoom } = CONFIG.title;
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, viewW, viewH);
+
+    // ゆっくり拡大・縮小させる（cos で 0 → 1 → 0 と行き来する）
+    const t = performance.now() / 1000;
+    const k = 1 + zoom.amount * (0.5 - 0.5 * Math.cos((t * Math.PI * 2) / zoom.periodSec));
+    const scale = Math.min(viewW / img.naturalWidth, viewH / img.naturalHeight) * k;
+    const w = img.naturalWidth * scale;
+    const h = img.naturalHeight * scale;
+    ctx.drawImage(img, (viewW - w) / 2, (viewH - h) / 2, w, h);
+
+    // 下の方を暗くして、案内の文字を読みやすくする
+    const band = ctx.createLinearGradient(0, viewH * 0.68, 0, viewH);
+    band.addColorStop(0, 'rgba(10, 8, 7, 0)');
+    band.addColorStop(0.5, 'rgba(10, 8, 7, 0.75)');
+    band.addColorStop(1, 'rgba(10, 8, 7, 0.9)');
+    ctx.fillStyle = band;
+    ctx.fillRect(0, viewH * 0.68, viewW, viewH * 0.32);
+
+    const cx = viewW / 2;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = font(16);
+    ctx.fillStyle = c.text;
+    ctx.fillText(CONFIG.title.subtitle, cx, viewH - 96);
+    ctx.font = font(13);
+    ctx.fillStyle = 'rgba(243, 230, 216, 0.75)';
+    ctx.fillText('珈琲豆を拾ってカフェインを保ち、朝まで生き延びろ', cx, viewH - 70);
+    ctx.globalAlpha = 0.5 + 0.5 * Math.sin(performance.now() / 300);
+    ctx.font = font(18, true);
+    ctx.fillStyle = c.xpBar;
+    ctx.fillText('クリック / Space でスタート', cx, viewH - 36);
+    ctx.globalAlpha = 1;
+  }
+
+  #drawTitleText() {
     const { ctx } = this;
     const c = CONFIG.colors;
     const cx = this.viewW / 2;

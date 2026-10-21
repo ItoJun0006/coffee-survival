@@ -1,4 +1,4 @@
-# Specification Quality Checklist: コーヒーサバイバル 全体仕様（ベースライン）
+# Specification Quality Checklist: 珈琲サバイバル 全体仕様（ベースライン）
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-10-20
@@ -32,4 +32,4 @@
 ## Notes
 
 - 既存のゲームを書き起こした仕様書のため、[NEEDS CLARIFICATION] は置いていない。見直したい点は、レビューでの指摘として反映する。
-- FR-090（開発用の開始方法）だけは、確認作業のために URL の付け方を書いている。遊ぶ人向けの機能ではないので許容する。
+- FR-099（開発用の開始方法）だけは、確認作業のために URL の付け方を書いている。遊ぶ人向けの機能ではないので許容する。

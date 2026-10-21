@@ -11,6 +11,9 @@ const ELEMENT_LABEL = { none: '', hot: '熱い', ice: '冷たい' };
 
 const KIND_LABEL = { weapon: '攻撃', item: '強化アイテム', bonus: 'ボーナス' };
 
+// 攻撃とアイテムの Lv の表示。最大 Lv は「MAX」と出す
+export const levelLabel = (level) => (level >= CONFIG.weaponLevels.max ? 'Lv MAX' : `Lv ${level}`);
+
 // レベルアップで出る候補を選ぶ画面。choices は { kind, name, desc, element, level, isNew } の配列
 export class LevelUpMenu {
   open(choices, level) {
@@ -86,7 +89,7 @@ export class LevelUpMenu {
     if (kind !== 'bonus') {
       ctx.font = font(14, true);
       ctx.fillStyle = isNew ? c.xpBar : accent;
-      ctx.fillText(isNew ? 'NEW' : `Lv ${level} → ${level + 1}`, cx, card.y + 40);
+      ctx.fillText(isNew ? 'NEW' : `Lv ${level} → ${level + 1 >= CONFIG.weaponLevels.max ? 'MAX' : level + 1}`, cx, card.y + 40);
     }
 
     // アイコンがあるカードは、アイコンの下に名前と説明を置く
