@@ -156,14 +156,14 @@ export const CONFIG = {
     //   xpRate：経験値の倍率、areaRate：弾と範囲の大きさの倍率、
     //   movingIntervalRate：動いている間の攻撃の間隔の倍率、standingDamageRate：止まっている間のダメージの倍率
     powers: {
-      beanHeal: { name: '豆の回復アップ', desc: '珈琲豆で回復する量が 3 割増える', beanHealRate: 1.3 },
+      beanHeal: { name: '豆の回復アップ', desc: '珈琲豆で回復する量が 30% 増える', beanHealRate: 1.3 },
       magnet: { name: '吸い寄せ', desc: '経験値の粒を遠くから吸い寄せる', magnetRate: 1.6 },
       guard: { name: '無敵時間アップ', desc: '攻撃を受けたあとの無敵時間が長い', invincibleSec: 1.0 },
-      saver: { name: '省エネ', desc: 'カフェインの減りが 2 割遅い', decayRate: 0.8 },
+      saver: { name: '省エネ', desc: 'カフェインの減りが 20% 遅い', decayRate: 0.8 },
       xp: { name: '経験値アップ', desc: '経験値が 15% 多く入る', xpRate: 1.15 },
-      area: { name: '範囲アップ', desc: 'すべての弾と範囲が 1 割大きい', areaRate: 1.1 },
-      runGun: { name: '走り撃ち', desc: '動いている間は攻撃の間隔が 1 割短い', movingIntervalRate: 0.9 },
-      standFirm: { name: '踏ん張り', desc: '止まっている間はダメージが 2 割上がる', standingDamageRate: 1.2 },
+      area: { name: '範囲アップ', desc: 'すべての弾と範囲が 10% 大きい', areaRate: 1.1 },
+      runGun: { name: '走り撃ち', desc: '動いている間は攻撃の間隔が 10% 短い', movingIntervalRate: 0.9 },
+      standFirm: { name: '踏ん張り', desc: '止まっている間はダメージが 20% 上がる', standingDamageRate: 1.2 },
     },
     // 選択画面の性能のバーの範囲（66 体の値がほとんど入る範囲）
     statBars: { speed: [0.6, 1.6], caffeine: [50, 200], power: [0.5, 1.75], rapid: [0.5, 1.5] },
@@ -307,7 +307,7 @@ export const CONFIG = {
         2: { count: 2, spreadDeg: 10, desc: '豆が 2 つになる' },
         4: { flightRate: 1.4, desc: '豆が遠くまで飛ぶ' },
         6: { rangeRate: 1.3, desc: '遠くの敵も狙う' },
-        8: { count: 3, spreadDeg: 12, pierce: 3, damageRate: 0.6, desc: '豆が 3 つになり、\n3 体まで貫通（威力 6 割）' },
+        8: { count: 3, spreadDeg: 12, pierce: 3, damageRate: 0.6, desc: '豆が 3 つになり、\n3 体まで貫通（威力 60%）' },
       },
       commonDesc: 'ダメージが上がり、\n連射が速くなる',
       // Lv 8（MAX）の見た目。trail は残像の数と間隔（秒）、flash は撃った瞬間の光
@@ -322,7 +322,7 @@ export const CONFIG = {
         2: { count: 6, spreadDeg: 13, desc: '豆が 6 つになる' },
         4: { flightRate: 1.4, desc: '豆が遠くまで飛ぶ' },
         6: { rangeRate: 1.3, desc: '遠くの敵も狙う' },
-        8: { count: 8, spreadDeg: 11, pierce: true, damageRate: 0.7, desc: '豆が 8 つになり、\n敵を貫通する（威力 7 割）' },
+        8: { count: 8, spreadDeg: 11, pierce: true, damageRate: 0.7, desc: '豆が 8 つになり、\n敵を貫通する（威力 70%）' },
       },
       commonDesc: 'ダメージが上がり、\n連射が速くなる',
       maxVisual: { glow: '#ffb347', core: '#ffe08a', glowScale: 2.4, trail: 4, trailGapSec: 0.018, flashSec: 0.12, flashRadius: 30 },
@@ -464,11 +464,11 @@ export const CONFIG = {
       },
     },
     shockwave: {
-      name: 'カフェイン・ショックウェーブ', desc: 'カフェインが 7 割以上のとき\n衝撃波で押し返す', element: 'none', intervalSec: 3, minCaffeineRatio: 0.7, speed: 400, maxRadius: 250, thickness: 20, damage: 4, knockback: 400,
+      name: 'カフェイン・ショックウェーブ', desc: 'カフェインが 70% 以上のとき\n衝撃波で押し返す', element: 'none', intervalSec: 3, minCaffeineRatio: 0.7, speed: 400, maxRadius: 250, thickness: 20, damage: 4, knockback: 400,
       // Lv 2・4・6 の見た目の目印（仕様 014）を 1 つの輪に置く数
       levelSpotCount: 12,
       upgrades: {
-        2: { minCaffeineRatio: 0.5, desc: 'カフェイン 5 割から\n発動する' },
+        2: { minCaffeineRatio: 0.5, desc: 'カフェイン 50% から\n発動する' },
         4: { radiusRate: 1.3, desc: '衝撃波が遠くまで\n広がる' },
         6: { knockbackRate: 1.5, desc: '押し返しが強くなる' },
         // waves 個の波を waveGapSec おきに出し、押し返すのは最後の波だけ。発動のたびにカフェインを caffeineCost 使う
