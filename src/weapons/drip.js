@@ -80,7 +80,7 @@ export class Drip extends Weapon {
   // 落ちてくる雫
   levelSpots() {
     const c = this.config;
-    return this.drops.filter((d) => d.timer > 0).map((d) => ({ x: d.x, y: d.y - (d.timer / c.delaySec) * c.fallHeight, r: c.dropSize, seed: d.seed }));
+    return this.drops.filter((d) => d.timer > 0).map((d) => ({ x: d.x, y: d.y - (d.timer / c.delaySec) * c.fallHeight, r: c.dropSize }));
   }
 
   drawBelow(ctx) {

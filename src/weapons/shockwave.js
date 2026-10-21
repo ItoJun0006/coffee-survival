@@ -60,7 +60,7 @@ export class Shockwave extends Weapon {
     return this.rings.flatMap((ring) => Array.from({ length: n }, (_, i) => {
       const a = (i / n) * Math.PI * 2 + ring.seed;
       const d = Math.max(0, ring.r - th / 2);
-      return { x: ring.x + Math.cos(a) * d, y: ring.y + Math.sin(a) * d, r: th / 2, k: 1 - ring.r / maxRadius, seed: ring.seed + i };
+      return { x: ring.x + Math.cos(a) * d, y: ring.y + Math.sin(a) * d, r: th / 2, k: 1 - ring.r / maxRadius };
     }));
   }
 

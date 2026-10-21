@@ -59,7 +59,7 @@ export class Ice extends Weapon {
   }
 
   levelSpots() {
-    return this.shards.map((s) => ({ x: s.x, y: s.y, r: s.radius, seed: s.seed }));
+    return this.shards.map((s) => ({ x: s.x, y: s.y, r: s.radius }));
   }
 
   draw(ctx) {

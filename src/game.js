@@ -62,8 +62,6 @@ export class Game {
     });
     // ?maxVariant=A|B|C を付けて開くと、MAX の見た目の案を切り替えられる（動作確認用）
     this.debugMaxVariant = params.get('maxVariant');
-    // ?levelVariant=A|B|C を付けて開くと、Lv 2・4・6 の見た目の案を切り替えられる（動作確認用）
-    this.debugLevelVariant = params.get('levelVariant');
     this.pixelLayer = new PixelLayer();
     this.floor = new Floor();
     this.resize();

@@ -55,7 +55,7 @@ export class Steam extends Weapon {
     return this.puffs.flatMap((f) => Array.from({ length: levelSpot.count }, (_, i) => {
       const a = f.angle - f.half + ((i + 0.5) / levelSpot.count) * f.half * 2;
       const d = f.range - levelSpot.radius;
-      return { x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d, r: levelSpot.radius, k: f.life / puffLifeSec, seed: f.seed + i };
+      return { x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d, r: levelSpot.radius, k: f.life / puffLifeSec };
     }));
   }
 

@@ -38,7 +38,6 @@ export class BeanGun extends Weapon {
           b.hits = new Set();
           b.trail = [];
           b.trailTimer = 0;
-          b.seed = Math.random() * 100;
           this.bullets.push(b);
         }
         if (this.isMax) this.flashTimer = c.maxVisual.flashSec;
@@ -72,7 +71,7 @@ export class BeanGun extends Weapon {
   }
 
   levelSpots() {
-    return this.bullets.map((b) => ({ x: b.x, y: b.y, r: b.radius, seed: b.seed }));
+    return this.bullets.map((b) => ({ x: b.x, y: b.y, r: b.radius }));
   }
 
   draw(ctx) {

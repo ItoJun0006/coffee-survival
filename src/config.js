@@ -94,23 +94,18 @@ export const CONFIG = {
   // max は 1 面の上限。エクストラステージでは stages.extra.maxLevel まで上げられ（限界突破）、
   // アイテムの限界突破した段階は、1 段階の効果が overCapItemRate 倍になる
   weaponLevels: { choices: 3, max: 8, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.3, overCapItemRate: 0.5 },
-  // Lv 2・4・6 で上がる見た目の段階（仕様 014）。tiers は段階が上がる Lv。MAX（Lv 8）は武器ごとの maxVisual で描く。
-  // colors は属性ごとの段階 1・2・3 の色。配列の値は段階 1・2・3 の順
+  // Lv 2・4・6 で上がる見た目の段階（仕様 014）：攻撃の縁（当たる範囲の内側）に光る線を描く。
+  // tiers は段階が上がる Lv。MAX（Lv 8）は武器ごとの maxVisual で描く。配列の値は段階 1・2・3 の順。
+  // colors は属性ごとの線の色、width は線の太さ（px）、alpha は濃さ
   weaponLevelVisual: {
-    variant: 'A',
     tiers: [2, 4, 6],
     colors: {
       hot: ['#c9733a', '#ff9a3c', '#ffd9a0'],
       ice: ['#4f9fd8', '#7fd8ff', '#e0f8ff'],
       none: ['#a07a58', '#d9a066', '#ffcf8a'],
     },
-    // A：まわりの淡い光。scale は光の半径（はっきりした部分の半径に対する倍率）で、はみ出す幅は maxExtra（px）まで
-    A: { alpha: [0.25, 0.33, 0.42], scale: [1.7, 2.1, 2.5], maxExtra: [8, 12, 16] },
-    // B：縁（当たる範囲の内側）の光る線。width は線の太さ（px）
-    B: { width: [3, 3, 6], alpha: [0.75, 0.9, 1] },
-    // C：まわりの粒。count は目印 1 つあたりの数（大きな目印は半径 sizeStep ごとに数を増やし、maxCount まで）。
-    // size は粒の大きさ、reach は粒が飛ぶ・昇る距離（px）
-    C: { count: [2, 3, 5], sizeStep: 24, maxCount: 10, alpha: 0.65, speed: 1.4, size: 3, reach: 12 },
+    width: [3, 3, 6],
+    alpha: [0.75, 0.9, 1],
   },
   // 持てる数。weapons は最初の豆マシンガンを含む
   slots: { weapons: 3, items: 2 },

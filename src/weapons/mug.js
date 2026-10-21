@@ -60,7 +60,7 @@ export class Mug extends Weapon {
   }
 
   levelSpots() {
-    return this.mugs.map((m) => ({ x: m.x, y: m.y, r: m.radius, seed: m.seed }));
+    return this.mugs.map((m) => ({ x: m.x, y: m.y, r: m.radius }));
   }
 
   // マグの絵。大きさは当たる半径 r に収める（取っ手の先まで）

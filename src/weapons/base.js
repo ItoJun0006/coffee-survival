@@ -1,5 +1,5 @@
 import { CONFIG } from '../config.js';
-import { drawGlow, drawWisps, hash, circle } from './max-fx.js';
+import { circle } from './max-fx.js';
 
 export const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 export const angleTo = (from, to) => Math.atan2(to.y - from.y, to.x - from.x);
@@ -138,12 +138,7 @@ export class Weapon {
     return CONFIG.weaponLevelVisual.tiers.filter((lv) => this.level >= lv).length;
   }
 
-  // 段階の見た目の案（A・B・C）。?levelVariant= があればそれを使う
-  get levelVariant() {
-    return this.game.debugLevelVariant ?? CONFIG.weaponLevelVisual.variant;
-  }
-
-  // 段階の見た目を重ねる目印：{ x, y, r（はっきりした部分の半径）, k（濃さ 0〜1。省略で 1）, seed }。武器ごとに上書きする
+  // 段階の見た目を重ねる目印：{ x, y, r（はっきりした部分の半径）, k（濃さ 0〜1。省略で 1）}。武器ごとに上書きする
   levelSpots() {
     return [];
   }
@@ -153,67 +148,22 @@ export class Weapon {
     return false;
   }
 
-  // 段階の見た目。below は敵より下の描画のときに true
+  // 段階の見た目：目印の縁（当たる範囲の内側）に、属性の色の光る線。below は敵より下の描画のときに true
   drawLevelFx(ctx, below) {
     const tier = this.visualTier;
     if (!tier || below !== this.levelFxBelow) return;
-    const lv = CONFIG.weaponLevelVisual;
-    const variant = this.levelVariant;
-    const v = lv[variant];
+    const v = CONFIG.weaponLevelVisual;
     const i = tier - 1;
-    const color = (lv.colors[this.config.element] ?? lv.colors.none)[i];
-    const t = this.game.time;
     ctx.save();
-    this.levelSpots().forEach((s, n) => {
-      const k = s.k ?? 1;
-      const seed = s.seed ?? n;
-      if (variant === 'A') {
-        // まわりの淡い光
-        drawGlow(ctx, s.x, s.y, s.r + Math.min(s.r * (v.scale[i] - 1), v.maxExtra[i]), color, v.alpha[i] * k);
-      } else if (variant === 'B') {
-        // 縁の光る線（当たる範囲の内側）
-        const w = Math.min(v.width[i], s.r);
-        ctx.globalAlpha = v.alpha[i] * k;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = w;
-        circle(ctx, s.x, s.y, s.r - w / 2);
-        ctx.stroke();
-      } else {
-        this.#drawLevelParticles(ctx, s, v, i, color, k, seed, t);
-      }
-    });
+    ctx.strokeStyle = (v.colors[this.config.element] ?? v.colors.none)[i];
+    for (const s of this.levelSpots()) {
+      const w = Math.min(v.width[i], s.r);
+      ctx.globalAlpha = v.alpha[i] * (s.k ?? 1);
+      ctx.lineWidth = w;
+      circle(ctx, s.x, s.y, s.r - w / 2);
+      ctx.stroke();
+    }
     ctx.restore();
-  }
-
-  // まわりの粒（熱い：湯気、冷たい：きらめき、属性なし：火花）。半透明にして、はっきりした絵にしない
-  #drawLevelParticles(ctx, s, v, i, color, k, seed, t) {
-    const count = Math.min(v.maxCount, v.count[i] * Math.max(1, Math.round(s.r / v.sizeStep)));
-    const element = this.config.element;
-    if (element === 'hot') {
-      drawWisps(ctx, s.x, s.y - s.r * 0.5, { count, height: s.r + v.reach, spread: s.r * 1.2, size: v.size, color, alpha: v.alpha * k, time: t, speed: v.speed, seed });
-      return;
-    }
-    ctx.fillStyle = color;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = v.size;
-    ctx.lineCap = 'round';
-    for (let j = 0; j < count; j++) {
-      if (element === 'ice') {
-        const a = hash(seed + j) * Math.PI * 2 + t * 0.8;
-        const d = s.r + v.size + hash(seed + j * 3) * v.reach * 0.5;
-        ctx.globalAlpha = v.alpha * k * Math.max(0, Math.sin(t * 8 + j * 2 + seed));
-        ctx.fillRect(s.x + Math.cos(a) * d - v.size / 2, s.y + Math.sin(a) * d - v.size / 2, v.size, v.size);
-      } else {
-        const ph = (t * v.speed + hash(seed + j)) % 1;
-        const a = hash(seed + j * 3) * Math.PI * 2;
-        const d = s.r + ph * v.reach;
-        ctx.globalAlpha = v.alpha * k * (1 - ph);
-        ctx.beginPath();
-        ctx.moveTo(s.x + Math.cos(a) * d, s.y + Math.sin(a) * d);
-        ctx.lineTo(s.x + Math.cos(a) * (d + v.size * 2), s.y + Math.sin(a) * (d + v.size * 2));
-        ctx.stroke();
-      }
-    }
   }
 }
 

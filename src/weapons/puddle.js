@@ -54,7 +54,7 @@ export class Puddle extends Weapon {
   }
 
   levelSpots() {
-    return this.zones.map((z) => ({ x: z.x, y: z.y, r: z.radius, k: Math.min(1, z.life), seed: z.seed }));
+    return this.zones.map((z) => ({ x: z.x, y: z.y, r: z.radius, k: Math.min(1, z.life) }));
   }
 
   // 床に広がるので、段階の見た目も敵より下に描く
