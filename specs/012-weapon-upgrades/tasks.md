@@ -90,34 +90,34 @@ description: "Task list for 012-weapon-upgrades"
 2. 選んでもらう：`?weapons=<id>:8&maxVariant=A|B|C` と `?weapons=<id>:7` の画面を同じ場面で並べた比較画像を作ってユーザーに見せ、1 つ選んでもらう（ユーザーの返事を待つ）
 3. 選んだ案を残す：選ばなかった案の描き方と設定、`maxVisual.variant` を消す
 
-- [ ] T029 [US2] ミル・トルネードの MAX の見た目の 3 案を作る（src/weapons/mill.js、src/config.js `mill.maxVisual`）
+- [x] T029 [US2] ミル・トルネードの MAX の見た目の 3 案を作る（src/weapons/mill.js、src/config.js `mill.maxVisual`）
 - [ ] T030 [US2] ミル・トルネードの 3 案の比較画像を見せて選んでもらう
 - [ ] T031 [US2] ミル・トルネードで選んだ案だけを残す（src/weapons/mill.js、src/config.js）
-- [ ] T032 [US2] マグカップ投げの MAX の見た目の 3 案を作る（src/weapons/mug.js、src/config.js `mug.maxVisual`）
+- [x] T032 [US2] マグカップ投げの MAX の見た目の 3 案を作る（src/weapons/mug.js、src/config.js `mug.maxVisual`）
 - [ ] T033 [US2] マグカップ投げの 3 案の比較画像を見せて選んでもらう
 - [ ] T034 [US2] マグカップ投げで選んだ案だけを残す（src/weapons/mug.js、src/config.js）
-- [ ] T035 [US2] カフェイン・ショックウェーブの MAX の見た目の 3 案を作る（src/weapons/shockwave.js、src/config.js `shockwave.maxVisual`）
+- [x] T035 [US2] カフェイン・ショックウェーブの MAX の見た目の 3 案を作る（src/weapons/shockwave.js、src/config.js `shockwave.maxVisual`）
 - [ ] T036 [US2] カフェイン・ショックウェーブの 3 案の比較画像を見せて選んでもらう
 - [ ] T037 [US2] カフェイン・ショックウェーブで選んだ案だけを残す（src/weapons/shockwave.js、src/config.js）
-- [ ] T038 [US2] ドリップの雨の MAX の見た目の 3 案を作る（src/weapons/drip.js、src/config.js `drip.maxVisual`）
+- [x] T038 [US2] ドリップの雨の MAX の見た目の 3 案を作る（src/weapons/drip.js、src/config.js `drip.maxVisual`）
 - [ ] T039 [US2] ドリップの雨の 3 案の比較画像を見せて選んでもらう
 - [ ] T040 [US2] ドリップの雨で選んだ案だけを残す（src/weapons/drip.js、src/config.js）
-- [ ] T041 [US2] スチーム噴射の MAX の見た目の 3 案を作る（src/weapons/steam.js、src/config.js `steam.maxVisual`）。ボスのあくびの波・ショックウェーブの輪と見分けられる形にする
+- [x] T041 [US2] スチーム噴射の MAX の見た目の 3 案を作る（src/weapons/steam.js、src/config.js `steam.maxVisual`）。ボスのあくびの波・ショックウェーブの輪と見分けられる形にする
 - [ ] T042 [US2] スチーム噴射の 3 案の比較画像を見せて選んでもらう
 - [ ] T043 [US2] スチーム噴射で選んだ案だけを残す（src/weapons/steam.js、src/config.js）
-- [ ] T044 [US2] こぼれ珈琲の MAX の見た目の 3 案を作る（src/weapons/puddle.js、src/config.js `puddle.maxVisual`）。こぼれ跡も同じ描き方にする
+- [x] T044 [US2] こぼれ珈琲の MAX の見た目の 3 案を作る（src/weapons/puddle.js、src/config.js `puddle.maxVisual`）。こぼれ跡も同じ描き方にする
 - [ ] T045 [US2] こぼれ珈琲の 3 案の比較画像を見せて選んでもらう
 - [ ] T046 [US2] こぼれ珈琲で選んだ案だけを残す（src/weapons/puddle.js、src/config.js）
-- [ ] T047 [US2] エスプレッソ・ショットの MAX の見た目の 3 案を作る（src/weapons/espresso.js、src/config.js `espresso.maxVisual`）
+- [x] T047 [US2] エスプレッソ・ショットの MAX の見た目の 3 案を作る（src/weapons/espresso.js、src/config.js `espresso.maxVisual`）
 - [ ] T048 [US2] エスプレッソ・ショットの 3 案の比較画像を見せて選んでもらう
 - [ ] T049 [US2] エスプレッソ・ショットで選んだ案だけを残す（src/weapons/espresso.js、src/config.js）
-- [ ] T050 [US2] アイス珈琲の MAX の見た目の 3 案を作る（src/weapons/ice.js、src/config.js `ice.maxVisual`）。結晶の腕の先までを当たる半径にする
+- [x] T050 [US2] アイス珈琲の MAX の見た目の 3 案を作る（src/weapons/ice.js、src/config.js `ice.maxVisual`）。結晶の腕の先までを当たる半径にする
 - [ ] T051 [US2] アイス珈琲の 3 案の比較画像を見せて選んでもらう
 - [ ] T052 [US2] アイス珈琲で選んだ案だけを残す（src/weapons/ice.js、src/config.js）
-- [ ] T053 [US2] フレンチプレスの MAX の見た目の 3 案を作る（src/weapons/press.js、src/config.js `press.maxVisual`）
+- [x] T053 [US2] フレンチプレスの MAX の見た目の 3 案を作る（src/weapons/press.js、src/config.js `press.maxVisual`）
 - [ ] T054 [US2] フレンチプレスの 3 案の比較画像を見せて選んでもらう
 - [ ] T055 [US2] フレンチプレスで選んだ案だけを残す（src/weapons/press.js、src/config.js）
-- [ ] T056 [US2] ラテアートの MAX の見た目の 3 案を作る（src/weapons/latte.js、src/config.js `latte.maxVisual`）
+- [x] T056 [US2] ラテアートの MAX の見た目の 3 案を作る（src/weapons/latte.js、src/config.js `latte.maxVisual`）
 - [ ] T057 [US2] ラテアートの 3 案の比較画像を見せて選んでもらう
 - [ ] T058 [US2] ラテアートで選んだ案だけを残す（src/weapons/latte.js、src/config.js）
 - [ ] T059 [US2] quickstart §2 を 10 種類すべてで行う（Lv 7 と 8 の見比べ、当たる範囲との一致、見間違えないこと）
