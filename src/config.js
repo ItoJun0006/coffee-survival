@@ -1,5 +1,13 @@
 export const CONFIG = {
-  title: { name: 'コーヒーサバイバル', subtitle: '〜 眠気に負けるな 〜' },
+  // タイトル画面。image はロゴ入りのイラストで、読み込めるまでは name を文字で描く
+  // zoom はイラストをゆっくり拡大・縮小させる量（0.025 で最大 2.5% 大きくなる）と、1 往復の秒数
+  title: {
+    name: '珈琲サバイバル',
+    subtitle: '〜 眠気に負けるな 〜',
+    image: 'assets/images/title.jpg',
+    background: '#0a0807',
+    zoom: { amount: 0.025, periodSec: 12 },
+  },
   // 画面の文字のフォント。Yusei Magic は assets/fonts に置き、css/style.css で読み込む
   font: { family: '"Yusei Magic", system-ui, sans-serif' },
   // 操作キャラ。品種 × 焙煎度の組み合わせで 1 体になる（仮実装）

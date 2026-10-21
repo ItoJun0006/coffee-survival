@@ -43,6 +43,8 @@ export class Game {
     this.character = loadLastCharacter();
     this.characterSelect = new CharacterSelect();
     this.levelUpMenu = new LevelUpMenu();
+    this.titleImage = new Image();
+    this.titleImage.src = CONFIG.title.image;
     sound.init();
     this.reset();
     this.state = 'title';
@@ -775,7 +777,54 @@ export class Game {
   }
 
   // 起動時のタイトル画面。ゲームの場面を背景に、名前とスタート案内を重ねる
+  // 起動時のタイトル画面。イラストが読み込めていればイラスト、まだなら文字だけで描く
   #drawTitle() {
+    const img = this.titleImage;
+    if (img.complete && img.naturalWidth) this.#drawTitleArt(img);
+    else this.#drawTitleText();
+  }
+
+  // ロゴ入りのイラストを、欠けないように画面いっぱいに表示し、下に案内を重ねる
+  #drawTitleArt(img) {
+    const { ctx, viewW, viewH } = this;
+    const c = CONFIG.colors;
+    const { background, zoom } = CONFIG.title;
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, viewW, viewH);
+
+    // ゆっくり拡大・縮小させる（cos で 0 → 1 → 0 と行き来する）
+    const t = performance.now() / 1000;
+    const k = 1 + zoom.amount * (0.5 - 0.5 * Math.cos((t * Math.PI * 2) / zoom.periodSec));
+    const scale = Math.min(viewW / img.naturalWidth, viewH / img.naturalHeight) * k;
+    const w = img.naturalWidth * scale;
+    const h = img.naturalHeight * scale;
+    ctx.drawImage(img, (viewW - w) / 2, (viewH - h) / 2, w, h);
+
+    // 下の方を暗くして、案内の文字を読みやすくする
+    const band = ctx.createLinearGradient(0, viewH * 0.68, 0, viewH);
+    band.addColorStop(0, 'rgba(10, 8, 7, 0)');
+    band.addColorStop(0.5, 'rgba(10, 8, 7, 0.75)');
+    band.addColorStop(1, 'rgba(10, 8, 7, 0.9)');
+    ctx.fillStyle = band;
+    ctx.fillRect(0, viewH * 0.68, viewW, viewH * 0.32);
+
+    const cx = viewW / 2;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = font(16);
+    ctx.fillStyle = c.text;
+    ctx.fillText(CONFIG.title.subtitle, cx, viewH - 96);
+    ctx.font = font(13);
+    ctx.fillStyle = 'rgba(243, 230, 216, 0.75)';
+    ctx.fillText('珈琲豆を拾ってカフェインを保ち、朝まで生き延びろ', cx, viewH - 70);
+    ctx.globalAlpha = 0.5 + 0.5 * Math.sin(performance.now() / 300);
+    ctx.font = font(18, true);
+    ctx.fillStyle = c.xpBar;
+    ctx.fillText('クリック / Space でスタート', cx, viewH - 36);
+    ctx.globalAlpha = 1;
+  }
+
+  #drawTitleText() {
     const { ctx } = this;
     const c = CONFIG.colors;
     const cx = this.viewW / 2;
