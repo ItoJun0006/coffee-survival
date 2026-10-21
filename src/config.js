@@ -132,7 +132,7 @@ export const CONFIG = {
         2: { count: 2, spreadDeg: 10, desc: '豆が 2 つになる' },
         4: { flightRate: 1.4, desc: '豆が遠くまで飛ぶ' },
         6: { rangeRate: 1.3, desc: '遠くの敵も狙う' },
-        8: { count: 3, spreadDeg: 12, pierce: true, damageRate: 0.7, desc: '豆が 3 つになり、\n敵を貫通する（威力 7 割）' },
+        8: { count: 3, spreadDeg: 12, pierce: 3, damageRate: 0.6, desc: '豆が 3 つになり、\n3 体まで貫通（威力 6 割）' },
       },
       commonDesc: 'ダメージが上がり、\n連射が速くなる',
       // Lv 8（MAX）の見た目。trail は残像の数と間隔（秒）、flash は撃った瞬間の光

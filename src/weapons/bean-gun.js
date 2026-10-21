@@ -12,13 +12,14 @@ export class BeanGun extends Weapon {
   // 今の Lv までに受けた特別な強化をまとめたもの
   get stats() {
     const c = this.config;
-    const s = { count: c.baseCount ?? 1, spreadDeg: c.baseSpreadDeg ?? 0, flightRate: c.flightRate, rangeRate: 1, pierce: false, damageRate: 1 };
+    const s = { count: c.baseCount ?? 1, spreadDeg: c.baseSpreadDeg ?? 0, flightRate: c.flightRate, rangeRate: 1, pierce: 1, damageRate: 1 };
     for (const [lv, up] of Object.entries(c.upgrades)) {
       if (this.level < Number(lv)) continue;
       if (up.count) Object.assign(s, { count: up.count, spreadDeg: up.spreadDeg });
       if (up.flightRate) s.flightRate *= up.flightRate;
       if (up.rangeRate) s.rangeRate *= up.rangeRate;
-      if (up.pierce) s.pierce = true;
+      // pierce は 1 つの豆が当たれる敵の数。true なら何体でも
+      if (up.pierce) s.pierce = up.pierce === true ? Infinity : up.pierce;
       if (up.damageRate) s.damageRate *= up.damageRate;
     }
     return s;
@@ -61,11 +62,14 @@ export class BeanGun extends Weapon {
       b.update(dt);
       const hits = g.targetsInCircle(b.x, b.y, b.radius).filter((t) => !b.hits.has(t));
       if (!hits.length) continue;
-      for (const t of s.pierce ? hits : hits.slice(0, 1)) {
+      // 当たれる残りの数だけ、近い順に当てる。数を使い切ったら豆は消える
+      const left = s.pierce - b.hits.size;
+      if (hits.length > left) hits.sort((p, q) => Math.hypot(p.x - b.x, p.y - b.y) - Math.hypot(q.x - b.x, q.y - b.y));
+      for (const t of hits.slice(0, left)) {
         b.hits.add(t);
         this.hit(t, c.damage * s.damageRate);
       }
-      if (!s.pierce) b.spent = true;
+      if (b.hits.size >= s.pierce) b.spent = true;
     }
     this.bullets = this.bullets.filter((b) => !b.spent);
   }
