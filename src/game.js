@@ -368,6 +368,16 @@ export class Game {
     return best;
   }
 
+  // 射程内の相手を近い順に count 体まで
+  nearestTargets(range, count) {
+    return this.targets()
+      .map((t) => ({ t, d: dist(t, this.player) - t.radius }))
+      .filter((e) => e.d < range)
+      .sort((a, b) => a.d - b.d)
+      .slice(0, count)
+      .map((e) => e.t);
+  }
+
   targetsInCircle(x, y, r) {
     return this.targets().filter((t) => Math.hypot(t.x - x, t.y - y) < r + t.radius);
   }
