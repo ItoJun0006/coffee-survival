@@ -1,6 +1,6 @@
 import { CONFIG } from '../config.js';
 import { Weapon, HitTracker, dist } from './base.js';
-import { drawGlow, drawWisps, hash, circle } from './max-fx.js';
+import { drawGlow, drawWisps, circle } from './max-fx.js';
 
 // 敵の頭上に熱い雫を降らせる
 export class Drip extends Weapon {
@@ -89,7 +89,7 @@ export class Drip extends Weapon {
     }
     if (!this.isMax) return;
     // 着弾点に残る湯気の範囲（はっきりした縁が当たる半径）
-    const v = c.maxVisual[this.maxVariant];
+    const v = c.maxVisual;
     for (const m of this.mists) {
       const k = Math.min(1, m.life / c.linger.durationSec * 2);
       ctx.save();
@@ -116,10 +116,8 @@ export class Drip extends Weapon {
   draw(ctx) {
     const c = this.config;
     const radius = c.radius * this.stats.radiusRate;
-    const v = this.isMax ? c.maxVisual[this.maxVariant] : null;
-    const variant = this.maxVariant;
+    const v = this.isMax ? c.maxVisual : null;
     const t = this.game.time;
-    if (v?.dripper) this.#drawDripper(ctx, this.game.player.x, this.game.player.y - v.dripperLift, v);
     for (const d of this.drops) {
       if (d.timer > 0) {
         const y = d.y - (d.timer / c.delaySec) * c.fallHeight;
@@ -127,44 +125,11 @@ export class Drip extends Weapon {
           ctx.fillStyle = '#6b3e22';
           this.#dropPath(ctx, d.x, y, 6);
           ctx.fill();
-        } else if (variant === 'A') {
-          // 淡いオレンジの芯と光をまとい、湯気の尾を引く
-          drawGlow(ctx, d.x, y, v.glowRadius, v.glow, v.glowAlpha);
-          ctx.save();
-          ctx.fillStyle = v.steam;
-          for (let i = 1; i <= v.tail; i++) {
-            ctx.globalAlpha = v.steamAlpha * (1 - i / (v.tail + 1));
-            circle(ctx, d.x + Math.sin(t * 9 + i + d.seed) * 2, y - 10 - i * v.tailGap, 3 + i * 0.6);
-            ctx.fill();
-          }
-          ctx.restore();
-          ctx.fillStyle = v.drop;
-          this.#dropPath(ctx, d.x, y, 6);
-          ctx.fill();
-          ctx.fillStyle = v.core;
-          this.#dropPath(ctx, d.x, y + 1, 3);
-          ctx.fill();
-        } else if (variant === 'B') {
-          // 光る琥珀色の雨の筋
-          drawGlow(ctx, d.x, y, v.glowRadius, v.glow, v.glowAlpha);
-          ctx.save();
-          ctx.lineCap = 'round';
-          ctx.strokeStyle = v.streak;
-          ctx.globalAlpha = v.streakAlpha;
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.moveTo(d.x, y - v.streakLen);
-          ctx.lineTo(d.x, y - 6);
-          ctx.stroke();
-          ctx.restore();
-          ctx.fillStyle = v.drop;
-          this.#dropPath(ctx, d.x, y, 5);
-          ctx.fill();
         } else {
           // 狙った所の上に小さなドリッパーが現れ、そこから落ちる
           const top = d.y - c.fallHeight;
           ctx.save();
-          ctx.globalAlpha = Math.min(1, (c.delaySec - d.timer) / 0.1, d.timer / 0.15);
+          ctx.globalAlpha = Math.min(1, (c.delaySec - d.timer) / v.dripperFadeSec, d.timer / v.dripperFadeSec);
           this.#drawDripper(ctx, d.x, top, v);
           ctx.restore();
           drawGlow(ctx, d.x, y, v.glowRadius, v.glow, v.glowAlpha);
@@ -191,7 +156,7 @@ export class Drip extends Weapon {
         for (let i = 0; i < v.crown; i++) {
           const a = (i / v.crown) * Math.PI * 2 + d.seed;
           const rr = radius * (0.3 + 0.6 * k);
-          circle(ctx, d.x + Math.cos(a) * rr, d.y + Math.sin(a) * rr * 0.6 - Math.sin(k * Math.PI) * 10, 3);
+          circle(ctx, d.x + Math.cos(a) * rr, d.y + Math.sin(a) * rr * 0.6 - Math.sin(k * Math.PI) * v.crownLift, 3);
           ctx.fill();
         }
         ctx.restore();
@@ -205,7 +170,7 @@ export class Drip extends Weapon {
     }
   }
 
-  // 銅色の小さなドリッパー
+  // 銅色の小さなドリッパー（(x, y) が中心）
   #drawDripper(ctx, x, y, v) {
     const w = v.dripperSize;
     ctx.fillStyle = v.dripper;

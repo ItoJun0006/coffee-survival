@@ -69,60 +69,23 @@ export class Steam extends Weapon {
     }
   }
 
-  // 全方向の蒸気。はっきりした部分の外の端が当たる半径（f.range）
+  // 全方向の蒸気：芯の暖色の光から、外へ散っていく湯気の粒。一番外の粒の端が当たる半径（f.range）
   #drawMax(ctx) {
-    const variant = this.maxVariant;
-    const v = this.config.maxVisual[variant];
+    const v = this.config.maxVisual;
     const p = this.game.player;
     for (const f of this.puffs) {
       const k = f.life / this.config.puffLifeSec;
       const R = f.range;
       drawGlow(ctx, p.x, p.y, R * v.coreScale, v.core, v.coreAlpha * k);
       ctx.save();
-      if (variant === 'A') {
-        // もこもこした蒸気の雲：外周のかたまりが膨らむ
-        ctx.fillStyle = v.cloud;
-        const n = v.lumps;
-        for (let i = 0; i < n; i++) {
-          const L = v.lumpSize * (0.55 + 0.45 * (1 - k)) * (0.8 + 0.4 * hash(f.seed + i));
-          const a = (i / n) * Math.PI * 2 + f.seed;
-          ctx.globalAlpha = v.cloudAlpha * k;
-          circle(ctx, p.x + Math.cos(a) * (R - L), p.y + Math.sin(a) * (R - L), L);
-          ctx.fill();
-        }
-        ctx.fillStyle = v.inner;
-        ctx.globalAlpha = v.innerAlpha * k;
-        circle(ctx, p.x, p.y, R - v.lumpSize);
+      ctx.fillStyle = v.puff;
+      ctx.globalAlpha = v.puffAlpha * Math.min(1, k * 1.6);
+      for (let i = 0; i < v.puffs; i++) {
+        const a = hash(f.seed + i) * Math.PI * 2;
+        const size = v.puffSize * (0.6 + 0.4 * hash(f.seed + i * 3));
+        const d = (R - size) * (1 - (1 - hash(f.seed + i * 7) * v.depth) * k * 0.5);
+        circle(ctx, p.x + Math.cos(a) * d, p.y + Math.sin(a) * d, size);
         ctx.fill();
-      } else if (variant === 'B') {
-        // 全方向へ吹き出す蒸気の筋。筋の先の湯気の玉の端が当たる半径
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = v.jet;
-        ctx.fillStyle = v.jet;
-        ctx.lineWidth = v.jetWidth;
-        ctx.globalAlpha = v.jetAlpha * k;
-        for (let i = 0; i < v.jets; i++) {
-          const a = (i / v.jets) * Math.PI * 2 + f.seed;
-          const end = R - v.tipSize;
-          const start = p.radius + (end - p.radius) * (0.6 * k);
-          ctx.beginPath();
-          ctx.moveTo(p.x + Math.cos(a) * start, p.y + Math.sin(a) * start);
-          ctx.lineTo(p.x + Math.cos(a) * end, p.y + Math.sin(a) * end);
-          ctx.stroke();
-          circle(ctx, p.x + Math.cos(a) * end, p.y + Math.sin(a) * end, v.tipSize);
-          ctx.fill();
-        }
-      } else {
-        // 外へ散っていく湯気の粒。一番外の粒の端が当たる半径
-        ctx.fillStyle = v.puff;
-        for (let i = 0; i < v.puffs; i++) {
-          const a = hash(f.seed + i) * Math.PI * 2;
-          const size = v.puffSize * (0.6 + 0.4 * hash(f.seed + i * 3));
-          const d = (R - size) * (1 - (1 - hash(f.seed + i * 7) * v.depth) * k * 0.5);
-          ctx.globalAlpha = v.puffAlpha * Math.min(1, k * 1.6);
-          circle(ctx, p.x + Math.cos(a) * d, p.y + Math.sin(a) * d, size);
-          ctx.fill();
-        }
       }
       ctx.restore();
     }

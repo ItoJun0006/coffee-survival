@@ -73,10 +73,9 @@ export class Ice extends Weapon {
     }
   }
 
-  // 氷の MAX。はっきりした絵の端（結晶の腕の先など）が当たる半径
+  // 白い芯とシアンの淡い光をまとい、回りながら飛ぶ 6 本腕の雪の結晶。腕の先までが当たる半径。後ろにきらめきを残す
   #drawMax(ctx) {
-    const variant = this.maxVariant;
-    const v = this.config.maxVisual[variant];
+    const v = this.config.maxVisual;
     const t = this.game.time;
     for (const s of this.shards) {
       const r = s.radius;
@@ -84,7 +83,6 @@ export class Ice extends Weapon {
       const uy = Math.sin(s.angle);
       drawGlow(ctx, s.x, s.y, r * v.glowScale, v.glow, v.glowAlpha);
       ctx.save();
-      // 後ろに残るきらめき・霜の粒
       ctx.fillStyle = v.sparkle;
       for (let i = 1; i <= v.sparkles; i++) {
         const back = i * v.sparkleGap;
@@ -95,62 +93,20 @@ export class Ice extends Weapon {
       ctx.restore();
       ctx.save();
       ctx.translate(s.x, s.y);
-      if (variant === 'A') {
-        // 回りながら飛ぶ 6 本腕の雪の結晶
-        ctx.rotate(t * v.spin + s.seed);
-        ctx.strokeStyle = v.arm;
-        ctx.lineWidth = 3;
-        ctx.lineCap = 'round';
-        for (let i = 0; i < 6; i++) {
-          const a = (i / 6) * Math.PI * 2;
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.lineTo(Math.cos(a) * (r - 1.5), Math.sin(a) * (r - 1.5));
-          ctx.stroke();
-        }
-        ctx.fillStyle = v.core;
-        circle(ctx, 0, 0, r * 0.35);
-        ctx.fill();
-      } else if (variant === 'B') {
-        // 進む向きにとがった氷の槍
-        ctx.rotate(s.angle);
-        ctx.fillStyle = v.body;
+      ctx.rotate(t * v.spin + s.seed);
+      ctx.strokeStyle = v.arm;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
         ctx.beginPath();
-        ctx.moveTo(r, 0);
-        ctx.lineTo(0, r * v.width);
-        ctx.lineTo(-r, 0);
-        ctx.lineTo(0, -r * v.width);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = v.core;
-        ctx.fillRect(-r * 0.2, -r * v.width * 0.5, r * 0.9, r * v.width * 0.5);
-      } else {
-        // きらめく八角の氷の宝石と、まわりの星のきらめき
-        ctx.rotate(t * v.spin + s.seed);
-        ctx.fillStyle = v.body;
-        ctx.beginPath();
-        for (let i = 0; i < 8; i++) {
-          const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
-          ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = v.core;
-        ctx.fillRect(-r * 0.5, -r * 0.5, r * 0.5, r * 0.5);
-        ctx.rotate(-(t * v.spin + s.seed));
-        ctx.strokeStyle = v.star;
-        ctx.lineWidth = 2;
-        const tw = Math.max(0, Math.sin(t * v.twinkle + s.seed));
-        ctx.globalAlpha = 0.6 * tw;
-        const d = r * v.starDist;
-        const L = r * v.starSize * tw;
-        ctx.beginPath();
-        ctx.moveTo(d - L, -d);
-        ctx.lineTo(d + L, -d);
-        ctx.moveTo(d, -d - L);
-        ctx.lineTo(d, -d + L);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a) * (r - 1.5), Math.sin(a) * (r - 1.5));
         ctx.stroke();
       }
+      ctx.fillStyle = v.core;
+      circle(ctx, 0, 0, r * 0.35);
+      ctx.fill();
       ctx.restore();
     }
   }

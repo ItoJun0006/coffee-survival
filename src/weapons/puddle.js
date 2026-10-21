@@ -1,6 +1,6 @@
 import { CONFIG } from '../config.js';
 import { Weapon, HitTracker } from './base.js';
-import { drawGlow, drawWisps, hash, circle } from './max-fx.js';
+import { drawWisps, hash, circle } from './max-fx.js';
 
 // 足元に熱い珈琲をこぼし、上にいる敵にダメージを与え続ける
 export class Puddle extends Weapon {
@@ -66,16 +66,13 @@ export class Puddle extends Weapon {
     }
   }
 
-  // 水たまりもこぼれ跡も同じ描き方。はっきりした縁が当たる半径
+  // 水たまりもこぼれ跡も同じ描き方：濃い琥珀色の表面とオレンジの縁取り（縁が当たる半径）、ふくらんではじける泡
   #drawMaxBelow(ctx) {
-    const variant = this.maxVariant;
-    const v = this.config.maxVisual[variant];
+    const v = this.config.maxVisual;
     const t = this.game.time;
     for (const z of this.zones) {
       const k = Math.min(1, z.life);
       const r = z.radius;
-      if (variant === 'C') drawGlow(ctx, z.x, z.y, r, v.heat, v.heatAlpha * k);
-      if (variant === 'B') drawGlow(ctx, z.x, z.y, r * v.glowScale, v.glow, v.glowAlpha * k);
       ctx.save();
       ctx.globalAlpha = k;
       ctx.fillStyle = v.surface;
@@ -85,39 +82,22 @@ export class Puddle extends Weapon {
       ctx.lineWidth = 3;
       circle(ctx, z.x, z.y, r - 1.5);
       ctx.stroke();
-      if (variant === 'A' || variant === 'C') {
-        // ふくらんではじける泡
-        ctx.fillStyle = v.bubble;
-        ctx.strokeStyle = v.bubble;
-        ctx.lineWidth = 2;
-        const n = Math.max(2, Math.round(v.bubbles * (r / this.config.radius)));
-        for (let i = 0; i < n; i++) {
-          const ph = (t * v.bubbleSpeed + hash(z.seed + i)) % 1;
-          const a = hash(z.seed + i * 3) * Math.PI * 2;
-          const d = Math.sqrt(hash(z.seed + i * 5)) * r * 0.7;
-          const bx = z.x + Math.cos(a) * d;
-          const by = z.y + Math.sin(a) * d;
-          if (ph < 0.8) {
-            circle(ctx, bx, by, 1.5 + ph * v.bubbleSize);
-            ctx.fill();
-          } else {
-            circle(ctx, bx, by, 1.5 + v.bubbleSize * (0.8 + (ph - 0.8) * 3));
-            ctx.stroke();
-          }
-        }
-      } else {
-        // 回るクレマの渦
-        ctx.strokeStyle = v.swirl;
-        ctx.lineWidth = 3;
-        ctx.globalAlpha = v.swirlAlpha * k;
-        for (let j = 0; j < v.arms; j++) {
-          ctx.beginPath();
-          for (let i = 0; i <= 16; i++) {
-            const q = i / 16;
-            const a = t * v.spin + z.seed + (j / v.arms) * Math.PI * 2 + q * Math.PI * 1.4;
-            const d = r * 0.15 + q * r * 0.7;
-            ctx.lineTo(z.x + Math.cos(a) * d, z.y + Math.sin(a) * d);
-          }
+      ctx.fillStyle = v.bubble;
+      ctx.strokeStyle = v.bubble;
+      ctx.lineWidth = 2;
+      const n = Math.max(2, Math.round(v.bubbles * (r / this.config.radius)));
+      for (let i = 0; i < n; i++) {
+        const ph = (t * v.bubbleSpeed + hash(z.seed + i)) % 1;
+        const a = hash(z.seed + i * 3) * Math.PI * 2;
+        const d = Math.sqrt(hash(z.seed + i * 5)) * r * 0.7;
+        const bx = z.x + Math.cos(a) * d;
+        const by = z.y + Math.sin(a) * d;
+        // ふくらむ間は塗った丸、はじけるときは輪
+        if (ph < 0.8) {
+          circle(ctx, bx, by, 1.5 + ph * v.bubbleSize);
+          ctx.fill();
+        } else {
+          circle(ctx, bx, by, 1.5 + v.bubbleSize * (0.8 + (ph - 0.8) * 3));
           ctx.stroke();
         }
       }
@@ -125,33 +105,15 @@ export class Puddle extends Weapon {
     }
   }
 
-  // 水たまりから立ちのぼる湯気・ゆらめく熱
+  // 水たまりから立ちのぼる湯気
   draw(ctx) {
     if (!this.isMax) return;
-    const variant = this.maxVariant;
-    const v = this.config.maxVisual[variant];
+    const v = this.config.maxVisual;
     const t = this.game.time;
     for (const z of this.zones) {
       const k = Math.min(1, z.life);
       const scale = z.radius / this.config.radius;
-      if (variant === 'C') {
-        ctx.save();
-        ctx.strokeStyle = v.shimmer;
-        ctx.lineWidth = 3;
-        ctx.globalAlpha = v.shimmerAlpha * k;
-        const n = Math.max(1, Math.round(v.shimmers * scale));
-        for (let i = 0; i < n; i++) {
-          const ph = (t * 0.9 + hash(z.seed + i)) % 1;
-          const x = z.x + (hash(z.seed + i * 2) - 0.5) * z.radius * 1.2;
-          const y = z.y - ph * v.shimmerHeight;
-          ctx.beginPath();
-          for (let j = 0; j <= 6; j++) ctx.lineTo(x + Math.sin(t * 6 + j + i) * 3, y - j * 3);
-          ctx.stroke();
-        }
-        ctx.restore();
-      } else {
-        drawWisps(ctx, z.x, z.y, { count: Math.max(1, Math.round(v.wisps * scale)), height: v.wispHeight, spread: z.radius * 1.2, size: 4 + scale * 2, color: v.steam, alpha: v.steamAlpha * k, time: t, speed: 0.9, seed: z.seed });
-      }
+      drawWisps(ctx, z.x, z.y, { count: Math.max(1, Math.round(v.wisps * scale)), height: v.wispHeight, spread: z.radius * 1.2, size: 4 + scale * 2, color: v.steam, alpha: v.steamAlpha * k, time: t, speed: 0.9, seed: z.seed });
     }
   }
 }

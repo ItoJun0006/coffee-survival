@@ -90,18 +90,6 @@ export class Mill extends Weapon {
     ctx.restore();
   }
 
-  drawBelow(ctx) {
-    if (!this.isMax) return;
-    const v = this.config.maxVisual[this.maxVariant];
-    if (!v.band) return;
-    // 刃の通り道の帯（刃の幅ちょうど）
-    const p = this.game.player;
-    ctx.strokeStyle = v.band;
-    ctx.lineWidth = this.bladeRadius * 2;
-    circle(ctx, p.x, p.y, this.orbitRadius);
-    ctx.stroke();
-  }
-
   draw(ctx) {
     const r = this.bladeRadius;
     if (this.isMax) {
@@ -111,93 +99,30 @@ export class Mill extends Weapon {
     for (const b of this.#blades()) this.#drawBlade(ctx, b, r, { blade: '#9a9a9a', hub: '#5b5b5b' });
   }
 
+  // 削る熱で赤く光る刃と、刃から飛ぶ火花
   #drawMax(ctx, r) {
-    const variant = this.maxVariant;
-    const v = this.config.maxVisual[variant];
+    const v = this.config.maxVisual;
     const blades = this.#blades();
-    const p = this.game.player;
-    const orbit = this.orbitRadius;
     const t = this.game.time;
-    if (variant === 'A') {
-      // 真鍮〜銅色の刃と残像の弧。刃から挽いた粉が舞う
-      ctx.save();
-      ctx.lineCap = 'round';
-      for (const b of blades) {
-        for (let i = 0; i < v.trail; i++) {
-          ctx.strokeStyle = v.trailColor;
-          ctx.globalAlpha = v.trailAlpha * (1 - i / v.trail);
-          ctx.lineWidth = r * 2 * (1 - (i + 1) / (v.trail + 1));
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, orbit, b.a - v.trailArc * (i + 1) / v.trail, b.a - v.trailArc * i / v.trail);
-          ctx.stroke();
-        }
-      }
-      ctx.restore();
-      blades.forEach((b, n) => {
-        this.#drawBlade(ctx, b, r, v);
-        this.#drawGrounds(ctx, b, r, v, t, n);
-      });
-    } else if (variant === 'B') {
-      // 白銀の刃と、輪の中を渦巻く風の筋（刃の幅の中に収める）
-      ctx.save();
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = v.wind;
-      ctx.lineWidth = v.windWidth;
-      for (let i = 0; i < v.streaks; i++) {
-        const lane = orbit + (hash(i * 3.1) - 0.5) * (r * 2 - v.windWidth);
-        const a = t * v.windSpin + (i / v.streaks) * Math.PI * 2;
-        ctx.globalAlpha = v.windAlpha * (0.5 + hash(i) * 0.5);
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, lane, a, a + v.streakArc);
-        ctx.stroke();
-      }
-      // 刃の後ろの白い流線
-      ctx.strokeStyle = v.edge;
-      for (const b of blades) {
-        ctx.globalAlpha = v.windAlpha;
-        ctx.lineWidth = r * 1.2;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, orbit, b.a - v.trailArc, b.a);
-        ctx.stroke();
-      }
-      ctx.restore();
-      for (const b of blades) this.#drawBlade(ctx, b, r, v);
-    } else {
-      // 削る熱で赤く光る刃と、刃から飛ぶ火花
-      for (const b of blades) drawGlow(ctx, b.x, b.y, r * v.glowScale, v.glow, v.glowAlpha);
-      for (const b of blades) this.#drawBlade(ctx, b, r, v);
-      ctx.save();
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = v.spark;
-      ctx.lineWidth = v.sparkWidth;
-      blades.forEach((b, n) => {
-        for (let i = 0; i < v.sparks; i++) {
-          const k = (t * v.sparkSpeed + hash(n * 11 + i)) % 1;
-          // 回る向きと反対の後ろ側へ、少し外向きに飛ぶ
-          const dir = b.a - Math.PI / 2 + (hash(n * 5 + i * 2.3) - 0.3) * 1.2;
-          const d0 = r + k * v.sparkDist;
-          ctx.globalAlpha = v.sparkAlpha * (1 - k);
-          ctx.beginPath();
-          ctx.moveTo(b.x + Math.cos(dir) * d0, b.y + Math.sin(dir) * d0);
-          ctx.lineTo(b.x + Math.cos(dir) * (d0 + v.sparkLen), b.y + Math.sin(dir) * (d0 + v.sparkLen));
-          ctx.stroke();
-        }
-      });
-      ctx.restore();
-    }
-  }
-
-  // 刃のまわりに舞う挽いた粉（半透明。はっきりした絵にしない）
-  #drawGrounds(ctx, b, r, v, t, n) {
+    for (const b of blades) drawGlow(ctx, b.x, b.y, r * v.glowScale, v.glow, v.glowAlpha);
+    for (const b of blades) this.#drawBlade(ctx, b, r, v);
     ctx.save();
-    ctx.fillStyle = v.grounds;
-    for (let i = 0; i < v.groundCount; i++) {
-      const k = (t * v.groundSpeed + hash(n * 13 + i)) % 1;
-      const a = b.a + (hash(n * 7 + i * 3.7) - 0.5) * 2.4 + Math.PI;
-      const d = r + k * v.groundDist;
-      ctx.globalAlpha = v.groundAlpha * (1 - k);
-      ctx.fillRect(b.x + Math.cos(a) * d - 2, b.y + Math.sin(a) * d - 2, 4, 4);
-    }
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = v.spark;
+    ctx.lineWidth = v.sparkWidth;
+    blades.forEach((b, n) => {
+      for (let i = 0; i < v.sparks; i++) {
+        const k = (t * v.sparkSpeed + hash(n * 11 + i)) % 1;
+        // 回る向きと反対の後ろ側へ、少し外向きに飛ぶ（半透明。はっきりした絵にしない）
+        const dir = b.a - Math.PI / 2 + (hash(n * 5 + i * 2.3) - 0.3) * 1.2;
+        const d0 = r + k * v.sparkDist;
+        ctx.globalAlpha = v.sparkAlpha * (1 - k);
+        ctx.beginPath();
+        ctx.moveTo(b.x + Math.cos(dir) * d0, b.y + Math.sin(dir) * d0);
+        ctx.lineTo(b.x + Math.cos(dir) * (d0 + v.sparkLen), b.y + Math.sin(dir) * (d0 + v.sparkLen));
+        ctx.stroke();
+      }
+    });
     ctx.restore();
   }
 }

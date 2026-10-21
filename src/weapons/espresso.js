@@ -128,10 +128,9 @@ export class Espresso extends Weapon {
     ctx.stroke();
   }
 
-  // ストリーム。はっきりした線の太さが当たる太さ（width）
+  // ストリーム：うねる液体の線とクリーム色の芯。うねりの幅まで含めて当たる太さ（width）。線の先から雫が飛び散る
   #drawMax(ctx) {
-    const variant = this.maxVariant;
-    const v = this.config.maxVisual[variant];
+    const v = this.config.maxVisual;
     const w = this.width;
     const p = this.game.player;
     const t = this.game.time;
@@ -139,61 +138,29 @@ export class Espresso extends Weapon {
     if (this.streams.length) drawGlow(ctx, p.x, p.y, v.playerGlow, v.glow, v.playerGlowAlpha);
     ctx.save();
     ctx.lineCap = 'round';
+    const amp = (w * (1 - v.waveWidth)) / 2;
     for (const s of this.streams) {
       const b = this.#segment(s.angle);
       const ux = Math.cos(s.angle);
       const uy = Math.sin(s.angle);
       ctx.globalAlpha = 1;
-      if (variant === 'A') {
-        // クリーム色の芯・クレマ色の縁・ごく薄いオレンジの光の 3 層と、流れる湯気の粒
-        ctx.globalAlpha = 1;
-        this.#stroke(ctx, b, v.halo, w * v.haloRate);
-        this.#stroke(ctx, b, v.rim, w);
-        this.#stroke(ctx, b, v.core, w * v.coreRate);
-        ctx.fillStyle = v.steam;
-        for (let i = 0; i < v.particles; i++) {
-          const q = (t * v.flow + i / v.particles) % 1;
-          const side = (hash(s.seed + i) - 0.5) * w * 1.6;
-          ctx.globalAlpha = v.steamAlpha * (1 - q);
-          circle(ctx, p.x + ux * q * range - uy * side, p.y + uy * q * range + ux * side, 3);
-          ctx.fill();
-        }
-      } else if (variant === 'B') {
-        // 赤く光る縁の中を、濃いエスプレッソが流れる。光の輪が先へ走る
-        this.#stroke(ctx, b, v.halo, w * v.haloRate);
-        this.#stroke(ctx, b, v.rim, w);
-        this.#stroke(ctx, b, v.core, w * v.coreRate);
-        ctx.strokeStyle = v.pulse;
-        ctx.lineWidth = 3;
-        for (let i = 0; i < v.pulses; i++) {
-          const q = (t * v.flow + i / v.pulses) % 1;
-          ctx.globalAlpha = 0.9 * (1 - q * 0.5);
-          circle(ctx, p.x + ux * q * range, p.y + uy * q * range, w / 2 - 1.5);
-          ctx.stroke();
-        }
-        drawGlow(ctx, b.x2, b.y2, v.tipGlow, v.glow, 0.7);
-      } else {
-        // うねる液体の線と、先から飛び散る雫
-        ctx.strokeStyle = v.rim;
-        ctx.lineWidth = w * v.waveWidth;
-        ctx.beginPath();
-        const amp = (w * (1 - v.waveWidth)) / 2;
-        for (let i = 0; i <= v.segments; i++) {
-          const q = i / v.segments;
-          const off = Math.sin(q * v.waves * Math.PI * 2 - t * v.flow * 10) * amp;
-          ctx.lineTo(p.x + ux * q * range - uy * off, p.y + uy * q * range + ux * off);
-        }
-        ctx.stroke();
-        this.#stroke(ctx, b, v.core, w * v.coreRate);
-        ctx.fillStyle = v.drop;
-        for (let i = 0; i < v.drops; i++) {
-          const q = (t * 2 + hash(s.seed + i)) % 1;
-          const spread = (hash(s.seed + i * 3) - 0.5) * 1.2;
-          const a = s.angle + spread;
-          ctx.globalAlpha = 0.6 * (1 - q);
-          circle(ctx, b.x2 + Math.cos(a) * q * v.dropDist, b.y2 + Math.sin(a) * q * v.dropDist, 3);
-          ctx.fill();
-        }
+      ctx.strokeStyle = v.rim;
+      ctx.lineWidth = w * v.waveWidth;
+      ctx.beginPath();
+      for (let i = 0; i <= v.segments; i++) {
+        const q = i / v.segments;
+        const off = Math.sin(q * v.waves * Math.PI * 2 - t * v.flow * 10) * amp;
+        ctx.lineTo(p.x + ux * q * range - uy * off, p.y + uy * q * range + ux * off);
+      }
+      ctx.stroke();
+      this.#stroke(ctx, b, v.core, w * v.coreRate);
+      ctx.fillStyle = v.drop;
+      for (let i = 0; i < v.drops; i++) {
+        const q = (t * 2 + hash(s.seed + i)) % 1;
+        const a = s.angle + (hash(s.seed + i * 3) - 0.5) * 1.2;
+        ctx.globalAlpha = 0.6 * (1 - q);
+        circle(ctx, b.x2 + Math.cos(a) * q * v.dropDist, b.y2 + Math.sin(a) * q * v.dropDist, 3);
+        ctx.fill();
       }
     }
     ctx.restore();

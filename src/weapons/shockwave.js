@@ -67,10 +67,9 @@ export class Shockwave extends Weapon {
     }
   }
 
-  // 当たる帯（ring.r − thickness 〜 ring.r）をそのまま描く
+  // 当たる帯（ring.r − thickness 〜 ring.r）を、クレマ色の波紋と外の縁に並ぶ泡で描く
   #drawMax(ctx) {
-    const variant = this.maxVariant;
-    const v = this.config.maxVisual[variant];
+    const v = this.config.maxVisual;
     const th = this.config.thickness;
     const maxRadius = this.config.maxRadius * this.stats.radiusRate;
     const p = this.game.player;
@@ -80,72 +79,24 @@ export class Shockwave extends Weapon {
       const k = 1 - ring.r / maxRadius;
       const inner = Math.max(0, ring.r - th);
       ctx.save();
-      if (variant === 'A') {
-        // 外側が白っぽい黄色、内側がオレンジの光る円環と、縁から外へ走る火花
-        ctx.globalAlpha = 0.5 + 0.5 * k;
-        ctx.lineWidth = th / 2;
-        ctx.strokeStyle = v.inner;
-        circle(ctx, ring.x, ring.y, inner + th / 4);
-        ctx.stroke();
-        ctx.strokeStyle = v.outer;
-        circle(ctx, ring.x, ring.y, ring.r - th / 4);
-        ctx.stroke();
-        if (ring.push) {
-          ctx.strokeStyle = v.edge;
-          ctx.lineWidth = v.pushEdge;
-          circle(ctx, ring.x, ring.y, ring.r - v.pushEdge / 2);
-          ctx.stroke();
-        }
-        ctx.globalAlpha = v.sparkAlpha * k;
-        ctx.strokeStyle = v.spark;
-        ctx.lineWidth = 3;
-        for (let i = 0; i < v.sparks; i++) {
-          const a = hash(ring.seed + i) * Math.PI * 2;
-          const d = ring.r + hash(ring.seed + i * 5) * v.sparkLen;
-          ctx.beginPath();
-          ctx.moveTo(ring.x + Math.cos(a) * ring.r, ring.y + Math.sin(a) * ring.r);
-          ctx.lineTo(ring.x + Math.cos(a) * d, ring.y + Math.sin(a) * d);
-          ctx.stroke();
-        }
-      } else if (variant === 'B') {
-        // 帯の幅の中をジグザグに走る稲妻の輪
-        ctx.globalAlpha = 0.55 + 0.45 * k;
-        ctx.strokeStyle = v.bolt;
-        ctx.lineWidth = ring.push ? v.pushWidth : v.width;
-        ctx.lineJoin = 'round';
-        const n = Math.max(12, Math.round((ring.r * Math.PI * 2) / v.zigPx));
-        ctx.beginPath();
-        for (let i = 0; i <= n; i++) {
-          const a = (i / n) * Math.PI * 2;
-          const rr = i % 2 ? inner + ctx.lineWidth / 2 : ring.r - ctx.lineWidth / 2;
-          ctx.lineTo(ring.x + Math.cos(a) * rr, ring.y + Math.sin(a) * rr);
-        }
-        ctx.stroke();
-        ctx.globalAlpha = v.hazeAlpha * k;
-        ctx.strokeStyle = v.haze;
-        ctx.lineWidth = th;
-        circle(ctx, ring.x, ring.y, ring.r - th / 2);
-        ctx.stroke();
-      } else {
-        // クレマ色の波紋と、外の縁に並ぶ泡
-        ctx.globalAlpha = 0.5 + 0.5 * k;
-        ctx.strokeStyle = v.band;
-        ctx.lineWidth = th;
-        circle(ctx, ring.x, ring.y, ring.r - th / 2);
-        ctx.stroke();
-        ctx.strokeStyle = v.line;
-        ctx.lineWidth = 3;
-        circle(ctx, ring.x, ring.y, inner + 1.5);
-        ctx.stroke();
-        ctx.fillStyle = v.foam;
-        const size = ring.push ? v.pushFoam : v.foamSize;
-        const n = Math.max(10, Math.round((ring.r * Math.PI * 2) / (size * 3)));
-        for (let i = 0; i < n; i++) {
-          const a = (i / n) * Math.PI * 2 + ring.seed;
-          const rr = ring.r - size - hash(ring.seed + i) * (th / 2 - size);
-          circle(ctx, ring.x + Math.cos(a) * rr, ring.y + Math.sin(a) * rr, size);
-          ctx.fill();
-        }
+      ctx.globalAlpha = 0.5 + 0.5 * k;
+      ctx.strokeStyle = v.band;
+      ctx.lineWidth = th;
+      circle(ctx, ring.x, ring.y, ring.r - th / 2);
+      ctx.stroke();
+      ctx.strokeStyle = v.line;
+      ctx.lineWidth = 3;
+      circle(ctx, ring.x, ring.y, inner + 1.5);
+      ctx.stroke();
+      // 押し返す最後の波は泡が大きい
+      ctx.fillStyle = v.foam;
+      const size = ring.push ? v.pushFoam : v.foamSize;
+      const n = Math.max(10, Math.round((ring.r * Math.PI * 2) / (size * 3)));
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + ring.seed;
+        const rr = ring.r - size - hash(ring.seed + i) * (th / 2 - size);
+        circle(ctx, ring.x + Math.cos(a) * rr, ring.y + Math.sin(a) * rr, size);
+        ctx.fill();
       }
       ctx.restore();
     }
