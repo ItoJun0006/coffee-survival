@@ -7,24 +7,26 @@ import { font } from './font.js';
 
 const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 
+// 66 体を 11 段 × 6 列で、スクロールせずに全部出す。マスは画面の高さに合わせて縮める
 const COLS = 6;
-const CARD_W = 88;
-const CARD_H = 100;
-const GAP = 10;
+const ROWS = 11;
 const PANEL_W = 300;
+const PANEL_H = 440;
 const PANEL_GAP = 30;
-const TOP = 110;
-// ホイールをこれだけ回すと 1 段スクロールする
-const WHEEL_STEP = 100;
+const TOP = 96;
+// 見た目の候補ごとのマスの大きさ（縮める前）。groupGap は 3 列目と 4 列目の間（品種の区切り）に足す間
+const LOOKS = {
+  A: { w: 88, h: 100, gap: 10, groupGap: 0 },
+  B: { w: 64, h: 64, gap: 8, groupGap: 0 },
+  C: { w: 64, h: 70, gap: 6, groupGap: 18 },
+};
 
-// キャラ選択画面。左に全キャラのマス（6 列、入りきらない段はスクロール）、右に選んでいるキャラの詳しい性能を出す。
+// キャラ選択画面。左に全キャラのマス（11 段 × 6 列）、右に選んでいるキャラの詳しい性能を出す。
 // まだ解放していないキャラは影と鍵で出し、決定しようとすると、品種のキャラなら買うメニュー（仕様 016）、
 // 条件で解放するキャラなら解放条件のポップアップを開く。onToast は、品種を買ったときの知らせを出す関数
 export class CharacterSelect {
   constructor(onToast = () => {}) {
     this.index = 0;
-    this.scrollRow = 0;
-    this.wheel = 0;
     this.popup = null;
     this.onToast = onToast;
     // 買うメニューで選んでいるボタンと、押せるボタンの場所（描いたときに決まる）
@@ -70,7 +72,6 @@ export class CharacterSelect {
   open(current) {
     this.index = Math.max(0, CHARACTERS.indexOf(current));
     this.popup = null;
-    this.wheel = 0;
   }
 
   get selected() {
@@ -93,7 +94,6 @@ export class CharacterSelect {
     const last = CHARACTERS.length - 1;
     const moveTo = (i) => {
       this.index = Math.min(last, Math.max(0, i));
-      this.#keepSelectedVisible(viewH);
     };
     if (input.wasPressed('ArrowLeft', 'KeyA')) moveTo(this.index - 1);
     if (input.wasPressed('ArrowRight', 'KeyD')) moveTo(this.index + 1);
@@ -101,13 +101,8 @@ export class CharacterSelect {
     if (input.wasPressed('ArrowDown', 'KeyS')) moveTo(this.index + COLS);
     if (input.wasPressed('KeyQ') && canWearSkin(this.selected)) toggleSkin();
 
-    // ホイールは、選んでいるキャラを変えずに表示だけを動かす
-    this.wheel += input.consumeWheel();
-    while (Math.abs(this.wheel) >= WHEEL_STEP) {
-      const d = Math.sign(this.wheel);
-      this.wheel -= d * WHEEL_STEP;
-      this.scrollRow = Math.min(this.#maxScroll(viewH), Math.max(0, this.scrollRow + d));
-    }
+    // 全部見えているのでスクロールしない。たまったホイールの量は捨てる
+    input.consumeWheel();
 
     if (!clicked) return null;
     // クリックは「選ぶ」。選んでいるキャラをもう一度クリックすると決定する
@@ -128,48 +123,26 @@ export class CharacterSelect {
   // ---- 並べ方 ----
 
   #layout(viewW, viewH) {
-    const gridW = COLS * CARD_W + (COLS - 1) * GAP;
+    const base = LOOKS[CONFIG.characters.selectLook];
+    const avail = viewH - TOP - 64;
+    const k = Math.min(1, avail / (ROWS * base.h + (ROWS - 1) * base.gap));
+    const w = base.w * k;
+    const h = base.h * k;
+    const gap = base.gap * k;
+    const groupGap = base.groupGap * k;
+    const gridW = COLS * w + (COLS - 1) * gap + groupGap;
+    const gridH = ROWS * h + (ROWS - 1) * gap;
     const left = (viewW - (gridW + PANEL_GAP + PANEL_W)) / 2;
-    const visibleRows = Math.max(1, Math.floor((viewH - TOP - 70 + GAP) / (CARD_H + GAP)));
-    const gridH = visibleRows * (CARD_H + GAP) - GAP;
-    return { left, gridW, gridH, visibleRows, panelX: left + gridW + PANEL_GAP };
+    return { left, gridW, gridH, k, w, h, gap, groupGap, panelX: left + gridW + PANEL_GAP };
   }
 
-  #rows() {
-    return Math.ceil(CHARACTERS.length / COLS);
-  }
-
-  #maxScroll(viewH) {
-    return Math.max(0, this.#rows() - this.#layout(0, viewH).visibleRows);
-  }
-
-  #keepSelectedVisible(viewH) {
-    const { visibleRows } = this.#layout(0, viewH);
-    const row = Math.floor(this.index / COLS);
-    if (row < this.scrollRow) this.scrollRow = row;
-    if (row >= this.scrollRow + visibleRows) this.scrollRow = row - visibleRows + 1;
-  }
-
-  // 今見えている段のマスだけを返す
   #cards(viewW, viewH) {
-    const { left, visibleRows } = this.#layout(viewW, viewH);
-    this.scrollRow = Math.min(this.scrollRow, this.#maxScroll(viewH));
-    const cards = [];
-    for (let row = this.scrollRow; row < this.scrollRow + visibleRows; row++) {
-      for (let col = 0; col < COLS; col++) {
-        const index = row * COLS + col;
-        if (index >= CHARACTERS.length) break;
-        cards.push({
-          character: CHARACTERS[index],
-          index,
-          x: left + col * (CARD_W + GAP),
-          y: TOP + (row - this.scrollRow) * (CARD_H + GAP),
-          w: CARD_W,
-          h: CARD_H,
-        });
-      }
-    }
-    return cards;
+    const { left, w, h, gap, groupGap, k } = this.#layout(viewW, viewH);
+    return CHARACTERS.map((character, index) => {
+      const col = index % COLS;
+      const row = Math.floor(index / COLS);
+      return { character, index, x: left + col * (w + gap) + (col >= 3 ? groupGap : 0), y: TOP + row * (h + gap), w, h, k };
+    });
   }
 
   // ---- 描画 ----
@@ -190,22 +163,31 @@ export class CharacterSelect {
     ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
     ctx.fillText(`解放したキャラ ${unlocked} / ${CHARACTERS.length}`, viewW / 2, TOP - 30);
 
-    for (const card of this.#cards(viewW, viewH)) this.#drawCard(ctx, card, card.index === this.index);
-    this.#drawScrollBar(ctx, L);
+    const cards = this.#cards(viewW, viewH);
+    if (CONFIG.characters.selectLook === 'C') this.#drawGroups(ctx, cards);
+    for (const card of cards) this.#drawCard(ctx, card, card.index === this.index);
     this.#drawPanel(ctx, L);
 
     ctx.textAlign = 'center';
     ctx.font = font(13);
     ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
-    ctx.fillText('←→↑↓ で選ぶ　Space / Enter で決定　Esc でタイトルへ', viewW / 2, TOP + L.gridH + 26);
-    ctx.fillText('クリックで選び、もう一度クリックで決定　ホイールでスクロール', viewW / 2, TOP + L.gridH + 46);
+    const bottom = TOP + Math.max(L.gridH, PANEL_H);
+    ctx.fillText('←→↑↓ で選ぶ　Space / Enter で決定　Esc でタイトルへ', viewW / 2, bottom + 22);
+    ctx.fillText('クリックで選び、もう一度クリックで決定', viewW / 2, bottom + 42);
 
     if (this.popup) this.#drawPopup(ctx, viewW, viewH);
   }
 
-  #drawCard(ctx, card, selected) {
+  // マスは縮める前の大きさで描き、k 倍に縮める
+  #drawCard(ctx, screenCard, selected) {
     const c = CONFIG.colors;
-    const { character } = card;
+    const look = CONFIG.characters.selectLook;
+    const base = LOOKS[look];
+    ctx.save();
+    ctx.translate(screenCard.x, screenCard.y);
+    ctx.scale(screenCard.k, screenCard.k);
+    const card = { x: 0, y: 0, w: base.w, h: base.h };
+    const { character } = screenCard;
     const open = isAvailable(character);
     ctx.fillStyle = selected ? 'rgba(217, 160, 102, 0.25)' : c.hudBg;
     ctx.fillRect(card.x, card.y, card.w, card.h);
@@ -216,7 +198,8 @@ export class CharacterSelect {
     }
 
     const cx = card.x + card.w / 2;
-    const cy = card.y + 40;
+    // A は名前を下に出すので上寄せ、B・C は名前を出さないので真ん中
+    const cy = card.y + (look === 'A' ? 40 : look === 'B' ? card.h / 2 - 4 : card.h / 2 + 4);
     if (open) {
       ctx.save();
       ctx.translate(cx, cy);
@@ -229,6 +212,12 @@ export class CharacterSelect {
       drawLock(ctx, cx, cy + 4, 10, price && canBuy(character) && coins() >= price ? CONFIG.coins.affordableLock : undefined);
     }
 
+    if (look !== 'A') {
+      // B は鍵のマスの下に値段だけを小さく出す。C は値段を品種の枠の見出しに出す
+      if (look === 'B' && !open && character.unlock?.price) this.#drawPrice(ctx, character, cx, card.h - 8);
+      ctx.restore();
+      return;
+    }
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = font(11, true);
@@ -245,11 +234,50 @@ export class CharacterSelect {
       ctx.fillText(name, cx, card.y + 80);
     }
     // 買って解放する品種は、名前の下に値段を出す
-    if (!open && character.unlock?.price) {
-      drawCoin(ctx, cx - 22, card.y + 93, 4);
-      ctx.font = font(10);
-      ctx.fillStyle = canBuy(character) && coins() >= character.unlock.price ? CONFIG.coins.affordableLock : 'rgba(243, 230, 216, 0.55)';
-      ctx.fillText(coinText(character.unlock.price), cx + 4, card.y + 93);
+    if (!open && character.unlock?.price) this.#drawPrice(ctx, character, cx, card.y + 93);
+    ctx.restore();
+  }
+
+  #drawPrice(ctx, character, cx, y) {
+    drawCoin(ctx, cx - 22, y, 4);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = font(10);
+    ctx.fillStyle = canBuy(character) && coins() >= character.unlock.price ? CONFIG.coins.affordableLock : 'rgba(243, 230, 216, 0.55)';
+    ctx.fillText(coinText(character.unlock.price), cx + 4, y);
+  }
+
+  // C：3 マスずつ（品種ごと）を枠で囲み、枠の上に品種の名前と値段を出す
+  #drawGroups(ctx, cards) {
+    for (let i = 0; i < cards.length; i += 3) {
+      const group = cards.slice(i, i + 3);
+      const first = group[0];
+      const last = group[group.length - 1];
+      const k = first.k;
+      const x = first.x - 3 * k;
+      const y = first.y - 3 * k;
+      const w = last.x + last.w - first.x + 6 * k;
+      const h = first.h + 6 * k;
+      ctx.strokeStyle = 'rgba(217, 160, 102, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, w, h);
+      const ch = first.character;
+      const open = group.some((g) => isAvailable(g.character));
+      const label = ch.variety ? (open ? ch.variety.name : '？？？') : '特別な豆';
+      ctx.save();
+      ctx.translate(x + 4 * k, y + 9 * k);
+      ctx.scale(k, k);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.font = font(10, true);
+      ctx.fillStyle = open ? CONFIG.colors.text : 'rgba(243, 230, 216, 0.5)';
+      ctx.fillText(label, 0, 0);
+      if (ch.variety && !open && ch.unlock?.price) {
+        const tw = ctx.measureText(label).width;
+        ctx.translate(tw + 30, 0);
+        this.#drawPrice(ctx, ch, 0, 0);
+      }
+      ctx.restore();
     }
   }
 
@@ -264,18 +292,6 @@ export class CharacterSelect {
     ctx.restore();
   }
 
-  #drawScrollBar(ctx, L) {
-    const rows = this.#rows();
-    if (rows <= L.visibleRows) return;
-    const x = L.left + L.gridW + 10;
-    const h = (L.gridH * L.visibleRows) / rows;
-    const y = TOP + (L.gridH - h) * (this.scrollRow / (rows - L.visibleRows));
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    ctx.fillRect(x, TOP, 4, L.gridH);
-    ctx.fillStyle = CONFIG.colors.hudBar;
-    ctx.fillRect(x, y, 4, h);
-  }
-
   // 右側の詳しい性能。まだ解放していないときは、影と解放条件を出す
   #drawPanel(ctx, L) {
     const c = CONFIG.colors;
@@ -284,7 +300,7 @@ export class CharacterSelect {
     const x = L.panelX;
     const cx = x + PANEL_W / 2;
     ctx.fillStyle = c.hudBg;
-    ctx.fillRect(x, TOP, PANEL_W, L.gridH);
+    ctx.fillRect(x, TOP, PANEL_W, Math.max(L.gridH, PANEL_H));
 
     const cy = TOP + 70;
     if (open) {
