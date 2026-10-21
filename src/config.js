@@ -23,6 +23,31 @@ export const CONFIG = {
       { id: 'medium', name: '中煎り', trait: 'バランス', color: '#8b5a2b', crease: '#4e2f16', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
       { id: 'dark', name: '深煎り', trait: 'パワー', color: '#4a2c1a', crease: '#22130a', speedRate: 0.8, maxCaffeine: 130, damageRate: 1.5, attackIntervalRate: 1.3 },
     ],
+    // 条件を満たすと解放されるキャラ。roast は性能と色（品種 × 焙煎度のキャラと同じ形）
+    // unlock.type：bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動
+    // drawScale は見た目の大きさの倍率（当たる範囲は変わらない）
+    specials: [
+      {
+        id: 'liberica-large', name: 'リベリカ大粒', drawScale: 1.15,
+        roast: { trait: '体力', color: '#7b5434', crease: '#3f2614', speedRate: 0.85, maxCaffeine: 180, damageRate: 1, attackIntervalRate: 1.05 },
+        unlock: { type: 'bossDefeat', text: 'ボスを倒してクリアすると解放' },
+      },
+      {
+        id: 'robusta-shot', name: '散弾ロブスタ', startWeapon: 'beanShotgun',
+        roast: { trait: 'ショットガン', color: '#5b3b25', crease: '#2b180c', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
+        unlock: { type: 'allWeaponsMax', text: '1 回のプレイで、攻撃 3 つを\nすべて最大まで強化すると解放' },
+      },
+      {
+        id: 'baby', name: '赤ちゃん豆',
+        roast: { trait: '成長', color: '#d9a86c', crease: '#9a6a3e', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
+        // Lv 1 で from 倍、maxLevel で to 倍になる。見た目の大きさも scaleFrom → scaleTo に育つ
+        growth: { from: 0.6, to: 1.8, maxLevel: 30, scaleFrom: 0.7, scaleTo: 1.05 },
+        unlock: { type: 'launches', count: 3, text: 'ゲームを 3 回起動すると解放' },
+      },
+    ],
+    // 選択画面に並べるマスの数（最終目標）。まだ中身のないマスは「？？？」として鍵付きで出す
+    plannedTotal: 66,
+    placeholderUnlockText: '条件達成で解放',
   },
   world: { width: 2000, height: 2000 },
   player: {
@@ -78,6 +103,20 @@ export const CONFIG = {
       commonDesc: 'ダメージが上がり、\n連射が速くなる',
       // Lv 8（MAX）の見た目。trail は残像の数と間隔（秒）、flash は撃った瞬間の光
       maxVisual: { glow: '#ffb347', core: '#ffe08a', glowScale: 2.4, trail: 4, trailGapSec: 0.018, flashSec: 0.12, flashRadius: 26 },
+    },
+    // 散弾ロブスタの最初の武器。豆マシンガンと同じ枠で、同じように強化できる。baseCount は最初の豆の数
+    beanShotgun: {
+      name: '豆ショットガン', desc: '近い敵に向けて\n豆を扇形にばらまく', element: 'none', intervalSec: 0.85, speed: 480, radius: 6, damage: 0.9, range: 300, flightRate: 1.1,
+      baseCount: 5, baseSpreadDeg: 14,
+      commonLevels: [3, 5, 7],
+      upgrades: {
+        2: { count: 6, spreadDeg: 13, desc: '豆が 6 つになる' },
+        4: { flightRate: 1.4, desc: '豆が遠くまで飛ぶ' },
+        6: { rangeRate: 1.3, desc: '遠くの敵も狙う' },
+        8: { count: 8, spreadDeg: 11, pierce: true, damageRate: 0.7, desc: '豆が 8 つになり、\n敵を貫通する（威力 7 割）' },
+      },
+      commonDesc: 'ダメージが上がり、\n連射が速くなる',
+      maxVisual: { glow: '#ffb347', core: '#ffe08a', glowScale: 2.4, trail: 4, trailGapSec: 0.018, flashSec: 0.12, flashRadius: 30 },
     },
     mill: { name: 'ミル・トルネード', desc: '2 枚の刃が\nまわりを回り続ける', element: 'none', count: 2, orbitRadius: 70, bladeRadius: 12, angularSpeed: 3, damage: 1, hitCooldownSec: 0.5 },
     mug: { name: 'マグカップ投げ', desc: '投げると戻ってくる。\n敵を貫通する', element: 'none', intervalSec: 1.6, speed: 380, radius: 14, damage: 2, range: 320, hitCooldownSec: 0.4 },

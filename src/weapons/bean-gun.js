@@ -3,8 +3,8 @@ import { Weapon, Projectile, angleTo } from './base.js';
 
 // 射程内で一番近い敵に豆を連射する。Lv ごとに豆の数・飛距離・射程が伸び、MAX では貫通する
 export class BeanGun extends Weapon {
-  constructor(game) {
-    super(game, CONFIG.weapons.beanGun);
+  constructor(game, config = CONFIG.weapons.beanGun) {
+    super(game, config);
     this.bullets = [];
     this.flashTimer = 0;
   }
@@ -12,7 +12,7 @@ export class BeanGun extends Weapon {
   // 今の Lv までに受けた特別な強化をまとめたもの
   get stats() {
     const c = this.config;
-    const s = { count: 1, spreadDeg: 0, flightRate: c.flightRate, rangeRate: 1, pierce: false, damageRate: 1 };
+    const s = { count: c.baseCount ?? 1, spreadDeg: c.baseSpreadDeg ?? 0, flightRate: c.flightRate, rangeRate: 1, pierce: false, damageRate: 1 };
     for (const [lv, up] of Object.entries(c.upgrades)) {
       if (this.level < Number(lv)) continue;
       if (up.count) Object.assign(s, { count: up.count, spreadDeg: up.spreadDeg });

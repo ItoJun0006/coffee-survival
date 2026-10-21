@@ -8,7 +8,9 @@ import { Boss } from './entities/boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
+import { BeanShotgun } from './weapons/bean-shotgun.js';
 import { loadLastCharacter, saveLastCharacter } from './characters.js';
+import { unlock, recordLaunch } from './unlocks.js';
 import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu, levelLabel } from './level-up-menu.js';
 import { drawItemIcon } from './item-icons.js';
@@ -46,6 +48,9 @@ export class Game {
     this.titleImage = new Image();
     this.titleImage.src = CONFIG.title.image;
     sound.init();
+    // 画面の上に数秒出す知らせ（キャラの解放など）。ゲームの時間ではなく実際の時間で消える
+    this.toasts = [];
+    this.#checkUnlocks('launches', recordLaunch());
     this.reset();
     this.state = 'title';
   }
@@ -77,14 +82,17 @@ export class Game {
     this.state = 'playing';
     this.level = 1;
     this.xp = 0;
-    this.damageBonus = this.character.roast.damageRate;
-    this.attackIntervalRate = this.character.roast.attackIntervalRate;
+    // ボーナスで上がる攻撃力。キャラの攻撃力の倍率は characterDamageRate に分けて持つ
+    this.damageBonus = 1;
     this.items = [];
-    this.weapons = [new WEAPON_ORDER[0](this)];
+    const StartWeapon = this.character.startWeapon === 'beanShotgun' ? BeanShotgun : WEAPON_ORDER[0];
+    this.weapons = [new StartWeapon(this)];
     this.pendingLevelUps = 0;
+    this.#applyCharacterStats();
     // 動作確認用の ?level=N は、まだ持っていない攻撃を優先して自動で選ぶ
     for (let i = 1; i < this.debugLevel; i++) {
       this.level += 1;
+      this.#applyCharacterStats();
       const choices = this.#levelUpChoices();
       this.#applyChoice(choices.find((c) => c.isNew && c.kind === 'weapon') ?? choices[0] ?? this.#bonusChoices()[1]);
     }
@@ -105,6 +113,7 @@ export class Game {
       this.pendingLevelUps += 1;
     }
     if (this.level > before) {
+      this.#applyCharacterStats();
       sound.play('levelUp');
       if (this.state === 'playing') this.#openLevelUp();
     }
@@ -231,6 +240,7 @@ export class Game {
     const choice = this.levelUpMenu.update(this.input, this.viewW, this.viewH);
     if (!choice) return;
     this.#applyChoice(choice);
+    this.#checkUnlocks('allWeaponsMax');
     this.pendingLevelUps -= 1;
     this.state = 'playing';
     // 一度にいくつも上がったときは、続けて選ぶ
@@ -263,7 +273,7 @@ export class Game {
   }
 
   dealDamage(target, amount, element) {
-    let m = this.damageBonus * this.powerRate;
+    let m = this.damageBonus * this.characterDamageRate * this.powerRate;
     if (target === this.boss) m *= CONFIG.boss.elementMultiplier[element] ?? 1;
     target.damage(amount * m);
     sound.play('hit');
@@ -360,6 +370,45 @@ export class Game {
     this.state = state;
     sound.stopMusic();
     sound.play(state);
+    if (state === 'clear') this.#checkUnlocks('bossDefeat');
+  }
+
+  // ---- キャラの性能と解放 ----
+
+  // 成長するキャラ（赤ちゃん豆）の今の倍率。Lv 1 で from、maxLevel 以上で to
+  #growthProgress() {
+    const g = this.character.growth;
+    return g ? Math.min(1, (this.level - 1) / (g.maxLevel - 1)) : 0;
+  }
+
+  // キャラの性能を、今のレベルに合わせて反映する
+  #applyCharacterStats() {
+    const r = this.character.roast;
+    const g = this.character.growth;
+    const k = this.#growthProgress();
+    const m = g ? g.from + (g.to - g.from) * k : 1;
+    this.characterDamageRate = r.damageRate * m;
+    this.attackIntervalRate = r.attackIntervalRate / m;
+    this.player.setStats(r.speedRate * m, Math.round(r.maxCaffeine * m));
+    if (g) this.player.drawScale = g.scaleFrom + (g.scaleTo - g.scaleFrom) * k;
+  }
+
+  // 解放の条件を調べ、満たしたキャラを解放して知らせる。value は起動の回数など
+  #checkUnlocks(type, value) {
+    for (const c of CONFIG.characters.specials) {
+      if (c.unlock.type !== type) continue;
+      const met = {
+        bossDefeat: () => true,
+        launches: () => value >= c.unlock.count,
+        allWeaponsMax: () => this.weapons.length >= CONFIG.slots.weapons && this.weapons.every((w) => w.isMax),
+      }[type]();
+      if (met && unlock(c.id)) this.#toast(`新しいキャラ「${c.name}」が解放された！`);
+    }
+  }
+
+  #toast(text) {
+    this.toasts.push({ text, until: performance.now() + 4500 });
+    sound.play('levelUp');
   }
 
   #changeMusicVolume(steps) {
@@ -615,6 +664,31 @@ export class Game {
       this.#drawOverlay();
     }
     this.#drawSoundIndicator();
+    this.#drawToasts();
+  }
+
+  // キャラの解放などの知らせ。最後の 0.5 秒で薄くなって消える
+  #drawToasts() {
+    const now = performance.now();
+    this.toasts = this.toasts.filter((t) => t.until > now);
+    const { ctx } = this;
+    this.toasts.forEach((t, i) => {
+      const y = 70 + i * 44;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (t.until - now) / 500);
+      ctx.font = font(17, true);
+      const w = ctx.measureText(t.text).width + 40;
+      ctx.fillStyle = 'rgba(20, 12, 8, 0.85)';
+      ctx.fillRect(this.viewW / 2 - w / 2, y - 18, w, 36);
+      ctx.strokeStyle = CONFIG.colors.xpBar;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(this.viewW / 2 - w / 2, y - 18, w, 36);
+      ctx.fillStyle = CONFIG.colors.xpBar;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(t.text, this.viewW / 2, y);
+      ctx.restore();
+    });
   }
 
   // 画面右上に、音あり／消音の状態を小さく出す

@@ -69,6 +69,16 @@ export class Player {
     this.slowFactor = 1;
     this.look = { x: 0, y: 0 };
     this.walkTime = 0;
+    // 見た目の大きさの倍率（当たる範囲の radius は変えない）
+    this.drawScale = character.drawScale ?? 1;
+  }
+
+  // 性能を変える（赤ちゃん豆の成長など）。カフェイン上限が増えた分は、今のカフェインにも足す
+  setStats(speedRate, maxCaffeine) {
+    this.speed = CONFIG.player.speed * speedRate;
+    if (maxCaffeine > this.maxCaffeine) this.caffeine += maxCaffeine - this.maxCaffeine;
+    this.maxCaffeine = maxCaffeine;
+    this.caffeine = Math.min(this.caffeine, this.maxCaffeine);
   }
 
   // dir: 入力方向（長さ 0〜1）、push: 外から加わる速度（px/秒）
@@ -117,7 +127,7 @@ export class Player {
     if (this.invincibleTimer > 0 && Math.floor(this.invincibleTimer * 20) % 2 === 0) return;
     ctx.save();
     ctx.translate(this.x, this.y);
-    drawCharacter(ctx, this.character, this.radius, {
+    drawCharacter(ctx, this.character, this.radius * this.drawScale, {
       look: this.look,
       bob: Math.abs(Math.sin(this.walkTime * 12)),
       slowed: this.slowTimer > 0,
