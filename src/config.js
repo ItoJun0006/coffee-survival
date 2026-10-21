@@ -109,6 +109,20 @@ export const CONFIG = {
   },
   // 持てる数。weapons は最初の豆マシンガンを含む
   slots: { weapons: 3, items: 2 },
+  // レベルアップの画面（仕様 015）。カードは黒板のメニュー、出るときは 1 枚ずつめくって表に返す
+  levelUpScreen: {
+    // 属性ごとの色（属性の表示・NEW の色）
+    elementColors: { none: '#7a4f2e', hot: '#c8642a', ice: '#3f7fb0' },
+    // カードが 1 枚ずつ出てくる間隔と、1 枚がめくり終わるまでの時間（秒）
+    staggerSec: 0.08,
+    appearSec: 0.25,
+    // 次で MAX になるカードの縁の色
+    maxEdge: '#e8c060',
+    // カード（黒板のメニュー）。edge は木の枠、text は名前、sub は説明、muted は番号やまだの ● の色
+    card: { bg: '#1f2a24', edge: '#6b4a2c', edgeWidth: 7, text: '#f3efe6', sub: 'rgba(243, 239, 230, 0.8)', muted: 'rgba(243, 239, 230, 0.25)' },
+    // 種類ごとの色（カードの帯・選んでいるときの光）
+    kindColors: { weapon: '#d9a066', item: '#8fc7a0', bonus: '#f0d58a', carry: '#b9a0e0' },
+  },
   // ステータス強化アイテム。perLevel は 1 段階（Lv）ごとの効果。最大 Lv は weaponLevels.max と同じ
   items: {
     area: { name: '範囲アップ', desc: 'すべての弾と範囲が\n大きくなる', perLevel: 0.1 },

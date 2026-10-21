@@ -1,12 +1,12 @@
 import { font } from './font.js';
 // 強化アイテムのアイコン。中心 (x, y)、幅と高さがおよそ size の範囲に描く
 // 絵は 80 × 80 の大きさを基準に描き、size に合わせて縮める
-const CREAM = '#f4e3c8';
-const DARK = '#4a2c1a';
-const STEEL = '#c9c2b6';
-const GREEN = '#8fc7a0';
-const GOLD = '#f0d58a';
-const HOT = '#e8935a';
+export const CREAM = '#f4e3c8';
+export const DARK = '#4a2c1a';
+export const STEEL = '#c9c2b6';
+export const GREEN = '#8fc7a0';
+export const GOLD = '#f0d58a';
+export const HOT = '#e8935a';
 
 export function drawItemIcon(ctx, id, x, y, size) {
   ctx.save();
@@ -90,14 +90,14 @@ const ICONS = {
   },
 };
 
-function line(ctx, x1, y1, x2, y2) {
+export function line(ctx, x1, y1, x2, y2) {
   ctx.beginPath();
   ctx.moveTo(x1, y1);
   ctx.lineTo(x2, y2);
   ctx.stroke();
 }
 
-function mug(ctx, x, y, w, h) {
+export function mug(ctx, x, y, w, h) {
   ctx.fillStyle = CREAM;
   ctx.strokeStyle = CREAM;
   ctx.lineWidth = w * 0.12;
@@ -117,7 +117,7 @@ function mug(ctx, x, y, w, h) {
   ctx.fill();
 }
 
-function steam(ctx, x, y, h) {
+export function steam(ctx, x, y, h) {
   ctx.strokeStyle = 'rgba(255, 248, 238, 0.8)';
   ctx.lineWidth = 2.5;
   for (let i = -1; i <= 1; i++) {
@@ -129,7 +129,7 @@ function steam(ctx, x, y, h) {
   }
 }
 
-function drop(ctx, x, y, r) {
+export function drop(ctx, x, y, r) {
   ctx.fillStyle = '#8b5a2b';
   ctx.beginPath();
   ctx.moveTo(x, y - r * 1.6);
@@ -138,7 +138,7 @@ function drop(ctx, x, y, r) {
   ctx.fill();
 }
 
-function bean(ctx, x, y, r, rot) {
+export function bean(ctx, x, y, r, rot) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rot);
@@ -155,14 +155,14 @@ function bean(ctx, x, y, r, rot) {
   ctx.restore();
 }
 
-function cube(ctx, x, y, s) {
+export function cube(ctx, x, y, s) {
   ctx.fillStyle = '#fffaf0';
   ctx.fillRect(x - s / 2, y - s / 2, s, s);
   ctx.fillStyle = '#e8dcc8';
   ctx.fillRect(x - s / 2, y + s / 2 - 4, s, 4);
 }
 
-function sparkle(ctx, x, y, s) {
+export function sparkle(ctx, x, y, s) {
   ctx.fillStyle = GOLD;
   ctx.beginPath();
   ctx.moveTo(x, y - s * 2);

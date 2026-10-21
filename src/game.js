@@ -20,6 +20,7 @@ import { sound } from './sound.js';
 import { font } from './font.js';
 import { Background } from './background.js';
 import { stage, setStage } from './stage.js';
+import { drawWeaponIcon, weaponIdOf } from './weapon-icons.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -239,6 +240,7 @@ export class Game {
   #weaponChoice(weapon, isNew) {
     return {
       kind: 'weapon',
+      weaponId: weaponIdOf(weapon),
       name: weapon.name,
       desc: isNew ? weapon.desc : (weapon.upgradeDesc(weapon.level + 1) ?? weapon.desc),
       element: weapon.config.element,
@@ -521,7 +523,7 @@ export class Game {
   // 持っていく攻撃を 1 つ選ぶ画面を開く
   #openCarryMenu() {
     const choices = this.weapons.map((weapon) => ({
-      kind: 'carry', weapon, name: weapon.name, desc: weapon.desc, element: weapon.config.element, level: weapon.level, isNew: false,
+      kind: 'carry', weapon, weaponId: weaponIdOf(weapon), name: weapon.name, desc: weapon.desc, element: weapon.config.element, level: weapon.level, isNew: false,
     }));
     this.levelUpMenu.open(choices, this.level, { title: 'エクストラステージへ', lead: '持っていく攻撃を 1 つ選ぶ（Lv はそのまま）' });
     this.state = 'carry';
@@ -1035,7 +1037,16 @@ export class Game {
     };
     ctx.font = font(11);
     line(`攻撃 ${this.weapons.length}/${slots.weapons}`, 'rgba(243, 230, 216, 0.85)');
-    for (const wp of this.weapons) line(`・${wp.name}  ${levelLabel(wp.level)}`, 'rgba(243, 230, 216, 0.6)');
+    for (const wp of this.weapons) {
+      ly += 2;
+      drawWeaponIcon(ctx, weaponIdOf(wp), x + 9, ly + 6, 18);
+      ctx.font = font(11);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = 'rgba(243, 230, 216, 0.6)';
+      ctx.fillText(`${wp.name}  ${levelLabel(wp.level)}`, x + 22, ly);
+      ly += 18;
+    }
     ly += 4;
     line(`アイテム ${this.items.length}/${slots.items}`, c.itemCard);
     for (const it of this.items) {
