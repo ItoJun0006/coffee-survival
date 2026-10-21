@@ -18,8 +18,97 @@ export const CONFIG = {
   // attackIntervalRate は小さいほど攻撃の間隔が短い（連射が速い）。unlocked: false の品種は選択画面に鍵付きで出る
   characters: {
     defaultId: 'arabica-medium',
+    // 品種（仕様 016）。並びは選択画面の順（2 段目から）で、値段の安い順。品種 × 焙煎度（浅煎り・中煎り・深煎り）で 3 体になる
+    //   origin：由来（買うポップアップに出す）、trait：特徴の一言、price：豆コインの値段（アラビカは最初から使える）
+    //   power：特別な力（powers のキー）、rates：焙煎度の性能に掛ける倍率（speed＝移動の速さ、caffeine＝カフェイン上限、
+    //   damage＝攻撃力、interval＝攻撃の間隔）
+    //   pattern は見た目の模様。kind は模様の種類（絵は entities/variety-look.js）、color は模様の色、
+    //   lightColor は浅煎りのときの色（豆の色が明るく、color では目立たない模様だけ）
     varieties: [
-      { id: 'arabica', name: 'アラビカ', unlocked: true },
+      {
+        id: 'arabica', name: 'アラビカ', origin: '珈琲豆の代表的な種類', trait: '基本', price: 0, power: null,
+        rates: { speed: 1, caffeine: 1, damage: 1, interval: 1 }, pattern: null,
+      },
+      {
+        id: 'bourbon', name: 'ブルボン', origin: 'インド洋のブルボン島（今のレユニオン島）で広まった品種', trait: '打たれ強い', price: 50, power: 'beanHeal',
+        rates: { speed: 0.95, caffeine: 1.05, damage: 0.95, interval: 1 }, pattern: { kind: 'dots', color: '#f3dcb4', lightColor: '#604937' },
+      },
+      {
+        id: 'typica', name: 'ティピカ', origin: '古くから育てられてきた品種', trait: 'まっすぐ', price: 60, power: 'area',
+        rates: { speed: 1, caffeine: 0.95, damage: 1, interval: 1 }, pattern: { kind: 'vstripe', color: '#f0d9b0', lightColor: '#5f4836' },
+      },
+      {
+        id: 'caturra', name: 'カトゥーラ', origin: 'ブルボンから生まれた、背の低い品種', trait: '小回り', price: 80, power: 'runGun',
+        rates: { speed: 1.1, caffeine: 0.9, damage: 0.95, interval: 1 }, pattern: { kind: 'hstripe', color: '#e9c07a', lightColor: '#6f5335' },
+      },
+      {
+        id: 'mocha', name: 'モカ', origin: 'イエメンのモカ港から積み出された小粒の豆', trait: '俊足', price: 100, power: 'magnet',
+        rates: { speed: 1.15, caffeine: 0.85, damage: 0.97, interval: 1 }, pattern: { kind: 'freckles', color: '#fff2d6', lightColor: '#624d3e' },
+      },
+      {
+        id: 'mundo-novo', name: 'ムンドノーボ', origin: 'ブラジルで生まれた丈夫な品種', trait: '粘り強い', price: 120, power: 'saver',
+        rates: { speed: 0.9, caffeine: 1.1, damage: 0.95, interval: 1 }, pattern: { kind: 'belt', color: '#7fbf6a', lightColor: '#3d7f33' },
+      },
+      {
+        id: 'kilimanjaro', name: 'キリマンジャロ', origin: 'タンザニアのキリマンジャロ山のふもと', trait: '力持ち', price: 140, power: 'standFirm',
+        rates: { speed: 0.9, caffeine: 1.05, damage: 1.05, interval: 1.05 }, pattern: { kind: 'peak', color: '#ffffff' },
+      },
+      {
+        id: 'mandheling', name: 'マンデリン', origin: 'インドネシア・スマトラ島', trait: '重厚', price: 160, power: 'guard',
+        rates: { speed: 0.9, caffeine: 1.1, damage: 1, interval: 1.05 }, pattern: { kind: 'diag', color: '#d9a066', lightColor: '#62432c' },
+      },
+      {
+        id: 'catuai', name: 'カトゥアイ', origin: 'ムンドノーボとカトゥーラを掛け合わせた品種', trait: '連射', price: 180, power: 'xp',
+        rates: { speed: 1, caffeine: 1, damage: 0.9, interval: 0.95 }, pattern: { kind: 'checker', color: '#f0c674', lightColor: '#715534' },
+      },
+      {
+        id: 'kona', name: 'コナ', origin: 'ハワイ島のコナ地区', trait: '軽快', price: 200, power: 'magnet',
+        rates: { speed: 1.05, caffeine: 0.95, damage: 0.95, interval: 1 }, pattern: { kind: 'flower', color: '#ff8fb1', lightColor: '#e8457a' },
+      },
+      {
+        id: 'kent', name: 'ケント', origin: 'インドで生まれた品種', trait: '持久', price: 220, power: 'saver',
+        rates: { speed: 1, caffeine: 1.05, damage: 0.95, interval: 1.05 }, pattern: { kind: 'waves', color: '#9fd3e6', lightColor: '#3f86b8' },
+      },
+      {
+        id: 'pacas', name: 'パーカス', origin: 'エルサルバドルで見つかったブルボンの仲間', trait: '身軽', price: 240, power: 'runGun',
+        rates: { speed: 1.1, caffeine: 0.95, damage: 0.9, interval: 1 }, pattern: { kind: 'star', color: '#ffe066', lightColor: '#6b3a10' },
+      },
+      {
+        id: 'villa-sarchi', name: 'ビジャサルチ', origin: 'コスタリカで見つかったブルボンの仲間', trait: '早撃ち', price: 260, power: 'area',
+        rates: { speed: 1, caffeine: 0.9, damage: 1, interval: 0.95 }, pattern: { kind: 'zigzag', color: '#f5b971', lightColor: '#735133' },
+      },
+      {
+        id: 'sl28', name: 'SL28', origin: 'ケニアで選び出された品種', trait: '一撃', price: 280, power: 'standFirm',
+        rates: { speed: 0.95, caffeine: 0.95, damage: 1.1, interval: 1.05 }, pattern: { kind: 'spots', color: '#d9534f', lightColor: '#b0302a' },
+      },
+      {
+        id: 'catimor', name: 'カティモール', origin: '病気に強い掛け合わせの品種', trait: '丈夫', price: 300, power: 'guard',
+        rates: { speed: 1, caffeine: 1.1, damage: 0.9, interval: 1.05 }, pattern: { kind: 'cross', color: '#8fd16a', lightColor: '#4f9a3a' },
+      },
+      {
+        id: 'pacamara', name: 'パカマラ', origin: 'パーカスとマラゴジッペを掛け合わせた大粒の品種', trait: '大粒', price: 320, power: 'beanHeal',
+        rates: { speed: 0.9, caffeine: 1.1, damage: 1.05, interval: 1.1 }, pattern: { kind: 'ring', color: '#f3dcb4', lightColor: '#604937' },
+      },
+      {
+        id: 'maragogipe', name: 'マラゴジッペ', origin: '「象の豆」とも呼ばれる、とても大粒の品種', trait: '巨大粒', price: 340, power: 'guard',
+        rates: { speed: 0.85, caffeine: 1.1, damage: 1.05, interval: 1.05 }, pattern: { kind: 'half', color: '#efdcbc', lightColor: '#5f4939' },
+      },
+      {
+        id: 'yirgacheffe', name: 'イルガチェフェ', origin: 'エチオピアの産地。珈琲のふるさと', trait: '華やか', price: 360, power: 'xp',
+        rates: { speed: 1.05, caffeine: 0.9, damage: 1, interval: 1 }, pattern: { kind: 'petals', color: '#fff4c2', lightColor: '#624e3a' },
+      },
+      {
+        id: 'toraja', name: 'トラジャ', origin: 'インドネシア・スラウェシ島', trait: '堅実', price: 380, power: 'beanHeal',
+        rates: { speed: 0.95, caffeine: 1, damage: 1, interval: 1 }, pattern: { kind: 'chevron', color: '#e74c3c', lightColor: '#b34031' },
+      },
+      {
+        id: 'blue-mountain', name: 'ブルーマウンテン', origin: 'ジャマイカのブルーマウンテン山脈', trait: '万能', price: 400, power: 'magnet',
+        rates: { speed: 0.98, caffeine: 0.98, damage: 0.98, interval: 1 }, pattern: { kind: 'mountains', color: '#6fa8dc', lightColor: '#3f6fb0' },
+      },
+      {
+        id: 'geisha', name: 'ゲイシャ', origin: 'エチオピアのゲシャ村から広まった、高級な品種', trait: '一点豪華', price: 1000, power: 'area',
+        rates: { speed: 1.05, caffeine: 0.85, damage: 1.1, interval: 1.05 }, pattern: { kind: 'sparkle', color: '#ffe9a8', lightColor: '#fffdf2' },
+      },
     ],
     roasts: [
       { id: 'light', name: '浅煎り', trait: 'スピード', color: '#c9955e', crease: '#8a5a32', speedRate: 1.35, maxCaffeine: 75, damageRate: 0.8, attackIntervalRate: 0.75 },
@@ -53,6 +142,54 @@ export const CONFIG = {
     // 選択画面に並べるマスの数（最終目標）。まだ中身のないマスは「？？？」として鍵付きで出す
     plannedTotal: 66,
     placeholderUnlockText: '条件達成で解放',
+    // 品種の特別な力（仕様 016）。name と desc は選択画面と買うポップアップに出す
+    //   beanHealRate：珈琲豆で回復する量の倍率、magnetRate：経験値の粒を吸い寄せ始める距離の倍率、
+    //   invincibleSec：攻撃を受けたあとの無敵時間、decayRate：カフェインが時間で減る速さの倍率、
+    //   xpRate：経験値の倍率、areaRate：弾と範囲の大きさの倍率、
+    //   movingIntervalRate：動いている間の攻撃の間隔の倍率、standingDamageRate：止まっている間のダメージの倍率
+    powers: {
+      beanHeal: { name: '豆の回復アップ', desc: '珈琲豆で回復する量が 3 割増える', beanHealRate: 1.3 },
+      magnet: { name: '吸い寄せ', desc: '経験値の粒を遠くから吸い寄せる', magnetRate: 1.6 },
+      guard: { name: '無敵時間アップ', desc: '攻撃を受けたあとの無敵時間が長い', invincibleSec: 1.0 },
+      saver: { name: '省エネ', desc: 'カフェインの減りが 2 割遅い', decayRate: 0.8 },
+      xp: { name: '経験値アップ', desc: '経験値が 15% 多く入る', xpRate: 1.15 },
+      area: { name: '範囲アップ', desc: 'すべての弾と範囲が 1 割大きい', areaRate: 1.1 },
+      runGun: { name: '走り撃ち', desc: '動いている間は攻撃の間隔が 1 割短い', movingIntervalRate: 0.9 },
+      standFirm: { name: '踏ん張り', desc: '止まっている間はダメージが 2 割上がる', standingDamageRate: 1.2 },
+    },
+    // 選択画面の性能のバーの範囲（66 体の値がほとんど入る範囲）
+    statBars: { speed: [0.6, 1.6], caffeine: [50, 200], power: [0.5, 1.75], rapid: [0.5, 1.5] },
+  },
+  // 豆コイン（仕様 016）。1 回のプレイが終わったとき（ゲームオーバー・クリア）にたまり、品種を買うのに使う
+  //   perMinute：生き延びた 1 分ごとの枚数、killsPerCoin：倒した敵この数ごとに 1 枚、
+  //   clear：ボスを倒してクリアしたとき、extraClear：エクストラステージをクリアしたとき
+  coins: {
+    name: '豆コイン',
+    unit: '枚',
+    perMinute: 5,
+    killsPerCoin: 100,
+    clear: 30,
+    extraClear: 40,
+    // 結果画面の数え上げ。rowSec：行が出る間隔、countSec：1 行を数え上げる時間、totalSec：合計に足す時間（秒）
+    tally: {
+      rowSec: 0.45, countSec: 0.6, totalSec: 0.6,
+      labels: { time: '生き延びた時間', kills: '倒した敵', clear: 'ボスを倒した', extraClear: 'エクストラステージをクリア' },
+      skipHint: '（Space / Enter / クリックで飛ばす）',
+      panel: 'rgba(24, 14, 9, 0.88)', border: '#d9a066', text: '#f3e6d8', sub: 'rgba(243, 230, 216, 0.7)', total: '#f0d58a',
+    },
+    // 豆コインの絵の色（ふち・面・真ん中の豆）
+    icon: { edge: '#b8862e', face: '#f2c94c', bean: '#8b5a2b' },
+    // 品種を買うメニュー風のポップアップ（喫茶店のメニュー）
+    menu: {
+      paper: '#f4e8d0', frame: '#8b5a2b', ink: '#3b2418', sub: '#7a5a40', alert: '#c0392b',
+      tag: '#3b2418', tagText: '#f0d58a', button: '#d9a066', buttonIdle: 'rgba(59, 36, 24, 0.12)',
+      head: '― MENU ―', order: '注文する', cancel: 'やめる', close: 'とじる', shadowAlpha: 0.35,
+    },
+    // 値段が足りている鍵の色
+    affordableLock: '#f0d58a',
+    texts: {
+      unlocked: '新しい品種『{name}』が解放された！（浅煎り・中煎り・深煎り）',
+    },
   },
   // ステージ（仕様 011）。main＝1 面、extra＝1 面をクリアしたあとのエクストラステージ
   //   world：マップの広さ、enemySpeedRate：敵の速さの倍率（enemySpeedRates で種類ごとに上書き）、
