@@ -4,7 +4,7 @@ export const CONFIG = {
   title: {
     name: '珈琲サバイバル',
     subtitle: '〜 眠気に負けるな 〜',
-    image: 'assets/images/title.jpg',
+    image: 'assets/images/title.webp',
     background: '#0a0807',
     zoom: { amount: 0.025, periodSec: 12 },
   },
