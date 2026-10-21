@@ -152,16 +152,138 @@ export const CONFIG = {
       commonDesc: 'ダメージが上がり、\n連射が速くなる',
       maxVisual: { glow: '#ffb347', core: '#ffe08a', glowScale: 2.4, trail: 4, trailGapSec: 0.018, flashSec: 0.12, flashRadius: 30 },
     },
-    mill: { name: 'ミル・トルネード', desc: '2 枚の刃が\nまわりを回り続ける', element: 'none', count: 2, orbitRadius: 70, bladeRadius: 12, angularSpeed: 3, damage: 1, hitCooldownSec: 0.5 },
-    mug: { name: 'マグカップ投げ', desc: '投げると戻ってくる。\n敵を貫通する', element: 'none', intervalSec: 1.6, speed: 380, radius: 14, damage: 2, range: 320, hitCooldownSec: 0.4 },
-    drip: { name: 'ドリップの雨', desc: '敵の頭上に\n熱い雫を降らせる', element: 'hot', intervalSec: 1.2, drops: 3, radius: 40, delaySec: 0.6, damage: 3, range: 500 },
-    steam: { areaKeys: ['range'], name: 'スチーム噴射', desc: '扇形に蒸気を吹き、\n敵を押し返す', element: 'hot', intervalSec: 1.8, range: 140, angleDeg: 70, damage: 2, knockback: 300 },
-    puddle: { name: 'こぼれ珈琲', desc: '足元に熱い水たまりを作り、\nダメージを与え続ける', element: 'hot', intervalSec: 2, radius: 50, durationSec: 4, damage: 1, tickSec: 0.5 },
-    ice: { name: 'アイス珈琲', desc: '氷を全方向に飛ばし、\n当たった敵を凍らせる', element: 'ice', intervalSec: 1.5, shards: 6, speed: 360, radius: 7, damage: 1, range: 300, freezeSec: 1.2, refreezeGuardSec: 0.6 },
-    espresso: { name: 'エスプレッソ・ショット', desc: '一直線に\n敵を貫く', element: 'hot', intervalSec: 2.5, range: 600, width: 10, coreRate: 0.5, damage: 6 },
-    press: { name: 'フレンチプレス', desc: '近い敵を真上から\n押しつぶす（大ダメージ）', element: 'none', intervalSec: 4, radius: 90, delaySec: 0.8, damage: 10, range: 400 },
-    latte: { name: 'ラテアート', desc: 'ハートの中の敵にダメージ。\n中にいると回復する', element: 'none', intervalSec: 6, radius: 130, durationSec: 2.5, damage: 2, tickSec: 0.5, healPerSec: 3 },
-    shockwave: { name: 'カフェイン・ショックウェーブ', desc: 'カフェインが 7 割以上のとき\n衝撃波で押し返す', element: 'none', intervalSec: 3, minCaffeineRatio: 0.7, speed: 400, maxRadius: 250, thickness: 20, damage: 4, knockback: 400 },
+    // 豆マシンガン以外の 10 種類は、毎 Lv 共通の強化を受けたうえで、upgrades の Lv に特別な強化を受ける。
+    // upgrades の値は Rate で終わるものはかけ算、それ以外は上書きで重なる。true の値は、その武器の同じ名前の設定を使い始める
+    mill: {
+      name: 'ミル・トルネード', desc: '2 枚の刃が\nまわりを回り続ける', element: 'none', count: 2, orbitRadius: 70, bladeRadius: 12, angularSpeed: 3, damage: 1, hitCooldownSec: 0.5,
+      upgrades: {
+        2: { count: 3, desc: '刃が 3 枚になる' },
+        4: { bladeRate: 1.35, desc: '刃が大きくなる' },
+        6: { count: 4, spinRate: 1.2, desc: '刃が 4 枚になり、\n回転が速くなる' },
+        // pulse：回る半径が periodSec 周期で minRate〜maxRate 倍に伸び縮みする
+        8: { count: 6, pulse: { minRate: 0.65, maxRate: 1.45, periodSec: 2.4 }, desc: '刃が 6 枚になり、\n輪が伸び縮みする' },
+      },
+      commonDesc: 'ダメージが上がり、\n当たる間隔が縮む',
+    },
+    mug: {
+      areaKeys: ['splashRadius'],
+      name: 'マグカップ投げ', desc: '投げると戻ってくる。\n敵を貫通する', element: 'none', intervalSec: 1.6, speed: 380, radius: 14, damage: 2, range: 320, hitCooldownSec: 0.4,
+      // MAX の、折り返す瞬間に散る熱いしぶき
+      splashRadius: 55, splashDamage: 3, splashElement: 'hot',
+      upgrades: {
+        2: { count: 2, spreadDeg: 14, desc: 'マグが 2 つになる' },
+        4: { sizeRate: 1.3, desc: 'マグが大きくなる' },
+        6: { rangeRate: 1.3, desc: 'マグが遠くまで飛ぶ' },
+        8: { count: 3, spreadDeg: 14, splash: true, speedRate: 0.85, desc: 'マグが 3 つになり、\n折り返しで熱いしぶき' },
+      },
+      commonDesc: 'ダメージが上がり、\n投げる間隔が縮む',
+    },
+    drip: {
+      name: 'ドリップの雨', desc: '敵の頭上に\n熱い雫を降らせる', element: 'hot', intervalSec: 1.2, drops: 3, radius: 40, delaySec: 0.6, damage: 3, range: 500,
+      // 雫が落ち始める高さと、着弾の輪が消えるまでの時間
+      fallHeight: 220, splashSec: 0.3,
+      // 狙う敵が足りないとき、余った雫を落とすプレイヤーのまわりの範囲
+      scatterRadius: 180,
+      // MAX の、着弾点に残る湯気
+      linger: { durationSec: 1, tickSec: 0.5, damageRate: 0.35 },
+      upgrades: {
+        2: { drops: 4, desc: '雫が 4 つになる' },
+        4: { radiusRate: 1.25, desc: '雫の範囲が広がる' },
+        6: { drops: 5, spreadTargets: true, desc: '雫が 5 つになり、\n別々の敵を狙う' },
+        8: { drops: 8, linger: true, damageRate: 0.75, desc: '雫が 8 つになり、\n着弾点に湯気が残る' },
+      },
+      commonDesc: 'ダメージが上がり、\n降らせる間隔が縮む',
+    },
+    steam: {
+      areaKeys: ['range'],
+      name: 'スチーム噴射', desc: '扇形に蒸気を吹き、\n敵を押し返す', element: 'hot', intervalSec: 1.8, range: 140, angleDeg: 70, damage: 2, knockback: 300,
+      // 吹いた蒸気が消えるまでの時間
+      puffLifeSec: 0.35,
+      upgrades: {
+        2: { angleDeg: 100, desc: '扇が広がる' },
+        4: { rangeRate: 1.3, desc: '蒸気が遠くまで届く' },
+        // directionsDeg：狙った向きから何度の向きに吹くか（180 は真後ろ）
+        6: { directionsDeg: [0, 180], desc: '後ろにも吹く' },
+        8: { angleDeg: 360, knockbackRate: 1.4, damageRate: 0.8, desc: '全方向に吹き、\n押し返しが強くなる' },
+      },
+      commonDesc: 'ダメージが上がり、\n吹く間隔が縮む',
+    },
+    puddle: {
+      name: 'こぼれ珈琲', desc: '足元に熱い水たまりを作り、\nダメージを与え続ける', element: 'hot', intervalSec: 2, radius: 50, durationSec: 4, damage: 1, tickSec: 0.5,
+      // Lv 6 からの足どめ：上にいる敵の速さを rate 倍にし、離れても sec 秒続く
+      slow: { rate: 0.6, sec: 0.3 },
+      // MAX の、歩いた跡にこぼれる小さな水たまり。stepPx 進むごとに 1 つ、最大 max 個
+      trail: { stepPx: 45, radiusRate: 0.55, durationSec: 1.8, damageRate: 0.6, max: 16 },
+      upgrades: {
+        2: { durationRate: 1.5, desc: '水たまりが\n長く残る' },
+        4: { radiusRate: 1.3, desc: '水たまりが広がる' },
+        6: { slow: true, desc: '上にいる敵の\n足が遅くなる' },
+        8: { trail: true, desc: '歩いた跡に\n珈琲がこぼれ続ける' },
+      },
+      commonDesc: 'ダメージが上がり、\nこぼす間隔が縮む',
+    },
+    ice: {
+      name: 'アイス珈琲', desc: '氷を全方向に飛ばし、\n当たった敵を凍らせる', element: 'ice', intervalSec: 1.5, shards: 6, speed: 360, radius: 7, damage: 1, range: 300, freezeSec: 1.2, refreezeGuardSec: 0.6,
+      upgrades: {
+        2: { shards: 8, desc: '氷が 8 個になる' },
+        4: { freezeRate: 1.35, desc: '長く凍らせる' },
+        // shatterRate：凍っている敵に当たったときのダメージの倍率（その敵の凍りは解ける）
+        6: { shatterRate: 1.6, desc: '凍った敵を砕いて\n大ダメージ' },
+        // pierce：1 個の氷が当たれる敵の数
+        8: { shards: 12, pierce: 3, damageRate: 0.7, desc: '氷が 12 個になり、\n3 体まで貫通' },
+      },
+      commonDesc: 'ダメージが上がり、\n飛ばす間隔が縮む',
+    },
+    espresso: {
+      name: 'エスプレッソ・ショット', desc: '一直線に\n敵を貫く', element: 'hot', intervalSec: 2.5, range: 600, width: 10, coreRate: 0.5, damage: 6,
+      // 線が消えるまでの時間と、1 体しかいないときに 2 本目を撃つまでの時間
+      beamLifeSec: 0.25, shotGapSec: 0.12,
+      // MAX のストリーム：durationSec 撃ち続け、狙った向きを中心に sweepDeg なぎ払う。同じ敵には hitCooldownSec ごと
+      stream: { durationSec: 0.8, sweepDeg: 50, hitCooldownSec: 0.2 },
+      upgrades: {
+        2: { shots: 2, desc: '近い 2 体へ\n2 本撃つ' },
+        4: { widthRate: 1.6, desc: '線が太くなる' },
+        // knockback：当たった敵を撃った向きへ押し返す速さ
+        6: { knockback: 180, desc: '当たった敵を\n押し返す' },
+        8: { stream: true, damageRate: 0.4, desc: '撃ち続けて\nなぎ払う' },
+      },
+      commonDesc: 'ダメージが上がり、\n撃つ間隔が縮む',
+    },
+    press: {
+      name: 'フレンチプレス', desc: '近い敵を真上から\n押しつぶす（大ダメージ）', element: 'none', intervalSec: 4, radius: 90, delaySec: 0.8, damage: 10, range: 400,
+      // MAX で敵が集まっている所を探すとき、ボスを何体分と数えるか
+      bossWeight: 5,
+      upgrades: {
+        2: { radiusRate: 1.2, desc: '押しつぶす範囲が\n広がる' },
+        4: { delayRate: 0.6, desc: '早く落ちる' },
+        6: { targets: 2, desc: '2 体を同時に狙う' },
+        // crowd：敵が一番集まっている所に落とす。knockback：押しつぶした敵を外へ押し返す速さ
+        8: { targets: 1, crowd: true, radiusRate: 1.6, damageRate: 1.5, knockback: 260, desc: '巨大なプレスが\n敵の群れに落ちる' },
+      },
+      commonDesc: 'ダメージが上がり、\n落とす間隔が縮む',
+    },
+    latte: {
+      name: 'ラテアート', desc: 'ハートの中の敵にダメージ。\n中にいると回復する', element: 'none', intervalSec: 6, radius: 130, durationSec: 2.5, damage: 2, tickSec: 0.5, healPerSec: 3,
+      upgrades: {
+        2: { durationRate: 1.4, desc: '模様が長く残る' },
+        4: { radiusRate: 1.2, desc: '模様が広がる' },
+        6: { healRate: 1.5, desc: '中にいるときの\n回復が増える' },
+        // follow：模様はいつも 1 枚で、プレイヤーの足元についてくる
+        8: { follow: true, healRate: 0.5, desc: '模様が足元に\nついてくる' },
+      },
+      commonDesc: 'ダメージが上がり、\n描く間隔が縮む',
+    },
+    shockwave: {
+      name: 'カフェイン・ショックウェーブ', desc: 'カフェインが 7 割以上のとき\n衝撃波で押し返す', element: 'none', intervalSec: 3, minCaffeineRatio: 0.7, speed: 400, maxRadius: 250, thickness: 20, damage: 4, knockback: 400,
+      upgrades: {
+        2: { minCaffeineRatio: 0.5, desc: 'カフェイン 5 割から\n発動する' },
+        4: { radiusRate: 1.3, desc: '衝撃波が遠くまで\n広がる' },
+        6: { knockbackRate: 1.5, desc: '押し返しが強くなる' },
+        // waves 個の波を waveGapSec おきに出し、押し返すのは最後の波だけ。発動のたびにカフェインを caffeineCost 使う
+        8: { waves: 3, waveGapSec: 0.15, caffeineCost: 4, desc: '3 重の波が出る。\nカフェインを 4 使う' },
+      },
+      commonDesc: 'ダメージが上がり、\n発動の間隔が縮む',
+    },
   },
   // 倒した敵が落とす経験値の粒。magnetRadius 以内に近づくと吸い寄せられる
   // maxCount を超えたら新しい粒は作らず、今ある粒に経験値をまとめる
