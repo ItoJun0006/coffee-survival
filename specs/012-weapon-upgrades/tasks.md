@@ -72,8 +72,8 @@ description: "Task list for 012-weapon-upgrades"
 - [x] T024 [P] [US1] src/weapons/ice.js：氷の数（`shards`）・凍る時間（`freezeRate`）を `stats` から使い、凍らせるときは `game.freeze(t, sec, refreezeGuardSec)`（T010）。Lv 6 以降は、凍っている敵に当たったら `shatterRate` 倍のダメージで `thaw()` する（凍らせ直さない）。Lv 8 は、かけらごとに当てた敵の `Set` を持ち 3 体まで貫通、ダメージ `damageRate: 0.7`（FR-011）
 - [x] T025 [P] [US1] src/weapons/press.js：予告を作るときに、そのときの半径（`radiusRate` をかけた値）を予告ごとに持ち、当たり判定と描画の両方に使う。落ちるまでの時間（`delayRate`）を `stats` から使う。Lv 6 は射程内の敵を距離順に並べて上から 2 体を同時に狙う。Lv 8 は 1 台で、射程内の敵それぞれを中心とした半径の中の敵の数（ボスは `bossWeight` 体分）が一番多い所に落とし、ダメージ `damageRate: 1.5`、押しつぶした敵を外へ `knockback: 260` 押し返す（FR-012）
 - [x] T026 [P] [US1] src/weapons/latte.js：持続（`durationRate`）・半径（`radiusRate`）・回復（`healRate`）を `stats` から使う。Lv 8 は模様をいつも 1 枚にし、毎フレーム位置をプレイヤーに合わせ、発動したら残り時間を戻すだけにする。回復は `healRate: 0.5` がかかった値（FR-013）。T013 の重なりの修正はそのまま
-- [ ] T027 [US1] src/level-up-menu.js と src/game.js のカードの説明が、10 種類すべてで `upgradeDesc(次の Lv)` を出し、Lv 3・5・7 は `commonDesc` になることを確かめ、カードからはみ出す文言があれば src/config.js の `desc` を直す（FR-003）
-- [ ] T028 [US1] quickstart §1 を 10 種類すべてで行う。Lv 2・4・6・8 の変化と MAX の代償、Lv 3・5・7 の共通の強化を確認し、結果を記録する
+- [x] T027 [US1] src/level-up-menu.js と src/game.js のカードの説明が、10 種類すべてで `upgradeDesc(次の Lv)` を出し、Lv 3・5・7 は `commonDesc` になることを確かめ、カードからはみ出す文言があれば src/config.js の `desc` を直す（FR-003）
+- [x] T028 [US1] quickstart §1 を 10 種類すべてで行う。Lv 2・4・6・8 の変化と MAX の代償、Lv 3・5・7 の共通の強化を確認し、結果を記録する
 
 **Checkpoint**: 10 種類の強化が動く（見た目は Lv 7 以下と同じ描き方のまま）。ここで遊べる区切りとしてコミットしてよい
 
