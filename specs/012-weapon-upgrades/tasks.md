@@ -38,18 +38,18 @@ description: "Task list for 012-weapon-upgrades"
 
 **Purpose**: 全武器で共有する仕組み（research R1〜R6）と、強化の前に直す不具合（FR-014）。**ここが終わるまで US1・US2 は始めない**
 
-- [ ] T004 `stats`・`commonUpgrades`・`upgradeDesc` を src/weapons/bean-gun.js から src/weapons/base.js の `Weapon` に移す。決まり（contracts/weapon-upgrades.md「重ね方の決まり」）：`baseStats()`（武器ごとに上書きできる初期値。既定は `{}`）から始め、`config.upgrades` の Lv の小さい順に、今の Lv 以下のものを重ねる。キー名が `Rate` で終わる値はかけ算、`desc` は飛ばし、それ以外は上書き。`commonUpgrades` は `config.commonLevels` があればその Lv 以下の数、なければ `level − 1`。`upgradeDesc(next)` は `upgrades[next]?.desc ?? config.commonDesc ?? null`
-- [ ] T005 src/weapons/bean-gun.js と src/weapons/bean-shotgun.js を T004 の共通の仕組みに合わせる。豆マシンガンは `baseStats()` で `{ count: c.baseCount ?? 1, spreadDeg: c.baseSpreadDeg ?? 0, flightRate: c.flightRate, rangeRate: 1, pierce: 1, damageRate: 1 }` を返し、`pierce: true` を何体でも（Infinity）として扱う処理は残す。挙動は一切変えない（007 の FR-003 の表どおり）
-- [ ] T006 src/weapons/base.js の `tick()` の中の倍率計算を `get intervalRate()`（キャラの攻撃間隔 × 共通の強化 × 発生頻度アップ、下限 `CONFIG.weaponLevels.minIntervalRate`）として外に出し、`tick()` はそれを使う（research R2）
-- [ ] T007 src/weapons/base.js の `hit(target, damage, element)` に属性を渡せるようにする。`element` を省略したら `this.config.element`（research R6）
-- [ ] T008 src/game.js の `targets()` を、1 フレームに 1 回だけ一覧を作って使い回す形にする（`update()` の始めで作り直し、`targetsInCircle` も同じ一覧を使う）。敵の死亡・追加がそのフレーム内で起きても、倒れた敵（`dead`）には当てない（research R4）
-- [ ] T009 [P] src/entities/enemy.js に足どめ（`slow(sec, rate)`：残り時間と倍率を持ち、移動の速さにかける。かけ直しは長い方・強い方を残す）を足し、src/game.js に `slow(target, sec, rate)` を足す（ボスには効かない。`freeze` と同じ形）（research R5）
-- [ ] T010 [P] src/entities/enemy.js の凍りを変える：`freeze(sec, guardSec)` は「凍っていない、かつ待ち時間が 0」のときだけ効き、凍っている間に当たっても延長しない。凍りが解けたら `guardSec` の待ち時間に入る。`thaw()`（すぐ解いて待ち時間に入る）を足す。src/game.js の `freeze(target, sec, guardSec)` に引数を足す（ボスは除く）。待ち時間の初期値は `CONFIG.weapons.ice.refreezeGuardSec: 0.6`（src/config.js）
-- [ ] T011 [P] FR-014：src/weapons/mill.js で、同じ敵に当たる間隔を毎フレーム `hitCooldownSec × this.intervalRate` にする（`HitTracker` の `cooldownSec` を更新）。下限は元の 0.3 倍
-- [ ] T012 [P] FR-014：src/weapons/puddle.js で、`HitTracker` を水たまりごとではなく武器に 1 つだけ持ち、重なっても同じ敵へのダメージは 1 つ分にする。あわせて、描く形（今は縦 0.8 倍の楕円）を当たり判定と同じ正円にする
-- [ ] T013 [P] FR-014：src/weapons/latte.js で、`HitTracker` を武器に 1 つだけ持ち、回復は「どれか 1 枚の中にいれば、そのフレームで 1 回」にする
-- [ ] T014 [P] FR-014：src/weapons/espresso.js で、外側の線（今は太さ 2 倍の半透明）を当たる太さ（`width`）以内に収め、はっきり描く部分と当たる範囲を一致させる
-- [ ] T015 Phase 2 を確かめる：`?weapons=` で豆マシンガン・豆ショットガンを Lv 1〜8 にして 007 の表どおりに変わること（T005）、ほかの武器の今の動きが変わっていないこと（T011〜T014 の修正点を除く）、コンソールのエラーがないこと
+- [x] T004 `stats`・`commonUpgrades`・`upgradeDesc` を src/weapons/bean-gun.js から src/weapons/base.js の `Weapon` に移す。決まり（contracts/weapon-upgrades.md「重ね方の決まり」）：`baseStats()`（武器ごとに上書きできる初期値。既定は `{}`）から始め、`config.upgrades` の Lv の小さい順に、今の Lv 以下のものを重ねる。キー名が `Rate` で終わる値はかけ算、`desc` は飛ばし、それ以外は上書き。`commonUpgrades` は `config.commonLevels` があればその Lv 以下の数、なければ `level − 1`。`upgradeDesc(next)` は `upgrades[next]?.desc ?? config.commonDesc ?? null`
+- [x] T005 src/weapons/bean-gun.js と src/weapons/bean-shotgun.js を T004 の共通の仕組みに合わせる。豆マシンガンは `baseStats()` で `{ count: c.baseCount ?? 1, spreadDeg: c.baseSpreadDeg ?? 0, flightRate: c.flightRate, rangeRate: 1, pierce: 1, damageRate: 1 }` を返し、`pierce: true` を何体でも（Infinity）として扱う処理は残す。挙動は一切変えない（007 の FR-003 の表どおり）
+- [x] T006 src/weapons/base.js の `tick()` の中の倍率計算を `get intervalRate()`（キャラの攻撃間隔 × 共通の強化 × 発生頻度アップ、下限 `CONFIG.weaponLevels.minIntervalRate`）として外に出し、`tick()` はそれを使う（research R2）
+- [x] T007 src/weapons/base.js の `hit(target, damage, element)` に属性を渡せるようにする。`element` を省略したら `this.config.element`（research R6）
+- [x] T008 src/game.js の `targets()` を、1 フレームに 1 回だけ一覧を作って使い回す形にする（`update()` の始めで作り直し、`targetsInCircle` も同じ一覧を使う）。敵の死亡・追加がそのフレーム内で起きても、倒れた敵（`dead`）には当てない（research R4）
+- [x] T009 [P] src/entities/enemy.js に足どめ（`slow(sec, rate)`：残り時間と倍率を持ち、移動の速さにかける。かけ直しは長い方・強い方を残す）を足し、src/game.js に `slow(target, sec, rate)` を足す（ボスには効かない。`freeze` と同じ形）（research R5）
+- [x] T010 [P] src/entities/enemy.js の凍りを変える：`freeze(sec, guardSec)` は「凍っていない、かつ待ち時間が 0」のときだけ効き、凍っている間に当たっても延長しない。凍りが解けたら `guardSec` の待ち時間に入る。`thaw()`（すぐ解いて待ち時間に入る）を足す。src/game.js の `freeze(target, sec, guardSec)` に引数を足す（ボスは除く）。待ち時間の初期値は `CONFIG.weapons.ice.refreezeGuardSec: 0.6`（src/config.js）
+- [x] T011 [P] FR-014：src/weapons/mill.js で、同じ敵に当たる間隔を毎フレーム `hitCooldownSec × this.intervalRate` にする（`HitTracker` の `cooldownSec` を更新）。下限は元の 0.3 倍
+- [x] T012 [P] FR-014：src/weapons/puddle.js で、`HitTracker` を水たまりごとではなく武器に 1 つだけ持ち、重なっても同じ敵へのダメージは 1 つ分にする。あわせて、描く形（今は縦 0.8 倍の楕円）を当たり判定と同じ正円にする
+- [x] T013 [P] FR-014：src/weapons/latte.js で、`HitTracker` を武器に 1 つだけ持ち、回復は「どれか 1 枚の中にいれば、そのフレームで 1 回」にする
+- [x] T014 [P] FR-014：src/weapons/espresso.js で、外側の線（今は太さ 2 倍の半透明）を当たる太さ（`width`）以内に収め、はっきり描く部分と当たる範囲を一致させる
+- [x] T015 Phase 2 を確かめる：`?weapons=` で豆マシンガン・豆ショットガンを Lv 1〜8 にして 007 の表どおりに変わること（T005）、ほかの武器の今の動きが変わっていないこと（T011〜T014 の修正点を除く）、コンソールのエラーがないこと
 
 **Checkpoint**: 共通の仕組みと不具合の修正が入った。ここから武器ごとに US1・US2 を進められる
 
