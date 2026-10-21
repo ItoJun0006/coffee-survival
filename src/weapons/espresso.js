@@ -30,18 +30,19 @@ export class Espresso extends Weapon {
   }
 
   draw(ctx) {
-    const w = this.config.width;
+    const { width: w, coreRate } = this.config;
     ctx.lineCap = 'round';
+    // 外側の線の太さを当たる太さ（width）にそろえ、芯はその内側に描く
     for (const b of this.beams) {
       const k = b.life / 0.25;
       ctx.strokeStyle = `rgba(201, 141, 75, ${0.6 * k})`;
-      ctx.lineWidth = w * 2 * k;
+      ctx.lineWidth = w * k;
       ctx.beginPath();
       ctx.moveTo(b.x1, b.y1);
       ctx.lineTo(b.x2, b.y2);
       ctx.stroke();
       ctx.strokeStyle = `rgba(61, 35, 20, ${k})`;
-      ctx.lineWidth = w * k;
+      ctx.lineWidth = w * coreRate * k;
       ctx.stroke();
     }
     ctx.lineCap = 'butt';

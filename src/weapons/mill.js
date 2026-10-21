@@ -22,6 +22,8 @@ export class Mill extends Weapon {
     const c = this.config;
     const g = this.game;
     this.angle += c.angularSpeed * dt;
+    // ミルは発動しないので、攻撃の間隔の強化は同じ敵に当たる間隔に効く
+    this.hits.cooldownSec = c.hitCooldownSec * this.intervalRate;
     for (const b of this.#blades()) {
       for (const t of g.targetsInCircle(b.x, b.y, c.bladeRadius)) {
         if (this.hits.tryHit(t, g.time)) this.hit(t);

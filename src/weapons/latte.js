@@ -17,6 +17,8 @@ export class Latte extends Weapon {
   constructor(game) {
     super(game, CONFIG.weapons.latte);
     this.arts = [];
+    // 模様が重なっても、ダメージと回復は 1 つ分だけ
+    this.hits = new HitTracker(this.config.tickSec);
   }
 
   update(dt) {
@@ -24,15 +26,15 @@ export class Latte extends Weapon {
     const g = this.game;
     if (this.tick(dt)) {
       this.timer = 0;
-      this.arts.push({ x: g.player.x, y: g.player.y, life: c.durationSec, hits: new HitTracker(c.tickSec) });
+      this.arts.push({ x: g.player.x, y: g.player.y, life: c.durationSec });
     }
     for (const a of this.arts) {
       a.life -= dt;
       for (const t of g.targetsInCircle(a.x, a.y, c.radius)) {
-        if (a.hits.tryHit(t, g.time)) this.hit(t);
+        if (this.hits.tryHit(t, g.time)) this.hit(t);
       }
-      if (dist(a, g.player) < c.radius) g.player.heal(c.healPerSec * dt);
     }
+    if (this.arts.some((a) => dist(a, g.player) < c.radius)) g.player.heal(c.healPerSec * dt);
     this.arts = this.arts.filter((a) => a.life > 0);
   }
 
