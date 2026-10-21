@@ -25,7 +25,8 @@ export class BeanGun extends Weapon {
   }
 
   get commonUpgrades() {
-    return this.config.commonLevels.filter((lv) => this.level >= lv).length;
+    // 限界突破した Lv 9 から先は、Lv が上がるたびに共通の強化を受ける
+    return this.config.commonLevels.filter((lv) => this.level >= lv).length + Math.max(0, this.level - CONFIG.weaponLevels.max);
   }
 
   upgradeDesc(nextLevel) {

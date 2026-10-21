@@ -9,14 +9,16 @@ import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
-import { loadLastCharacter, saveLastCharacter } from './characters.js';
+import { loadLastCharacter, saveLastCharacter, wearsSkin } from './characters.js';
 import { unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, saveProgress, pointCard } from './progress.js';
 import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu, levelLabel } from './level-up-menu.js';
 import { drawItemIcon } from './item-icons.js';
 import { PixelLayer } from './pixel-layer.js';
+import { Floor } from './floor.js';
 import { sound } from './sound.js';
 import { font } from './font.js';
+import { stage, setStage } from './stage.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -25,6 +27,15 @@ const formatTime = (sec) => {
   const s = Math.max(0, Math.ceil(sec));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 };
+
+// 並びをランダムに入れ替えた配列を返す（元の配列も入れ替わる）
+function shuffle(list) {
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+}
 
 export class Game {
   constructor(canvas) {
@@ -38,6 +49,7 @@ export class Game {
     this.debugBoss = params.has('boss');
     this.debugLevel = Number(params.get('level')) || 1;
     this.pixelLayer = new PixelLayer();
+    this.floor = new Floor();
     this.resize();
     window.addEventListener('resize', () => this.resize());
     // 別のタブやアプリに切り替えたら自動でポーズする
@@ -73,7 +85,8 @@ export class Game {
   reset() {
     sound.setMode('normal');
     sound.startMusic();
-    this.player = new Player(CONFIG.world.width / 2, CONFIG.world.height / 2, this.character);
+    this.player = new Player(stage.world.width / 2, stage.world.height / 2, this.character);
+    this.player.skin = wearsSkin(this.character);
     this.beans = [];
     this.xpOrbs = [];
     this.enemies = [];
@@ -95,14 +108,18 @@ export class Game {
     this.weapons = [new StartWeapon(this)];
     this.pendingLevelUps = 0;
     this.#applyCharacterStats();
-    // 動作確認用の ?level=N は、まだ持っていない攻撃を優先して自動で選ぶ
-    for (let i = 1; i < this.debugLevel; i++) {
+    // 動作確認用の ?level=N は、まだ持っていない攻撃を優先して自動で選ぶ（1 面だけ）
+    for (let i = 1; stage.id === 'main' && i < this.debugLevel; i++) {
       this.level += 1;
       this.#applyCharacterStats();
       const choices = this.#levelUpChoices();
       this.#applyChoice(choices.find((c) => c.isNew && c.kind === 'weapon') ?? choices[0] ?? this.#bonusChoices()[1]);
     }
     this.notice = null;
+    // 受け取った椿の花の種類
+    this.camellias = [];
+    this.nextWaveAt = CONFIG.bigWave.firstSec;
+    this.waveUntil = 0;
   }
 
   get xpToNext() {
@@ -120,6 +137,8 @@ export class Game {
     }
     if (this.level > before) {
       this.#applyCharacterStats();
+      // エクストラステージでは、上がった Lv の数だけカフェインを回復する
+      if (stage.levelUpHealRate) this.player.heal(this.player.maxCaffeine * stage.levelUpHealRate * (this.level - before));
       sound.play('levelUp');
       if (this.state === 'playing') this.#openLevelUp();
     }
@@ -131,22 +150,34 @@ export class Game {
     return this.items.find((it) => it.id === id)?.level ?? 0;
   }
 
-  // 範囲アップ：弾と範囲の大きさの倍率
-  get areaRate() {
-    return 1 + CONFIG.items.area.perLevel * this.#itemLevel('area');
+  // 効果の計算に使う段階の数。限界突破した Lv 9 から先は、1 段階の効果が overCapItemRate 倍になる
+  #itemSteps(id) {
+    const { max, overCapItemRate } = CONFIG.weaponLevels;
+    const lv = this.#itemLevel(id);
+    return Math.min(lv, max) + Math.max(0, lv - max) * overCapItemRate;
   }
 
-  // 発生頻度アップ：攻撃の間隔の倍率
+  // 範囲アップ：弾と範囲の大きさの倍率
+  get areaRate() {
+    return 1 + CONFIG.items.area.perLevel * this.#itemSteps('area');
+  }
+
+  // 発生頻度アップ：攻撃の間隔の倍率。椿の花を持っていれば、さらに短くなる
   get frequencyRate() {
-    return 1 - CONFIG.items.frequency.perLevel * this.#itemLevel('frequency');
+    return (1 - CONFIG.items.frequency.perLevel * this.#itemSteps('frequency')) * this.#rareRate('intervalRate');
   }
 
   get powerRate() {
-    return 1 + CONFIG.items.power.perLevel * this.#itemLevel('power');
+    return (1 + CONFIG.items.power.perLevel * this.#itemSteps('power')) * this.#rareRate('damageRate');
+  }
+
+  // 受け取った椿の花の数だけ、倍率をかけ合わせる
+  #rareRate(key) {
+    return CONFIG.camellia[key] ** this.camellias.length;
   }
 
   get xpRate() {
-    return 1 + CONFIG.items.xp.perLevel * this.#itemLevel('xp');
+    return 1 + CONFIG.items.xp.perLevel * this.#itemSteps('xp');
   }
 
   // ---- レベルアップの候補 ----
@@ -157,14 +188,16 @@ export class Game {
   #levelUpChoices() {
     const { max } = CONFIG.weaponLevels;
     const slots = CONFIG.slots;
+    // Lv 8 から先（限界突破）は、エクストラステージで overCap に当たったときだけ候補に入れる
+    const canUpgrade = (lv) => lv < max || (this.overCap && lv < stage.maxLevel);
     const weapons = WEAPON_ORDER.flatMap((W) => {
       const owned = this.weapons.find((w) => w instanceof W);
-      if (owned) return owned.level < max ? [this.#weaponChoice(owned, false)] : [];
+      if (owned) return canUpgrade(owned.level) ? [this.#weaponChoice(owned, false)] : [];
       return this.weapons.length < slots.weapons ? [this.#weaponChoice(new W(this), true)] : [];
     });
     const items = Object.keys(CONFIG.items).flatMap((id) => {
       const owned = this.items.find((it) => it.id === id);
-      if (owned) return owned.level < max ? [this.#itemChoice(id, owned)] : [];
+      if (owned) return canUpgrade(owned.level) ? [this.#itemChoice(id, owned)] : [];
       return this.items.length < slots.items ? [this.#itemChoice(id, null)] : [];
     });
     return [...weapons, ...items];
@@ -204,6 +237,24 @@ export class Game {
     };
   }
 
+  // 椿の花のカード。chance の確率で、まだ受け取っていない種類からランダムに 1 つ出す
+  #rareChoices() {
+    const cfg = CONFIG.camellia;
+    const left = Object.keys(cfg.kinds).filter((k) => !this.camellias.includes(k));
+    if (!left.length || Math.random() >= cfg.chance) return [];
+    const kind = left[Math.floor(Math.random() * left.length)];
+    const { name } = cfg.kinds[kind];
+    return [{
+      kind: 'rare', camellia: kind, iconId: `camellia-${kind}`, name, desc: cfg.desc, element: 'none', level: 0, isNew: true,
+      apply: () => {
+        this.camellias.push(kind);
+        // 3 種類そろったら、実績を解除してスキンを手に入れる
+        if (this.camellias.length === Object.keys(cfg.kinds).length && unlock(cfg.achievement.id)) this.#toast(cfg.achievement.text);
+        return `${name} が咲いた！`;
+      },
+    }];
+  }
+
   // 攻撃もアイテムもすべて Lv 上限になったあとの候補
   #bonusChoices() {
     const p = this.player;
@@ -226,14 +277,16 @@ export class Game {
   }
 
   // 候補をランダムに選んで、選択画面を開く。選べるものがなくなっていたら、ボーナスから選ぶ
+  // エクストラステージで限界突破に当たったときは、限界突破の候補を必ず 1 枚入れる
   #openLevelUp() {
-    const all = this.#levelUpChoices();
-    for (let i = all.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [all[i], all[j]] = [all[j], all[i]];
-    }
-    const choices = all.slice(0, CONFIG.weaponLevels.choices);
-    this.levelUpMenu.open(choices.length ? choices : this.#bonusChoices(), this.level);
+    this.overCap = Math.random() < stage.overCapChance;
+    const all = shuffle(this.#levelUpChoices());
+    this.overCap = false;
+    const isOverCap = (c) => !c.isNew && c.level >= CONFIG.weaponLevels.max;
+    const pick = all.find(isOverCap);
+    const rest = all.filter((c) => c !== pick);
+    const choices = shuffle([...(pick ? [pick] : []), ...rest].slice(0, CONFIG.weaponLevels.choices));
+    this.levelUpMenu.open([...(choices.length ? choices : this.#bonusChoices()), ...this.#rareChoices()], this.level);
     this.state = 'levelup';
   }
 
@@ -339,6 +392,16 @@ export class Game {
       this.#updateLevelUp();
       return;
     }
+    if (this.state === 'carry') {
+      const choice = this.levelUpMenu.update(this.input, this.viewW, this.viewH);
+      if (choice) this.#startExtra(choice.weapon);
+      return;
+    }
+    // 1 面をクリアしたら、E キーでエクストラステージへ
+    if (this.state === 'clear' && stage.id === 'main' && this.input.wasPressed('KeyE')) {
+      this.#openCarryMenu();
+      return;
+    }
     if (this.state !== 'playing') {
       if (this.input.consumeClick()) this.#startRun();
       return;
@@ -388,7 +451,29 @@ export class Game {
 
   // ゲームを始める（キャラ選択から、またはゲームオーバー・クリアからのやり直し）。プレイ回数を 1 増やす
   #startRun() {
+    setStage('main');
     this.reset();
+    this.playTimeUnsaved = 0;
+    this.#checkUnlocks('plays', recordPlay());
+  }
+
+  // ---- エクストラステージ（仕様 011） ----
+
+  // 持っていく攻撃を 1 つ選ぶ画面を開く
+  #openCarryMenu() {
+    const choices = this.weapons.map((weapon) => ({
+      kind: 'carry', weapon, name: weapon.name, desc: weapon.desc, element: weapon.config.element, level: weapon.level, isNew: false,
+    }));
+    this.levelUpMenu.open(choices, this.level, { title: 'エクストラステージへ', lead: '持っていく攻撃を 1 つ選ぶ（Lv はそのまま）' });
+    this.state = 'carry';
+  }
+
+  // 選んだ攻撃だけを持って、エクストラステージを始める。レベル・アイテム・椿の花は最初から
+  #startExtra(weapon) {
+    setStage('extra');
+    this.reset();
+    weapon.timer = 0;
+    this.weapons = [weapon];
     this.playTimeUnsaved = 0;
     this.#checkUnlocks('plays', recordPlay());
   }
@@ -536,8 +621,8 @@ export class Game {
       if (this.beans.length >= maxCount) continue;
       const a = Math.random() * Math.PI * 2;
       const r = Math.random() * spawnRadius;
-      const x = clamp(this.player.x + Math.cos(a) * r, 0, CONFIG.world.width);
-      const y = clamp(this.player.y + Math.sin(a) * r, 0, CONFIG.world.height);
+      const x = clamp(this.player.x + Math.cos(a) * r, 0, stage.world.width);
+      const y = clamp(this.player.y + Math.sin(a) * r, 0, stage.world.height);
       // 夢の世界：一部の豆が偽物になる
       const fake = !!this.boss?.has('dream') && Math.random() < CONFIG.boss.dream.fakeRatio;
       this.beans.push(new Bean(x, y, fake));
@@ -578,16 +663,30 @@ export class Game {
 
   #spawnEnemies(dt) {
     const s = CONFIG.spawn;
+    const wave = CONFIG.bigWave;
+    this.#updateBigWave();
+    const inWave = this.time < this.waveUntil;
     const t = Math.min(1, this.time / s.rampSec);
     const interval = s.startIntervalSec + (s.minIntervalSec - s.startIntervalSec) * t;
     // 1 回に出る数。2.5 体なら半々の確率で 2 体か 3 体
-    const group = s.startGroup + (s.endGroup - s.startGroup) * t;
+    const group = (s.startGroup + (s.endGroup - s.startGroup) * t) * (inWave ? wave.spawnRate : 1);
+    const maxCount = inWave ? wave.maxCount : s.maxCount;
     this.enemyTimer += dt;
     while (this.enemyTimer >= interval) {
       this.enemyTimer -= interval;
       const n = Math.floor(group) + (Math.random() < group % 1 ? 1 : 0);
-      for (let i = 0; i < n && this.enemies.length < s.maxCount; i++) this.#spawnEnemy(this.#pickEnemyType());
+      for (let i = 0; i < n && this.enemies.length < maxCount; i++) this.#spawnEnemy(this.#pickEnemyType());
     }
+  }
+
+  // 時間が来たらビッグウェーブを始め、次に来る時間を決める
+  #updateBigWave() {
+    const w = CONFIG.bigWave;
+    if (this.time < this.nextWaveAt) return;
+    if (this.nextWaveAt > CONFIG.boss.timeSec - w.stopBeforeBossSec) return;
+    this.waveUntil = this.nextWaveAt + w.durationSec;
+    this.nextWaveAt += w.minIntervalSec + Math.random() * (w.maxIntervalSec - w.minIntervalSec);
+    this.notice = { title: w.title, text: w.text, until: this.time + 2.5 };
   }
 
   #pickEnemyType() {
@@ -603,9 +702,11 @@ export class Game {
   // 既定では画面のすぐ外に出現させる
   #spawnEnemy(type, cx = this.player.x, cy = this.player.y, distance = Math.hypot(this.viewW, this.viewH) / 2 + 40) {
     const a = Math.random() * Math.PI * 2;
-    const x = clamp(cx + Math.cos(a) * distance, 0, CONFIG.world.width);
-    const y = clamp(cy + Math.sin(a) * distance, 0, CONFIG.world.height);
-    this.enemies.push(new Enemy(type, x, y, this.#enemyStrength()));
+    const x = clamp(cx + Math.cos(a) * distance, 0, stage.world.width);
+    const y = clamp(cy + Math.sin(a) * distance, 0, stage.world.height);
+    const strength = this.#enemyStrength();
+    strength.speed *= stage.enemySpeedRates[type] ?? stage.enemySpeedRate;
+    this.enemies.push(new Enemy(type, x, y, strength));
   }
 
   // 今の生存時間に応じた敵の強さの倍率
@@ -631,8 +732,8 @@ export class Game {
     const a = Math.random() * Math.PI * 2;
     const d = Math.min(this.viewW, this.viewH) / 2 + CONFIG.boss.radius;
     this.boss = new Boss(
-      clamp(this.player.x + Math.cos(a) * d, 0, CONFIG.world.width),
-      clamp(this.player.y + Math.sin(a) * d, 0, CONFIG.world.height),
+      clamp(this.player.x + Math.cos(a) * d, 0, stage.world.width),
+      clamp(this.player.y + Math.sin(a) * d, 0, stage.world.height),
     );
     this.bossAppearedAt = this.time;
     sound.play('bossAppear');
@@ -682,7 +783,8 @@ export class Game {
 
     ctx.save();
     ctx.translate(-this.camera.x, -this.camera.y);
-    this.#drawGrid();
+    if (CONFIG.floor.enabled) this.floor.draw(ctx, this.camera, this.viewW, this.viewH);
+    else this.#drawGrid();
     ctx.restore();
 
     // 絵（攻撃・豆・粒・敵・ボス・プレイヤー）は、ドット絵にする層に描く。背景と文字はくっきりしたまま
@@ -712,7 +814,7 @@ export class Game {
     } else {
       this.#drawHud();
       if (this.state === 'paused') this.#drawPauseMenu();
-      if (this.state === 'levelup') this.levelUpMenu.draw(ctx, this.viewW, this.viewH);
+      if (this.state === 'levelup' || this.state === 'carry') this.levelUpMenu.draw(ctx, this.viewW, this.viewH);
       this.#drawOverlay();
     }
     this.#drawSoundIndicator();
@@ -767,13 +869,13 @@ export class Game {
     ctx.strokeStyle = CONFIG.colors.grid;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    for (let x = 0; x <= CONFIG.world.width; x += step) {
+    for (let x = 0; x <= stage.world.width; x += step) {
       ctx.moveTo(x, 0);
-      ctx.lineTo(x, CONFIG.world.height);
+      ctx.lineTo(x, stage.world.height);
     }
-    for (let y = 0; y <= CONFIG.world.height; y += step) {
+    for (let y = 0; y <= stage.world.height; y += step) {
       ctx.moveTo(0, y);
-      ctx.lineTo(CONFIG.world.width, y);
+      ctx.lineTo(stage.world.width, y);
     }
     ctx.stroke();
   }
@@ -830,6 +932,10 @@ export class Game {
     ctx.fillText(`${this.character.name}   Lv ${this.level}   カフェイン  ${Math.max(0, Math.ceil(this.player.caffeine))}`, x, y + 34);
     ctx.fillText(`生存時間  ${formatTime(this.time)}`, x, y + 54);
     if (!this.boss) ctx.fillText(`眠気が来るまで  ${formatTime(CONFIG.boss.timeSec - this.time)}`, x, y + 74);
+    if (stage.id === 'extra') {
+      ctx.fillStyle = c.xpBar;
+      ctx.fillText(stage.name, x + 170, y + 54);
+    }
 
     // 持っている攻撃とアイテムの一覧（持っている数 / 上限）
     const { slots } = CONFIG;
@@ -852,6 +958,18 @@ export class Game {
       ctx.textBaseline = 'top';
       ctx.fillStyle = 'rgba(243, 230, 216, 0.6)';
       ctx.fillText(`${CONFIG.items[it.id].name}  ${levelLabel(it.level)}`, x + 22, ly);
+      ly += 18;
+    }
+    // 椿の花は枠とは別に出す
+    for (const kind of this.camellias) {
+      const k = CONFIG.camellia.kinds[kind];
+      ly += 2;
+      drawItemIcon(ctx, `camellia-${kind}`, x + 9, ly + 6, 18);
+      ctx.font = font(11);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = k.color;
+      ctx.fillText(`${k.name}  レア`, x + 22, ly);
       ly += 18;
     }
 
@@ -1017,7 +1135,7 @@ export class Game {
   }
 
   #drawOverlay() {
-    if (this.state === 'playing' || this.state === 'paused' || this.state === 'levelup') return;
+    if (this.state === 'playing' || this.state === 'paused' || this.state === 'levelup' || this.state === 'carry') return;
     const { ctx } = this;
     const cleared = this.state === 'clear';
     if (!cleared) {
@@ -1028,9 +1146,14 @@ export class Game {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = font(28, true);
-    ctx.fillText(cleared ? '朝が来た！' : '眠りに落ちた…', this.viewW / 2, this.viewH / 2 - 30);
+    const extra = stage.id === 'extra';
+    ctx.fillText(cleared ? (extra ? 'エクストラステージクリア！' : '朝が来た！') : '眠りに落ちた…', this.viewW / 2, this.viewH / 2 - 30);
     ctx.font = font(16);
     ctx.fillText(`生存時間  ${formatTime(this.time)}`, this.viewW / 2, this.viewH / 2 + 10);
-    ctx.fillText('クリック / Space でもう一度', this.viewW / 2, this.viewH / 2 + 40);
+    ctx.fillText(extra ? 'クリック / Space で 1 面からもう一度' : 'クリック / Space でもう一度', this.viewW / 2, this.viewH / 2 + 40);
+    if (cleared && !extra) {
+      ctx.font = font(18, true);
+      ctx.fillText('E：攻撃を 1 つ持ってエクストラステージへ', this.viewW / 2, this.viewH / 2 + 76);
+    }
   }
 }

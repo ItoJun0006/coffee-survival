@@ -1,10 +1,12 @@
 import { CONFIG } from '../config.js';
 import { sound } from '../sound.js';
+import { flower, leaf } from '../item-icons.js';
+import { stage } from '../stage.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
-// 珈琲豆のキャラを描く。look は目線の向き（長さ 0〜1）、bob は歩くときの弾み（0〜1）
-export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 0, slowed = false } = {}) {
+// 珈琲豆のキャラを描く。look は目線の向き（長さ 0〜1）、bob は歩くときの弾み（0〜1）、skin はスキン「椿」を付けているか
+export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 0, slowed = false, skin = false } = {}) {
   const { color, crease } = character.roast;
   ctx.save();
   ctx.scale(1 + bob * 0.06, 1 - bob * 0.06);
@@ -44,6 +46,7 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   ctx.beginPath();
   ctx.arc(0, r * 0.38, r * 0.16, 0.15 * Math.PI, 0.85 * Math.PI);
   ctx.stroke();
+  if (skin) drawCamelliaSkin(ctx, r);
 
   if (slowed) {
     ctx.globalAlpha = 0.45;
@@ -53,6 +56,44 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
     ctx.fill();
   }
   ctx.restore();
+}
+
+// スキン「椿」。椿の花の絵は、大きさ 80 を基準にしたアイコンの絵（item-icons.js）を使う
+function drawCamelliaSkin(ctx, r) {
+  const k = r / 40;
+  const at = (x, y, size, draw) => {
+    ctx.save();
+    ctx.translate(x * r, y * r);
+    ctx.scale(k * size, k * size);
+    draw();
+    ctx.restore();
+  };
+  const look = CONFIG.camellia.skin.look;
+  if (look === 'A') {
+    // A：頭に大きな椿の髪飾り
+    at(-0.5, -0.82, 1, () => {
+      leaf(ctx, 14, 10, 12, 0.6);
+      flower(ctx, 0, 0, 18);
+    });
+  } else if (look === 'B') {
+    // B：椿の花冠
+    at(0, -0.95, 1, () => {
+      leaf(ctx, -16, 4, 9, -0.4);
+      leaf(ctx, 16, 4, 9, 0.4);
+      flower(ctx, -24, 6, 11);
+      flower(ctx, 24, 6, 11);
+      flower(ctx, 0, -2, 13);
+    });
+  } else {
+    // C：体をぐるりと囲む椿の首飾り（花をまとう）
+    for (let i = 0; i < 5; i++) {
+      const a = Math.PI * (0.12 + i * 0.19);
+      at(Math.cos(a) * 0.82, Math.sin(a) * 0.72 + 0.12, 0.55, () => {
+        leaf(ctx, 12, 8, 10, 0.5 + i);
+        flower(ctx, 0, 0, 15);
+      });
+    }
+  }
 }
 
 export class Player {
@@ -83,14 +124,15 @@ export class Player {
 
   // dir: 入力方向（長さ 0〜1）、push: 外から加わる速度（px/秒）
   update(dt, dir, push = { x: 0, y: 0 }) {
-    const { width, height } = CONFIG.world;
+    const { width, height } = stage.world;
     const speed = this.speed * (this.slowTimer > 0 ? this.slowFactor : 1);
     const { x, y } = this;
     this.x = clamp(this.x + (dir.x * speed + push.x) * dt, this.radius, width - this.radius);
     this.y = clamp(this.y + (dir.y * speed + push.y) * dt, this.radius, height - this.radius);
     // このフレームで実際に動いた距離（壁で止まった分は含まない）
     this.moved = Math.hypot(this.x - x, this.y - y);
-    this.caffeine -= CONFIG.player.caffeineDecayPerSec * dt;
+    // エクストラステージでは、カフェインは時間で減らない
+    if (stage.caffeineDecay) this.caffeine -= CONFIG.player.caffeineDecayPerSec * dt;
     this.invincibleTimer = Math.max(0, this.invincibleTimer - dt);
     this.slowTimer = Math.max(0, this.slowTimer - dt);
     // 動いている間だけ弾ませ、目線を進む方向に向ける
@@ -134,6 +176,7 @@ export class Player {
       look: this.look,
       bob: Math.abs(Math.sin(this.walkTime * 12)),
       slowed: this.slowTimer > 0,
+      skin: this.skin,
     });
     ctx.restore();
   }
