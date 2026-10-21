@@ -72,11 +72,11 @@ export class LevelUpMenu {
     const { kind, iconId, name, desc, element, level, isNew } = card.choice;
     const cx = card.x + card.w / 2;
     // 攻撃は茶色、アイテムは緑、レア強化は専用の色の枠で見分ける
-    const look = kind === 'rare' ? CONFIG.rare[iconId].look : null;
-    const accent = kind === 'rare' ? c.rareCard[look] : kind === 'item' ? c.itemCard : c.hudBar;
+    const { camellia } = card.choice;
+    const accent = kind === 'rare' ? CONFIG.camellia.kinds[camellia].color : kind === 'item' ? c.itemCard : c.hudBar;
     ctx.fillStyle = selected ? 'rgba(217, 160, 102, 0.25)' : c.hudBg;
     ctx.fillRect(card.x, card.y, card.w, card.h);
-    if (kind === 'rare') drawRareCardBack(ctx, card, look, selected);
+    if (kind === 'rare') drawRareCardBack(ctx, card, camellia, selected);
     ctx.strokeStyle = accent;
     ctx.lineWidth = selected || kind === 'rare' ? 3 : 1;
     ctx.globalAlpha = selected || kind === 'rare' ? 1 : 0.5;
@@ -151,22 +151,22 @@ export class LevelUpMenu {
   }
 }
 
-// レア強化のカードの下地（見た目の候補 A・B・C）
-function drawRareCardBack(ctx, card, look, selected) {
+// 椿の花のカードの下地。種類ごとに描き分ける
+function drawRareCardBack(ctx, card, kind, selected) {
   const t = performance.now() / 1000;
   ctx.save();
   ctx.beginPath();
   ctx.rect(card.x, card.y, card.w, card.h);
   ctx.clip();
-  if (look === 'A') {
-    // A：椿の赤で下地を染め、上と下に帯を入れる
+  if (kind === 'yabu') {
+    // 藪椿：椿の赤で下地を染め、上と下に帯を入れる
     ctx.fillStyle = selected ? 'rgba(224, 86, 106, 0.32)' : 'rgba(224, 86, 106, 0.18)';
     ctx.fillRect(card.x, card.y, card.w, card.h);
     ctx.fillStyle = 'rgba(224, 86, 106, 0.55)';
     ctx.fillRect(card.x, card.y, card.w, 6);
     ctx.fillRect(card.x, card.y + card.h - 6, card.w, 6);
-  } else if (look === 'B') {
-    // B：金色の枠が、ゆっくり脈打つように光る
+  } else if (kind === 'coffee') {
+    // 珈琲椿：金色の枠が、ゆっくり脈打つように光る
     ctx.restore();
     ctx.save();
     ctx.shadowColor = 'rgba(240, 213, 138, 0.9)';
@@ -182,7 +182,7 @@ function drawRareCardBack(ctx, card, look, selected) {
     ctx.fillStyle = g;
     ctx.fillRect(card.x, card.y, card.w, card.h);
   } else {
-    // C：淡い桃色の下地に、花びらがひらひら落ちる
+    // 落ち椿：淡い桃色の下地に、花びらがひらひら落ちる
     ctx.fillStyle = 'rgba(242, 167, 184, 0.12)';
     ctx.fillRect(card.x, card.y, card.w, card.h);
     for (let i = 0; i < 7; i++) {

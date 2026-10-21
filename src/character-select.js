@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { CHARACTERS, describeStats, isAvailable, statBars } from './characters.js';
+import { CHARACTERS, canWearSkin, describeStats, isAvailable, statBars, toggleSkin, wearsSkin } from './characters.js';
 import { drawCharacter } from './entities/player.js';
 import { font } from './font.js';
 
@@ -53,6 +53,7 @@ export class CharacterSelect {
     if (input.wasPressed('ArrowRight', 'KeyD')) moveTo(this.index + 1);
     if (input.wasPressed('ArrowUp', 'KeyW')) moveTo(this.index - COLS);
     if (input.wasPressed('ArrowDown', 'KeyS')) moveTo(this.index + COLS);
+    if (input.wasPressed('KeyQ') && canWearSkin(this.selected)) toggleSkin();
 
     // ホイールは、選んでいるキャラを変えずに表示だけを動かす
     this.wheel += input.consumeWheel();
@@ -174,7 +175,7 @@ export class CharacterSelect {
       ctx.save();
       ctx.translate(cx, cy);
       const scale = character.growth ? character.growth.scaleFrom : (character.drawScale ?? 1);
-      drawCharacter(ctx, character, 22 * scale, { bob: selected ? Math.abs(Math.sin(performance.now() / 160)) : 0 });
+      drawCharacter(ctx, character, 22 * scale, { bob: selected ? Math.abs(Math.sin(performance.now() / 160)) : 0, skin: wearsSkin(character) });
       ctx.restore();
     } else {
       this.#drawSilhouette(ctx, cx, cy, 22, character.placeholder ? 0.07 : 0.14);
@@ -226,7 +227,7 @@ export class CharacterSelect {
       ctx.save();
       ctx.translate(cx, cy);
       const scale = sel.growth ? sel.growth.scaleFrom : (sel.drawScale ?? 1);
-      drawCharacter(ctx, sel, 42 * scale, { bob: Math.abs(Math.sin(performance.now() / 160)) });
+      drawCharacter(ctx, sel, 42 * scale, { bob: Math.abs(Math.sin(performance.now() / 160)), skin: wearsSkin(sel) });
       ctx.restore();
     } else {
       this.#drawSilhouette(ctx, cx, cy, 42, sel.placeholder ? 0.07 : 0.14);
@@ -271,7 +272,13 @@ export class CharacterSelect {
     ctx.textAlign = 'center';
     ctx.font = font(12);
     ctx.fillStyle = 'rgba(243, 230, 216, 0.8)';
-    describeStats(sel).forEach((line, i) => ctx.fillText(line, cx, TOP + 300 + i * 18));
+    const lines = describeStats(sel);
+    lines.forEach((line, i) => ctx.fillText(line, cx, TOP + 300 + i * 18));
+    // スキンを付けられるキャラは、付け外しの案内を出す
+    if (canWearSkin(sel)) {
+      ctx.fillStyle = CONFIG.camellia.kinds.yabu.color;
+      ctx.fillText(`Q：スキン「${CONFIG.camellia.skin.name}」を${wearsSkin(sel) ? 'はずす' : 'つける'}`, cx, TOP + 312 + lines.length * 18);
+    }
   }
 
   #drawPopup(ctx, viewW, viewH) {

@@ -9,7 +9,7 @@ import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
-import { loadLastCharacter, saveLastCharacter } from './characters.js';
+import { loadLastCharacter, saveLastCharacter, wearsSkin } from './characters.js';
 import { unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, saveProgress, pointCard } from './progress.js';
 import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu, levelLabel } from './level-up-menu.js';
@@ -76,6 +76,7 @@ export class Game {
     sound.setMode('normal');
     sound.startMusic();
     this.player = new Player(CONFIG.world.width / 2, CONFIG.world.height / 2, this.character);
+    this.player.skin = wearsSkin(this.character);
     this.beans = [];
     this.xpOrbs = [];
     this.enemies = [];
@@ -105,8 +106,8 @@ export class Game {
       this.#applyChoice(choices.find((c) => c.isNew && c.kind === 'weapon') ?? choices[0] ?? this.#bonusChoices()[1]);
     }
     this.notice = null;
-    // 受け取ったレア強化の id
-    this.rares = [];
+    // 受け取った椿の花の種類
+    this.camellias = [];
     this.nextWaveAt = CONFIG.bigWave.firstSec;
     this.waveUntil = 0;
   }
@@ -151,9 +152,9 @@ export class Game {
     return (1 + CONFIG.items.power.perLevel * this.#itemLevel('power')) * this.#rareRate('damageRate');
   }
 
-  // 受け取ったレア強化の倍率をかけ合わせる
+  // 受け取った椿の花の数だけ、倍率をかけ合わせる
   #rareRate(key) {
-    return this.rares.reduce((m, id) => m * CONFIG.rare[id][key], 1);
+    return CONFIG.camellia[key] ** this.camellias.length;
   }
 
   get xpRate() {
@@ -215,18 +216,22 @@ export class Game {
     };
   }
 
-  // レア強化のカード。まだ受け取っていなければ、chance の確率で出す
+  // 椿の花のカード。chance の確率で、まだ受け取っていない種類からランダムに 1 つ出す
   #rareChoices() {
-    return Object.entries(CONFIG.rare).flatMap(([id, cfg]) => {
-      if (this.rares.includes(id) || Math.random() >= cfg.chance) return [];
-      return [{
-        kind: 'rare', iconId: id, name: cfg.name, desc: cfg.desc, element: 'none', level: 0, isNew: true,
-        apply: () => {
-          this.rares.push(id);
-          return `${cfg.name} が咲いた！`;
-        },
-      }];
-    });
+    const cfg = CONFIG.camellia;
+    const left = Object.keys(cfg.kinds).filter((k) => !this.camellias.includes(k));
+    if (!left.length || Math.random() >= cfg.chance) return [];
+    const kind = left[Math.floor(Math.random() * left.length)];
+    const { name } = cfg.kinds[kind];
+    return [{
+      kind: 'rare', camellia: kind, iconId: `camellia-${kind}`, name, desc: cfg.desc, element: 'none', level: 0, isNew: true,
+      apply: () => {
+        this.camellias.push(kind);
+        // 3 種類そろったら、実績を解除してスキンを手に入れる
+        if (this.camellias.length === Object.keys(cfg.kinds).length && unlock(cfg.achievement.id)) this.#toast(cfg.achievement.text);
+        return `${name} が咲いた！`;
+      },
+    }];
   }
 
   // 攻撃もアイテムもすべて Lv 上限になったあとの候補
@@ -894,15 +899,16 @@ export class Game {
       ctx.fillText(`${CONFIG.items[it.id].name}  ${levelLabel(it.level)}`, x + 22, ly);
       ly += 18;
     }
-    // レア強化は枠とは別に出す
-    for (const id of this.rares) {
+    // 椿の花は枠とは別に出す
+    for (const kind of this.camellias) {
+      const k = CONFIG.camellia.kinds[kind];
       ly += 2;
-      drawItemIcon(ctx, id, x + 9, ly + 6, 18);
+      drawItemIcon(ctx, `camellia-${kind}`, x + 9, ly + 6, 18);
       ctx.font = font(11);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-      ctx.fillStyle = CONFIG.colors.rareCard[CONFIG.rare[id].look];
-      ctx.fillText(`${CONFIG.rare[id].name}  レア`, x + 22, ly);
+      ctx.fillStyle = k.color;
+      ctx.fillText(`${k.name}  レア`, x + 22, ly);
       ly += 18;
     }
 

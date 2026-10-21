@@ -1,5 +1,4 @@
 import { font } from './font.js';
-import { CONFIG } from './config.js';
 // 強化アイテムのアイコン。中心 (x, y)、幅と高さがおよそ size の範囲に描く
 // 絵は 80 × 80 の大きさを基準に描き、size に合わせて縮める
 const CREAM = '#f4e3c8';
@@ -80,11 +79,6 @@ const ICONS = {
     for (const [sx, sy, ex, ey] of [[-30, -22, -38, -30], [10, -30, 14, -40], [-36, 4, -46, 4], [22, -12, 32, -16]]) {
       line(ctx, sx, sy, ex, ey);
     }
-  },
-
-  // レア強化：椿の花。見た目の候補ごとに描き分ける
-  camellia(ctx) {
-    CAMELLIA[CONFIG.rare.camellia.look](ctx);
   },
 
   // 経験値アップ：きらきらの角砂糖
@@ -188,22 +182,23 @@ const CAMELLIA_DARK = '#9e2236';
 const LEAF = '#3f7a4a';
 const STAMEN = '#f2c94c';
 
+// 椿の花のアイコン（仕様 010）。ICONS には camellia-yabu のような名前で入れる
 const CAMELLIA = {
-  // A：正面から見た藪椿。赤い花びら 5 枚と黄色いしべ、つやのある葉 2 枚
-  A(ctx) {
+  // 藪椿：正面から見た椿。赤い花びら 5 枚と黄色いしべ、つやのある葉 2 枚
+  yabu(ctx) {
     leaf(ctx, -24, 22, 18, -0.7);
     leaf(ctx, 26, 20, 18, 0.8);
     flower(ctx, 0, -2, 26, CAMELLIA_RED, CAMELLIA_DARK);
   },
-  // B：珈琲に浮かぶ椿。マグカップの上に赤い花が浮かび、湯気が立つ
-  B(ctx) {
+  // 珈琲椿：珈琲に浮かぶ椿。マグカップの上に赤い花が浮かび、湯気が立つ
+  coffee(ctx) {
     mug(ctx, 0, -4, 52, 36);
     steam(ctx, 0, -22, 14);
     leaf(ctx, 18, -10, 12, 0.9);
     flower(ctx, -4, -10, 16, CAMELLIA_RED, CAMELLIA_DARK);
   },
-  // C：花ごと落ちる「落ち椿」。横から見た丸い花と、舞う花びら
-  C(ctx) {
+  // 落ち椿：花ごと落ちる椿。横から見た丸い花と、舞う花びら
+  ochi(ctx) {
     leaf(ctx, -20, 26, 16, -0.4);
     ctx.fillStyle = '#d9607a';
     ctx.beginPath();
@@ -232,7 +227,8 @@ const CAMELLIA = {
   },
 };
 
-function flower(ctx, x, y, r, color, shade) {
+// 正面から見た椿の花（花びら 5 枚と黄色いしべ）。スキンでも使う
+export function flower(ctx, x, y, r, color = CAMELLIA_RED, shade = CAMELLIA_DARK) {
   for (let i = 0; i < 5; i++) {
     const a = -Math.PI / 2 + (i * Math.PI * 2) / 5;
     ctx.fillStyle = i % 2 ? shade : color;
@@ -250,7 +246,7 @@ function flower(ctx, x, y, r, color, shade) {
   ctx.fill();
 }
 
-function leaf(ctx, x, y, len, rot) {
+export function leaf(ctx, x, y, len, rot) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rot);
@@ -263,3 +259,5 @@ function leaf(ctx, x, y, len, rot) {
   line(ctx, -len * 0.8, 0, len * 0.8, 0);
   ctx.restore();
 }
+
+for (const [kind, draw] of Object.entries(CAMELLIA)) ICONS[`camellia-${kind}`] = draw;

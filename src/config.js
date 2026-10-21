@@ -92,14 +92,23 @@ export const CONFIG = {
     power: { name: '攻撃力アップ', desc: 'すべての攻撃の\nダメージが上がる', perLevel: 0.1 },
     xp: { name: '経験値アップ', desc: '経験値の粒から入る\n経験値が増える', perLevel: 0.15 },
   },
-  // レア強化（仕様 010）。レベルアップの選択画面を開くたびに chance の確率で、4 枚目のカードとして出る。
-  // アイテムの枠は使わず、1 回の挑戦で 1 回だけ受け取れる。intervalRate は攻撃の間隔、damageRate はダメージの倍率
-  rare: {
-    camellia: {
-      name: '椿の花', desc: 'すべての攻撃の間隔が\n大きく短くなるが、\nダメージが少し下がる', chance: 0, intervalRate: 0.6, damageRate: 0.8,
-      // 見た目の候補（A・B・C）。選んでもらったら 1 つに絞り、chance を 0.02 にする（それまでは出さない）
-      look: 'A',
+  // レア強化「椿の花」（仕様 010）。レベルアップの選択画面を開くたびに chance の確率で、まだ受け取っていない種類が
+  // 4 枚目のカードとして出る。アイテムの枠は使わない。1 輪ごとに攻撃の間隔が intervalRate 倍、ダメージが damageRate 倍
+  camellia: {
+    chance: 0.02,
+    intervalRate: 0.75,
+    damageRate: 0.9,
+    desc: 'すべての攻撃の間隔が\n大きく短くなるが、\nダメージが少し下がる',
+    // 種類ごとの名前とカードの色。見た目（アイコン・カードの下地）は item-icons.js と level-up-menu.js で描き分ける
+    kinds: {
+      yabu: { name: '椿の花・藪椿', color: '#e0566a' },
+      coffee: { name: '椿の花・珈琲椿', color: '#f0d58a' },
+      ochi: { name: '椿の花・落ち椿', color: '#f2a7b8' },
     },
+    // 1 回の挑戦で 3 種類そろえると、実績を解除してスキンを手に入れる
+    achievement: { id: 'skin-camellia', text: '実績解除：椿三輪　アラビカのスキン「椿」を手に入れた！' },
+    // スキンを付けられる品種。look は見た目の候補（A・B・C）で、選んでもらったら 1 つに絞る
+    skin: { name: '椿', variety: 'arabica', look: 'A' },
   },
   // 攻撃。element が hot の攻撃はボスに効きやすく、ice は効きにくい
   weapons: {
@@ -267,7 +276,6 @@ export const CONFIG = {
     xpBar: '#f0d58a',
     bossBar: '#9b7fd1',
     itemCard: '#8fc7a0',
-    rareCard: { A: '#e0566a', B: '#f0d58a', C: '#f2a7b8' },
     text: '#f3e6d8',
   },
 };

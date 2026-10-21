@@ -50,6 +50,28 @@ export function saveLastCharacter(character) {
   }
 }
 
+// スキン「椿」（仕様 010）。実績「椿三輪」を解除したあと、アラビカだけに付けられる。付けているかどうかを保存する
+const SKIN_KEY = 'coffee-survival.skin';
+let skinOn = false;
+try {
+  skinOn = localStorage.getItem(SKIN_KEY) === 'camellia';
+} catch {
+  // 保存領域が使えなくても遊べるようにする
+}
+
+export const canWearSkin = (c) => !!c && c.variety?.id === CONFIG.camellia.skin.variety && isUnlocked(CONFIG.camellia.achievement.id);
+
+export const wearsSkin = (c) => skinOn && canWearSkin(c);
+
+export function toggleSkin() {
+  skinOn = !skinOn;
+  try {
+    localStorage.setItem(SKIN_KEY, skinOn ? 'camellia' : '');
+  } catch {
+    // 同上
+  }
+}
+
 // 選択画面に出す性能のバー。value は 0〜1 で、min〜max の範囲に対する位置
 const STAT_BARS = [
   { label: 'スピード', get: (r) => r.speedRate, min: 0.6, max: 1.5 },
