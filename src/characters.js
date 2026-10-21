@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { isUnlocked } from './unlocks.js';
+import { isUnlocked } from './progress.js';
 
 const STORAGE_KEY = 'coffee-survival.character';
 

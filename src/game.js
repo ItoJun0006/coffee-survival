@@ -10,7 +10,7 @@ import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
 import { loadLastCharacter, saveLastCharacter } from './characters.js';
-import { unlock, recordLaunch } from './unlocks.js';
+import { unlock, recordLaunch, recordPlay, addPlayTime, saveProgress, pointCard } from './progress.js';
 import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu, levelLabel } from './level-up-menu.js';
 import { drawItemIcon } from './item-icons.js';
@@ -51,6 +51,9 @@ export class Game {
     // 画面の上に数秒出す知らせ（キャラの解放など）。ゲームの時間ではなく実際の時間で消える
     this.toasts = [];
     this.#checkUnlocks('launches', recordLaunch());
+    // 前回までのポイントカードで条件を満たしていれば、ここで解放する（閉じる直前に満たした場合など）
+    this.#checkUnlocks('plays', pointCard().plays);
+    this.#checkUnlocks('playTime', pointCard().playSec);
     this.reset();
     this.state = 'title';
   }
@@ -321,7 +324,7 @@ export class Game {
       } else if (result) {
         this.character = result;
         saveLastCharacter(result);
-        this.reset();
+        this.#startRun();
       }
       return;
     }
@@ -334,7 +337,7 @@ export class Game {
       return;
     }
     if (this.state !== 'playing') {
-      if (this.input.consumeClick()) this.reset();
+      if (this.input.consumeClick()) this.#startRun();
       return;
     }
     this.input.consumeClick();
@@ -344,6 +347,7 @@ export class Game {
     }
 
     this.time += dt;
+    this.#addPlayTime(dt);
     if (!this.boss && this.time >= CONFIG.boss.timeSec) this.#spawnBoss();
 
     this.#updatePlayer(dt);
@@ -370,7 +374,28 @@ export class Game {
     this.state = state;
     sound.stopMusic();
     sound.play(state);
+    saveProgress();
+    this.#checkUnlocks('playTime', pointCard().playSec);
     if (state === 'clear') this.#checkUnlocks('bossDefeat');
+  }
+
+  // ---- ポイントカード ----
+
+  // ゲームを始める（キャラ選択から、またはゲームオーバー・クリアからのやり直し）。プレイ回数を 1 増やす
+  #startRun() {
+    this.reset();
+    this.playTimeUnsaved = 0;
+    this.#checkUnlocks('plays', recordPlay());
+  }
+
+  // 遊んでいる時間を累計に足す。ページを急に閉じても大きく失われないよう、5 秒ごとに保存する
+  #addPlayTime(dt) {
+    const total = addPlayTime(dt);
+    this.playTimeUnsaved = (this.playTimeUnsaved ?? 0) + dt;
+    if (this.playTimeUnsaved < 5) return;
+    this.playTimeUnsaved = 0;
+    saveProgress();
+    this.#checkUnlocks('playTime', total);
   }
 
   // ---- キャラの性能と解放 ----
@@ -400,6 +425,8 @@ export class Game {
       const met = {
         bossDefeat: () => true,
         launches: () => value >= c.unlock.count,
+        plays: () => value >= c.unlock.count,
+        playTime: () => value >= c.unlock.seconds,
         allWeaponsMax: () => this.weapons.length >= CONFIG.slots.weapons && this.weapons.every((w) => w.isMax),
       }[type]();
       if (met && unlock(c.id)) this.#toast(`新しいキャラ「${c.name}」が解放された！`);
@@ -458,7 +485,7 @@ export class Game {
     return [
       { label: '再開', x, y, w, h, action: () => { this.state = 'playing'; } },
       { label: `音楽の音量  ◀ ${sound.musicVolume}% ▶`, x, y: y + gap, w, h, adjust: (d) => sound.changeMusicVolume(d) },
-      { label: 'タイトルへ戻る', x, y: y + gap * 2, w, h, action: () => { this.reset(); this.state = 'title'; } },
+      { label: 'タイトルへ戻る', x, y: y + gap * 2, w, h, action: () => { saveProgress(); this.reset(); this.state = 'title'; } },
     ];
   }
 
@@ -856,6 +883,22 @@ export class Game {
     const img = this.titleImage;
     if (img.complete && img.naturalWidth) this.#drawTitleArt(img);
     else this.#drawTitleText();
+    this.#drawPointCard();
+  }
+
+  // タイトル画面の左下に、ポイントカード（プレイ回数・累計プレイ時間）を出す
+  #drawPointCard() {
+    const { ctx } = this;
+    const { plays, playSec } = pointCard();
+    const min = Math.floor(playSec / 60);
+    const time = min >= 60 ? `${Math.floor(min / 60)} 時間 ${String(min % 60).padStart(2, '0')} 分` : `${min} 分`;
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.font = font(13);
+    ctx.fillStyle = 'rgba(243, 230, 216, 0.75)';
+    ctx.fillText(`ポイントカード　プレイ ${plays} 回　累計 ${time}`, 16, this.viewH - 14);
+    ctx.restore();
   }
 
   // ロゴ入りのイラストを、欠けないように画面いっぱいに表示し、下に案内を重ねる
