@@ -1,3 +1,10 @@
+/* 画面の文字のフォント（SIL Open Font License。assets/fonts/OFL.txt） */
+@font-face {
+  font-family: 'Yusei Magic';
+  src: url('../assets/fonts/YuseiMagic-Regular.woff2') format('woff2');
+  font-display: block;
+}
+
 html, body {
   margin: 0;
   height: 100%;

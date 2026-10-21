@@ -1,5 +1,7 @@
 export const CONFIG = {
   title: { name: 'コーヒーサバイバル', subtitle: '〜 眠気に負けるな 〜' },
+  // 画面の文字のフォント。Yusei Magic は assets/fonts に置き、css/style.css で読み込む
+  font: { family: '"Yusei Magic", system-ui, sans-serif' },
   // 操作キャラ。品種 × 焙煎度の組み合わせで 1 体になる（仮実装）
   // 性能は焙煎度ごとに決める。speedRate・damageRate・attackIntervalRate は標準（中煎り）に対する倍率で、
   // attackIntervalRate は小さいほど攻撃の間隔が短い（連射が速い）。unlocked: false の品種は選択画面に鍵付きで出る

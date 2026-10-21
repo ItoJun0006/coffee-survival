@@ -13,6 +13,7 @@ import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu } from './level-up-menu.js';
 import { drawItemIcon } from './item-icons.js';
 import { sound } from './sound.js';
+import { font } from './font.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -620,13 +621,13 @@ export class Game {
     ctx.save();
     ctx.globalAlpha = 0.6;
     ctx.fillStyle = CONFIG.colors.text;
-    ctx.font = '12px system-ui, sans-serif';
+    ctx.font = font(12);
     ctx.textAlign = 'right';
     ctx.textBaseline = 'top';
     ctx.fillText(sound.isMuted ? 'M：消音中' : 'M：音あり ♪', this.viewW - 16, 16);
     if (performance.now() < (this.volumeShownUntil ?? 0)) {
       ctx.globalAlpha = 1;
-      ctx.font = 'bold 14px system-ui, sans-serif';
+      ctx.font = font(14, true);
       ctx.fillText(`音楽 ${sound.musicVolume}%`, this.viewW - 16, 34);
     }
     ctx.restore();
@@ -695,7 +696,7 @@ export class Game {
     ctx.fillRect(x, y + 22, w * (this.xp / this.xpToNext), 5);
 
     ctx.fillStyle = c.text;
-    ctx.font = '14px system-ui, sans-serif';
+    ctx.font = font(14);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillText(`${this.character.name}   Lv ${this.level}   カフェイン  ${Math.max(0, Math.ceil(this.player.caffeine))}`, x, y + 34);
@@ -710,7 +711,7 @@ export class Game {
       ctx.fillText(text, x, ly);
       ly += 14;
     };
-    ctx.font = '11px system-ui, sans-serif';
+    ctx.font = font(11);
     line(`攻撃 ${this.weapons.length}/${slots.weapons}`, 'rgba(243, 230, 216, 0.85)');
     for (const wp of this.weapons) line(`・${wp.name}  Lv ${wp.level}`, 'rgba(243, 230, 216, 0.6)');
     ly += 4;
@@ -718,7 +719,7 @@ export class Game {
     for (const it of this.items) {
       ly += 2;
       drawItemIcon(ctx, it.id, x + 9, ly + 6, 18);
-      ctx.font = '11px system-ui, sans-serif';
+      ctx.font = font(11);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
       ctx.fillStyle = 'rgba(243, 230, 216, 0.6)';
@@ -740,10 +741,10 @@ export class Game {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = CONFIG.colors.xpBar;
-    ctx.font = 'bold 22px system-ui, sans-serif';
+    ctx.font = font(22, true);
     ctx.fillText(this.notice.title, this.viewW / 2, this.viewH * 0.18);
     ctx.fillStyle = CONFIG.colors.text;
-    ctx.font = '16px system-ui, sans-serif';
+    ctx.font = font(16);
     ctx.fillText(this.notice.text, this.viewW / 2, this.viewH * 0.18 + 28);
     ctx.restore();
   }
@@ -756,7 +757,7 @@ export class Game {
     const y = this.viewH - 40;
 
     ctx.fillStyle = c.text;
-    ctx.font = '13px system-ui, sans-serif';
+    ctx.font = font(13);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';
     ctx.fillText(`${CONFIG.boss.name}${this.boss.eyeOpen ? '  ― 目が開いた！' : ''}`, x, y - 4);
@@ -768,7 +769,7 @@ export class Game {
     if (this.time - this.bossAppearedAt < 3) {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.font = 'bold 20px system-ui, sans-serif';
+      ctx.font = font(20, true);
       ctx.fillText(`${CONFIG.boss.name} が現れた`, this.viewW / 2, this.viewH * 0.3);
     }
   }
@@ -784,20 +785,20 @@ export class Game {
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = 'bold 48px system-ui, sans-serif';
+    ctx.font = font(48, true);
     ctx.fillStyle = c.hudBar;
     ctx.fillText(CONFIG.title.name, cx, cy - 60);
 
-    ctx.font = '16px system-ui, sans-serif';
+    ctx.font = font(16);
     ctx.fillStyle = c.text;
     ctx.fillText(CONFIG.title.subtitle, cx, cy - 15);
-    ctx.font = '13px system-ui, sans-serif';
+    ctx.font = font(13);
     ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
     ctx.fillText('珈琲豆を拾ってカフェインを保ち、朝まで生き延びろ', cx, cy + 20);
 
     // スタート案内はゆっくり点滅させる
     ctx.globalAlpha = 0.5 + 0.5 * Math.sin(performance.now() / 300);
-    ctx.font = 'bold 18px system-ui, sans-serif';
+    ctx.font = font(18, true);
     ctx.fillStyle = c.xpBar;
     ctx.fillText('クリック / Space でスタート', cx, cy + 80);
     ctx.globalAlpha = 1;
@@ -811,10 +812,10 @@ export class Game {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = c.text;
-    ctx.font = 'bold 28px system-ui, sans-serif';
+    ctx.font = font(28, true);
     ctx.fillText('ポーズ中', this.viewW / 2, this.viewH / 2 - 60);
 
-    ctx.font = 'bold 18px system-ui, sans-serif';
+    ctx.font = font(18, true);
     this.#pauseMenuItems().forEach((it, i) => {
       const selected = i === this.pauseIndex;
       ctx.fillStyle = selected ? c.hudBar : c.hudBg;
@@ -835,9 +836,9 @@ export class Game {
     ctx.fillStyle = cleared ? '#3b2418' : CONFIG.colors.text;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = 'bold 28px system-ui, sans-serif';
+    ctx.font = font(28, true);
     ctx.fillText(cleared ? '朝が来た！' : '眠りに落ちた…', this.viewW / 2, this.viewH / 2 - 30);
-    ctx.font = '16px system-ui, sans-serif';
+    ctx.font = font(16);
     ctx.fillText(`生存時間  ${formatTime(this.time)}`, this.viewW / 2, this.viewH / 2 + 10);
     ctx.fillText('クリック / Space でもう一度', this.viewW / 2, this.viewH / 2 + 40);
   }

@@ -1,6 +1,7 @@
 import { CONFIG } from './config.js';
 import { CHARACTERS, describeStats, statBars } from './characters.js';
 import { drawCharacter } from './entities/player.js';
+import { font } from './font.js';
 
 const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 
@@ -70,7 +71,7 @@ export class CharacterSelect {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = c.text;
-    ctx.font = 'bold 28px system-ui, sans-serif';
+    ctx.font = font(28, true);
     ctx.fillText('キャラクターを選ぶ', viewW / 2, cards[0].y - 50);
 
     for (const card of cards) this.#drawCard(ctx, card, card.index === this.index);
@@ -79,9 +80,9 @@ export class CharacterSelect {
     const infoY = last.y + last.h + 36;
     const sel = this.selected;
     ctx.fillStyle = c.text;
-    ctx.font = '15px system-ui, sans-serif';
+    ctx.font = font(15);
     ctx.fillText(sel.unlocked ? `${sel.name}（${sel.roast.trait}）：${describeStats(sel)}` : 'この品種はまだ解放されていません', viewW / 2, infoY);
-    ctx.font = '13px system-ui, sans-serif';
+    ctx.font = font(13);
     ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
     ctx.fillText('←→ で選ぶ　Space / Enter / クリックで決定　Esc でタイトルへ', viewW / 2, infoY + 28);
   }
@@ -105,9 +106,9 @@ export class CharacterSelect {
     ctx.restore();
 
     ctx.fillStyle = c.text;
-    ctx.font = 'bold 15px system-ui, sans-serif';
+    ctx.font = font(15, true);
     ctx.fillText(character.unlocked ? character.name : '？？？', cx, card.y + 135);
-    ctx.font = '12px system-ui, sans-serif';
+    ctx.font = font(12);
     ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
     ctx.fillText(character.unlocked ? character.roast.trait : '未解放', cx, card.y + 158);
     if (character.unlocked) this.#drawStatBars(ctx, card);
@@ -120,7 +121,7 @@ export class CharacterSelect {
     const barW = card.w - 28 - labelW;
     ctx.save();
     ctx.textAlign = 'left';
-    ctx.font = '11px system-ui, sans-serif';
+    ctx.font = font(11);
     statBars(card.character).forEach((bar, i) => {
       const y = card.y + 180 + i * 18;
       ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';

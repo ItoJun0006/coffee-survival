@@ -1,5 +1,6 @@
 import { CONFIG } from './config.js';
 import { drawItemIcon } from './item-icons.js';
+import { font } from './font.js';
 
 const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 
@@ -48,15 +49,15 @@ export class LevelUpMenu {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = c.xpBar;
-    ctx.font = 'bold 28px system-ui, sans-serif';
+    ctx.font = font(28, true);
     ctx.fillText(`レベル ${this.level}！`, viewW / 2, cards[0].y - 64);
     ctx.fillStyle = c.text;
-    ctx.font = '15px system-ui, sans-serif';
+    ctx.font = font(15);
     ctx.fillText(this.choices[0].kind === 'bonus' ? 'すべて最大まで強化した！ ボーナスを 1 つ選ぶ' : '攻撃かアイテムを 1 つ選ぶ', viewW / 2, cards[0].y - 32);
 
     for (const card of cards) this.#drawCard(ctx, card, card.index === this.index);
 
-    ctx.font = '13px system-ui, sans-serif';
+    ctx.font = font(13);
     ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
     ctx.fillText('←→ で選ぶ　Space / Enter / 1〜3 キー / クリックで決定', viewW / 2, cards[0].y + CARD_H + 32);
   }
@@ -76,14 +77,14 @@ export class LevelUpMenu {
     ctx.globalAlpha = 1;
 
     ctx.fillStyle = 'rgba(243, 230, 216, 0.5)';
-    ctx.font = '12px system-ui, sans-serif';
+    ctx.font = font(12);
     ctx.fillText(String(card.index + 1), card.x + 16, card.y + 16);
     ctx.fillStyle = accent;
     ctx.fillText(KIND_LABEL[kind], cx, card.y + 16);
 
     // NEW か、強化の段階
     if (kind !== 'bonus') {
-      ctx.font = 'bold 14px system-ui, sans-serif';
+      ctx.font = font(14, true);
       ctx.fillStyle = isNew ? c.xpBar : accent;
       ctx.fillText(isNew ? 'NEW' : `Lv ${level} → ${level + 1}`, cx, card.y + 40);
     }
@@ -95,24 +96,24 @@ export class LevelUpMenu {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = c.text;
-    ctx.font = 'bold 17px system-ui, sans-serif';
+    ctx.font = font(17, true);
     ctx.fillText(name, cx, nameY);
     const elementLabel = ELEMENT_LABEL[element];
     if (elementLabel) {
-      ctx.font = '12px system-ui, sans-serif';
+      ctx.font = font(12);
       ctx.fillStyle = element === 'hot' ? '#e8935a' : '#9cc7e8';
       ctx.fillText(`属性：${elementLabel}`, cx, nameY + 24);
     }
 
     ctx.fillStyle = 'rgba(243, 230, 216, 0.8)';
-    ctx.font = '12px system-ui, sans-serif';
+    ctx.font = font(12);
     this.#wrap(ctx, desc, card.w - 28).forEach((line, i) => ctx.fillText(line, cx, descY + i * 17));
     if (kind === 'bonus') return;
 
     // 強化の段階を ● で見せる
     const max = CONFIG.weaponLevels.max;
     const next = level + 1;
-    ctx.font = '14px system-ui, sans-serif';
+    ctx.font = font(14);
     for (let i = 0; i < max; i++) {
       ctx.fillStyle = i < next ? accent : 'rgba(255,255,255,0.15)';
       ctx.fillText('●', cx + (i - (max - 1) / 2) * 18, card.y + card.h - 24);

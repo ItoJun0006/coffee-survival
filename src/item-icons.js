@@ -1,3 +1,4 @@
+import { font } from './font.js';
 // 強化アイテムのアイコン。中心 (x, y)、幅と高さがおよそ size の範囲に描く
 // 絵は 80 × 80 の大きさを基準に描き、size に合わせて縮める
 const CREAM = '#f4e3c8';
@@ -22,7 +23,7 @@ const ICONS = {
     mug(ctx, -4, -14, 46, 40);
     steam(ctx, -4, -20, 18);
     ctx.fillStyle = DARK;
-    ctx.font = 'bold 13px system-ui, sans-serif';
+    ctx.font = font(13, true);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('XL', -4, 10);
