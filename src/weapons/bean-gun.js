@@ -9,29 +9,15 @@ export class BeanGun extends Weapon {
     this.flashTimer = 0;
   }
 
-  // 今の Lv までに受けた特別な強化をまとめたもの
-  get stats() {
+  baseStats() {
     const c = this.config;
-    const s = { count: c.baseCount ?? 1, spreadDeg: c.baseSpreadDeg ?? 0, flightRate: c.flightRate, rangeRate: 1, pierce: 1, damageRate: 1 };
-    for (const [lv, up] of Object.entries(c.upgrades)) {
-      if (this.level < Number(lv)) continue;
-      if (up.count) Object.assign(s, { count: up.count, spreadDeg: up.spreadDeg });
-      if (up.flightRate) s.flightRate *= up.flightRate;
-      if (up.rangeRate) s.rangeRate *= up.rangeRate;
-      // pierce は 1 つの豆が当たれる敵の数。true なら何体でも
-      if (up.pierce) s.pierce = up.pierce === true ? Infinity : up.pierce;
-      if (up.damageRate) s.damageRate *= up.damageRate;
-    }
-    return s;
+    return { count: c.baseCount ?? 1, spreadDeg: c.baseSpreadDeg ?? 0, flightRate: c.flightRate, rangeRate: 1, pierce: 1, damageRate: 1 };
   }
 
-  get commonUpgrades() {
-    // 限界突破した Lv 9 から先は、Lv が上がるたびに共通の強化を受ける
-    return this.config.commonLevels.filter((lv) => this.level >= lv).length + Math.max(0, this.level - CONFIG.weaponLevels.max);
-  }
-
-  upgradeDesc(nextLevel) {
-    return this.config.upgrades[nextLevel]?.desc ?? this.config.commonDesc;
+  // pierce は 1 つの豆が当たれる敵の数。true なら何体でも
+  get stats() {
+    const s = super.stats;
+    return s.pierce === true ? { ...s, pierce: Infinity } : s;
   }
 
   update(dt) {

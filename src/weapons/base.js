@@ -20,6 +20,9 @@ export class Weapon {
   #baseConfig;
   #config = null;
   #configRate = null;
+  #stats = null;
+  #statsLevel = 0;
+  #statsConfig = null;
 
   constructor(game, config) {
     this.game = game;
@@ -59,14 +62,43 @@ export class Weapon {
     return this.game.debugMaxVariant ?? this.config.maxVisual?.variant ?? 'A';
   }
 
-  // 共通の強化（ダメージ・間隔）を受けた回数。ふつうは Lv が 1 上がるごとに 1 回
+  // 強化の初期値。武器ごとに上書きする
+  baseStats() {
+    return {};
+  }
+
+  // 今の Lv までに受けた特別な強化をまとめたもの。upgrades を Lv の小さい順に重ねる。
+  // キー名が Rate で終わる値はかけ算、それ以外は上書き。desc はカードの説明なので重ねない
+  get stats() {
+    const c = this.config;
+    if (this.#stats && this.#statsLevel === this.level && this.#statsConfig === c) return this.#stats;
+    const s = this.baseStats();
+    const levels = Object.keys(c.upgrades ?? {}).map(Number).sort((a, b) => a - b);
+    for (const lv of levels) {
+      if (this.level < lv) continue;
+      for (const [k, v] of Object.entries(c.upgrades[lv])) {
+        if (k === 'desc') continue;
+        if (k.endsWith('Rate')) s[k] = (s[k] ?? 1) * v;
+        else s[k] = v;
+      }
+    }
+    this.#stats = s;
+    this.#statsLevel = this.level;
+    this.#statsConfig = c;
+    return s;
+  }
+
+  // 共通の強化（ダメージ・間隔）を受けた回数。commonLevels がなければ Lv が 1 上がるごとに 1 回。
+  // commonLevels がある武器も、限界突破した Lv 9 から先は Lv が上がるたびに受ける
   get commonUpgrades() {
-    return this.level - 1;
+    const { commonLevels } = this.config;
+    if (!commonLevels) return this.level - 1;
+    return commonLevels.filter((lv) => this.level >= lv).length + Math.max(0, this.level - CONFIG.weaponLevels.max);
   }
 
   // 次の Lv で変わることの説明。null なら攻撃の説明をそのまま使う
-  upgradeDesc() {
-    return null;
+  upgradeDesc(nextLevel) {
+    return this.config.upgrades?.[nextLevel]?.desc ?? this.config.commonDesc ?? null;
   }
 
   // 強化によるダメージの倍率（Lv 1 で 1 倍）
@@ -74,18 +106,22 @@ export class Weapon {
     return 1 + CONFIG.weaponLevels.damagePerLevel * this.commonUpgrades;
   }
 
-  // 発動間隔が経過していれば true。発動したら this.timer = 0 に戻す
-  // 間隔はキャラの倍率・強化の段階・発生頻度アップで縮む。ただし下限がある
-  tick(dt) {
-    this.timer += dt;
+  // 攻撃の間隔の倍率。キャラの倍率・強化の段階・発生頻度アップで縮む。ただし下限がある
+  get intervalRate() {
     const { intervalPerLevel, minIntervalRate } = CONFIG.weaponLevels;
     const levelRate = 1 - intervalPerLevel * this.commonUpgrades;
-    const rate = Math.max(minIntervalRate, this.game.attackIntervalRate * levelRate * this.game.frequencyRate);
-    return this.timer >= this.config.intervalSec * rate;
+    return Math.max(minIntervalRate, this.game.attackIntervalRate * levelRate * this.game.frequencyRate);
   }
 
-  hit(target, damage = this.config.damage) {
-    this.game.dealDamage(target, damage * this.damageRate, this.config.element);
+  // 発動間隔が経過していれば true。発動したら this.timer = 0 に戻す
+  tick(dt) {
+    this.timer += dt;
+    return this.timer >= this.config.intervalSec * this.intervalRate;
+  }
+
+  // element を省略したら攻撃の属性で当てる
+  hit(target, damage = this.config.damage, element = this.config.element) {
+    this.game.dealDamage(target, damage * this.damageRate, element);
   }
 
   update() {}

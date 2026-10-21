@@ -39,6 +39,12 @@ function shuffle(list) {
 }
 
 export class Game {
+  // targets() の一覧を作り直すための、フレームの番号
+  #frame = 0;
+  #targetsFrame = -1;
+  #targetList = [];
+  #targetsDirty = false;
+
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
@@ -335,10 +341,18 @@ export class Game {
 
   // ---- 攻撃から使うヘルパー ----
 
+  // 攻撃が当たる相手の一覧。1 フレームに 1 回だけ作って使い回し、そのフレームで倒れた相手は除く
   targets() {
-    const list = this.enemies.filter((e) => !e.dead);
-    if (this.boss && !this.boss.dead) list.push(this.boss);
-    return list;
+    if (this.#targetsFrame !== this.#frame) {
+      this.#targetList = this.enemies.filter((e) => !e.dead);
+      if (this.boss && !this.boss.dead) this.#targetList.push(this.boss);
+      this.#targetsFrame = this.#frame;
+      this.#targetsDirty = false;
+    } else if (this.#targetsDirty) {
+      this.#targetList = this.#targetList.filter((t) => !t.dead);
+      this.#targetsDirty = false;
+    }
+    return this.#targetList;
   }
 
   nearestTarget(range) {
@@ -362,12 +376,18 @@ export class Game {
     let m = this.damageBonus * this.characterDamageRate * this.powerRate;
     if (target === this.boss) m *= CONFIG.boss.elementMultiplier[element] ?? 1;
     target.damage(amount * m);
+    if (target.dead) this.#targetsDirty = true;
     sound.play('hit');
   }
 
-  // ボスは凍らず、押し返されない
-  freeze(target, sec) {
-    if (target !== this.boss) target.freeze(sec);
+  // ボスは凍らず、押し返されず、足どめされない
+  // guardSec は凍りが解けた直後に凍らない時間
+  freeze(target, sec, guardSec = CONFIG.weapons.ice.refreezeGuardSec) {
+    if (target !== this.boss) target.freeze(sec, guardSec);
+  }
+
+  slow(target, sec, rate) {
+    if (target !== this.boss) target.slow(sec, rate);
   }
 
   knockback(target, vx, vy) {
@@ -388,6 +408,7 @@ export class Game {
   }
 
   update(dt) {
+    this.#frame += 1;
     if (this.input.wasPressed('KeyM')) sound.toggleMute();
     // − で BGM を小さく、＋で大きく（日本語キーボードの ; ＋ キーと、テンキーにも対応）
     if (this.input.wasPressed('Minus', 'NumpadSubtract')) this.#changeMusicVolume(-1);
