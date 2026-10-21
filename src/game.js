@@ -10,7 +10,7 @@ import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { loadLastCharacter, saveLastCharacter } from './characters.js';
 import { CharacterSelect } from './character-select.js';
-import { LevelUpMenu } from './level-up-menu.js';
+import { LevelUpMenu, levelLabel } from './level-up-menu.js';
 import { drawItemIcon } from './item-icons.js';
 import { sound } from './sound.js';
 import { font } from './font.js';
@@ -159,7 +159,7 @@ export class Game {
     return {
       kind: 'weapon',
       name: weapon.name,
-      desc: weapon.desc,
+      desc: isNew ? weapon.desc : (weapon.upgradeDesc(weapon.level + 1) ?? weapon.desc),
       element: weapon.config.element,
       level: isNew ? 0 : weapon.level,
       isNew,
@@ -715,7 +715,7 @@ export class Game {
     };
     ctx.font = font(11);
     line(`攻撃 ${this.weapons.length}/${slots.weapons}`, 'rgba(243, 230, 216, 0.85)');
-    for (const wp of this.weapons) line(`・${wp.name}  Lv ${wp.level}`, 'rgba(243, 230, 216, 0.6)');
+    for (const wp of this.weapons) line(`・${wp.name}  ${levelLabel(wp.level)}`, 'rgba(243, 230, 216, 0.6)');
     ly += 4;
     line(`アイテム ${this.items.length}/${slots.items}`, c.itemCard);
     for (const it of this.items) {
@@ -725,7 +725,7 @@ export class Game {
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
       ctx.fillStyle = 'rgba(243, 230, 216, 0.6)';
-      ctx.fillText(`${CONFIG.items[it.id].name}  Lv ${it.level}`, x + 22, ly);
+      ctx.fillText(`${CONFIG.items[it.id].name}  ${levelLabel(it.level)}`, x + 22, ly);
       ly += 18;
     }
 

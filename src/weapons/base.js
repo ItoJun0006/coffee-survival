@@ -50,9 +50,23 @@ export class Weapon {
     return this.config.desc;
   }
 
+  get isMax() {
+    return this.level >= CONFIG.weaponLevels.max;
+  }
+
+  // 共通の強化（ダメージ・間隔）を受けた回数。ふつうは Lv が 1 上がるごとに 1 回
+  get commonUpgrades() {
+    return this.level - 1;
+  }
+
+  // 次の Lv で変わることの説明。null なら攻撃の説明をそのまま使う
+  upgradeDesc() {
+    return null;
+  }
+
   // 強化によるダメージの倍率（Lv 1 で 1 倍）
   get damageRate() {
-    return 1 + CONFIG.weaponLevels.damagePerLevel * (this.level - 1);
+    return 1 + CONFIG.weaponLevels.damagePerLevel * this.commonUpgrades;
   }
 
   // 発動間隔が経過していれば true。発動したら this.timer = 0 に戻す
@@ -60,7 +74,7 @@ export class Weapon {
   tick(dt) {
     this.timer += dt;
     const { intervalPerLevel, minIntervalRate } = CONFIG.weaponLevels;
-    const levelRate = 1 - intervalPerLevel * (this.level - 1);
+    const levelRate = 1 - intervalPerLevel * this.commonUpgrades;
     const rate = Math.max(minIntervalRate, this.game.attackIntervalRate * levelRate * this.game.frequencyRate);
     return this.timer >= this.config.intervalSec * rate;
   }

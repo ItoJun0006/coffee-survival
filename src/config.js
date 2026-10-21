@@ -43,7 +43,7 @@ export const CONFIG = {
   // 敵が落とす経験値の粒を拾うと経験値が入り、レベルアップごとに攻撃が 1 つ増える
   leveling: {
     baseXp: 5,
-    xpGrowth: 5,
+    xpGrowth: 2.5,
     enemyDropChance: 0.4,
     maxDroppedBeans: 60,
     // 全攻撃を手に入れた後のレベルアップで上がる攻撃力
@@ -52,7 +52,7 @@ export const CONFIG = {
   // レベルアップで出る攻撃の候補の数と、攻撃の強化。Lv が 1 上がるごとに
   // ダメージが damagePerLevel、攻撃の間隔が intervalPerLevel の割合で変わる
   // 攻撃の間隔は、キャラ・強化・アイテムが重なっても元の minIntervalRate 倍より短くしない
-  weaponLevels: { choices: 3, max: 5, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.3 },
+  weaponLevels: { choices: 3, max: 8, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.3 },
   // 持てる数。weapons は最初の豆マシンガンを含む
   slots: { weapons: 3, items: 2 },
   // ステータス強化アイテム。perLevel は 1 段階（Lv）ごとの効果。最大 Lv は weaponLevels.max と同じ
@@ -64,7 +64,21 @@ export const CONFIG = {
   },
   // 攻撃。element が hot の攻撃はボスに効きやすく、ice は効きにくい
   weapons: {
-    beanGun: { name: '豆マシンガン', desc: '近い敵に豆を\n連射する', element: 'none', intervalSec: 0.35, speed: 520, radius: 6, damage: 1, range: 450 },
+    // 豆マシンガンは Lv ごとに決まった強化を受ける。共通の強化（ダメージ・間隔）は commonLevels の Lv だけ
+    // range は敵を探す距離、豆が飛ぶ距離は（強化前の）range × flightRate
+    beanGun: {
+      name: '豆マシンガン', desc: '近い敵に豆を\n連射する', element: 'none', intervalSec: 0.35, speed: 520, radius: 6, damage: 1, range: 450, flightRate: 1.5,
+      commonLevels: [3, 5, 7],
+      upgrades: {
+        2: { count: 2, spreadDeg: 10, desc: '豆が 2 つになる' },
+        4: { flightRate: 1.4, desc: '豆が遠くまで飛ぶ' },
+        6: { rangeRate: 1.3, desc: '遠くの敵も狙う' },
+        8: { count: 3, spreadDeg: 12, pierce: true, damageRate: 0.7, desc: '豆が 3 つになり、\n敵を貫通する（威力 7 割）' },
+      },
+      commonDesc: 'ダメージが上がり、\n連射が速くなる',
+      // Lv 8（MAX）の見た目。trail は残像の数と間隔（秒）、flash は撃った瞬間の光
+      maxVisual: { glow: '#ffb347', core: '#ffe08a', glowScale: 2.4, trail: 4, trailGapSec: 0.018, flashSec: 0.12, flashRadius: 26 },
+    },
     mill: { name: 'ミル・トルネード', desc: '2 枚の刃が\nまわりを回り続ける', element: 'none', count: 2, orbitRadius: 70, bladeRadius: 12, angularSpeed: 3, damage: 1, hitCooldownSec: 0.5 },
     mug: { name: 'マグカップ投げ', desc: '投げると戻ってくる。\n敵を貫通する', element: 'none', intervalSec: 1.6, speed: 380, radius: 14, damage: 2, range: 320, hitCooldownSec: 0.4 },
     drip: { name: 'ドリップの雨', desc: '敵の頭上に\n熱い雫を降らせる', element: 'hot', intervalSec: 1.2, drops: 3, radius: 40, delaySec: 0.6, damage: 3, range: 500 },
