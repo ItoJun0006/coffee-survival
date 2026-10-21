@@ -54,6 +54,11 @@ export class Weapon {
     return this.level >= CONFIG.weaponLevels.max;
   }
 
+  // MAX の見た目の案（A・B・C）。?maxVariant= があればそれを使う
+  get maxVariant() {
+    return this.game.debugMaxVariant ?? this.config.maxVisual?.variant ?? 'A';
+  }
+
   // 共通の強化（ダメージ・間隔）を受けた回数。ふつうは Lv が 1 上がるごとに 1 回
   get commonUpgrades() {
     return this.level - 1;

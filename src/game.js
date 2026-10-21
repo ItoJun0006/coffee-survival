@@ -49,6 +49,13 @@ export class Game {
     const params = new URLSearchParams(location.search);
     this.debugBoss = params.has('boss');
     this.debugLevel = Number(params.get('level')) || 1;
+    // ?weapons=mill:8,drip:5 を付けて開くと、指定した攻撃を指定した Lv で持って始まる（動作確認用）
+    this.debugWeapons = (params.get('weapons') ?? '').split(',').filter(Boolean).map((s) => {
+      const [id, lv] = s.split(':');
+      return { id, level: Number(lv) || 1 };
+    });
+    // ?maxVariant=A|B|C を付けて開くと、MAX の見た目の案を切り替えられる（動作確認用）
+    this.debugMaxVariant = params.get('maxVariant');
     this.pixelLayer = new PixelLayer();
     this.floor = new Floor();
     this.resize();
@@ -122,6 +129,24 @@ export class Game {
     this.camellias = [];
     this.nextWaveAt = CONFIG.bigWave.firstSec;
     this.waveUntil = 0;
+    this.#applyDebugWeapons();
+  }
+
+  // ?weapons= で指定した攻撃を持たせる。最初から持っている攻撃は Lv だけ変え、持てる数は超えない
+  #applyDebugWeapons() {
+    const { max } = CONFIG.weaponLevels;
+    for (const { id, level } of this.debugWeapons) {
+      const name = CONFIG.weapons[id]?.name;
+      if (!name) continue;
+      let weapon = this.weapons.find((w) => w.config.name === name);
+      if (!weapon) {
+        const W = WEAPON_ORDER.find((W) => new W(this).config.name === name);
+        if (!W || this.weapons.length >= CONFIG.slots.weapons) continue;
+        weapon = new W(this);
+        this.weapons.push(weapon);
+      }
+      weapon.level = Math.min(max, Math.max(1, level));
+    }
   }
 
   get xpToNext() {
