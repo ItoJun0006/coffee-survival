@@ -14,6 +14,7 @@ import { unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, s
 import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu, levelLabel } from './level-up-menu.js';
 import { drawItemIcon } from './item-icons.js';
+import { PixelLayer } from './pixel-layer.js';
 import { sound } from './sound.js';
 import { font } from './font.js';
 
@@ -36,6 +37,7 @@ export class Game {
     const params = new URLSearchParams(location.search);
     this.debugBoss = params.has('boss');
     this.debugLevel = Number(params.get('level')) || 1;
+    this.pixelLayer = new PixelLayer();
     this.resize();
     window.addEventListener('resize', () => this.resize());
     // 別のタブやアプリに切り替えたら自動でポーズする
@@ -65,6 +67,7 @@ export class Game {
     this.canvas.width = Math.floor(this.viewW * dpr);
     this.canvas.height = Math.floor(this.viewH * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.pixelLayer.resize(this.viewW, this.viewH);
   }
 
   reset() {
@@ -365,8 +368,10 @@ export class Game {
     if (!this.player.alive) this.#finish('gameover');
     else if (this.boss?.dead) this.#finish('clear');
 
-    this.camera.x = this.player.x - this.viewW / 2;
-    this.camera.y = this.player.y - this.viewH / 2;
+    // ドット絵のときは、画面の位置をドットの大きさごとにそろえて、止まっている絵がちらつかないようにする
+    const snap = CONFIG.pixelArt.enabled ? CONFIG.pixelArt.size : 1;
+    this.camera.x = Math.round((this.player.x - this.viewW / 2) / snap) * snap;
+    this.camera.y = Math.round((this.player.y - this.viewH / 2) / snap) * snap;
   }
 
   // ゲームオーバーかクリアで終わる。BGM は静かに消し、終わりの音を鳴らす
@@ -678,16 +683,24 @@ export class Game {
     ctx.save();
     ctx.translate(-this.camera.x, -this.camera.y);
     this.#drawGrid();
-    for (const w of this.weapons) w.drawBelow(ctx);
-    for (const b of this.beans) b.draw(ctx);
-    for (const o of this.xpOrbs) o.draw(ctx);
-    for (const w of this.waves) w.draw(ctx);
-    for (const e of this.enemies) e.draw(ctx);
-    for (const fx of this.effects) fx.draw(ctx);
-    if (this.boss && !this.boss.dead) this.boss.draw(ctx);
-    this.player.draw(ctx);
-    for (const w of this.weapons) w.draw(ctx);
     ctx.restore();
+
+    // 絵（攻撃・豆・粒・敵・ボス・プレイヤー）は、ドット絵にする層に描く。背景と文字はくっきりしたまま
+    const pixel = CONFIG.pixelArt.enabled;
+    const wctx = pixel ? this.pixelLayer.begin() : ctx;
+    wctx.save();
+    wctx.translate(-this.camera.x, -this.camera.y);
+    for (const w of this.weapons) w.drawBelow(wctx);
+    for (const b of this.beans) b.draw(wctx);
+    for (const o of this.xpOrbs) o.draw(wctx);
+    for (const w of this.waves) w.draw(wctx);
+    for (const e of this.enemies) e.draw(wctx);
+    for (const fx of this.effects) fx.draw(wctx);
+    if (this.boss && !this.boss.dead) this.boss.draw(wctx);
+    this.player.draw(wctx);
+    for (const w of this.weapons) w.draw(wctx);
+    wctx.restore();
+    if (pixel) this.pixelLayer.end(ctx);
 
     if (this.state === 'clear') this.#drawDawn();
     else this.#drawDarkness();

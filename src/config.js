@@ -8,6 +8,9 @@ export const CONFIG = {
     background: '#0a0807',
     zoom: { amount: 0.025, periodSec: 12 },
   },
+  // プレイ中の絵（キャラ・敵・攻撃など）のドット絵化。size は 1 マスの大きさ（px）。
+  // 縁取りは、濃さが solidAlpha 以上のマスの隣で、emptyAlpha 以下のマスに付ける。outline を null にすると縁取りなし
+  pixelArt: { enabled: true, size: 3, outline: [20, 12, 8], solidAlpha: 0.7, emptyAlpha: 0.15 },
   // 画面の文字のフォント。Yusei Magic は assets/fonts に置き、css/style.css で読み込む
   font: { family: '"Yusei Magic", system-ui, sans-serif' },
   // 操作キャラ。品種 × 焙煎度の組み合わせで 1 体になる（仮実装）

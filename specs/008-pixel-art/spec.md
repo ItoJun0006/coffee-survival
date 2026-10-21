@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-22
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "全体をピクセルアートにしたい（specs/ideas.md #2）。今の雰囲気を残しつつ、画質は下げずにピクセルにする。タイトル画面の絵は別に用意する"
 

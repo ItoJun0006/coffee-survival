@@ -116,7 +116,8 @@ export class Enemy {
   // 閉じかけの目（横線）
   #drawSleepyEyes(ctx, spread, y, color) {
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    // ドット絵（1 マス 3px）にしても消えないよう、ドットの大きさ以上の太さにする
+    ctx.lineWidth = Math.max(2, CONFIG.pixelArt.enabled ? CONFIG.pixelArt.size : 0);
     ctx.beginPath();
     ctx.moveTo(-spread - 4, y);
     ctx.lineTo(-spread + 4, y);
