@@ -10,7 +10,7 @@ import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
 import { loadLastCharacter, saveLastCharacter } from './characters.js';
-import { unlock, recordLaunch, recordPlay, addPlayTime, saveProgress, pointCard } from './progress.js';
+import { unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, saveProgress, pointCard } from './progress.js';
 import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu, levelLabel } from './level-up-menu.js';
 import { drawItemIcon } from './item-icons.js';
@@ -53,7 +53,7 @@ export class Game {
     this.#checkUnlocks('launches', recordLaunch());
     // 前回までのポイントカードで条件を満たしていれば、ここで解放する（閉じる直前に満たした場合など）
     this.#checkUnlocks('plays', pointCard().plays);
-    this.#checkUnlocks('playTime', pointCard().playSec);
+    this.#checkPointCardUnlocks();
     this.reset();
     this.state = 'title';
   }
@@ -347,7 +347,7 @@ export class Game {
     }
 
     this.time += dt;
-    this.#addPlayTime(dt);
+    this.#recordProgress(dt);
     if (!this.boss && this.time >= CONFIG.boss.timeSec) this.#spawnBoss();
 
     this.#updatePlayer(dt);
@@ -375,7 +375,7 @@ export class Game {
     sound.stopMusic();
     sound.play(state);
     saveProgress();
-    this.#checkUnlocks('playTime', pointCard().playSec);
+    this.#checkPointCardUnlocks();
     if (state === 'clear') this.#checkUnlocks('bossDefeat');
   }
 
@@ -388,14 +388,23 @@ export class Game {
     this.#checkUnlocks('plays', recordPlay());
   }
 
-  // 遊んでいる時間を累計に足す。ページを急に閉じても大きく失われないよう、5 秒ごとに保存する
-  #addPlayTime(dt) {
-    const total = addPlayTime(dt);
+  // 遊んでいる時間と動いた距離を累計に足す（倒した敵の数は #removeDeadEnemies で足す）。
+  // ページを急に閉じても大きく失われないよう、5 秒ごとに保存して解放条件を調べる
+  #recordProgress(dt) {
+    addPlayTime(dt);
+    addDistance(this.player.moved ?? 0);
     this.playTimeUnsaved = (this.playTimeUnsaved ?? 0) + dt;
     if (this.playTimeUnsaved < 5) return;
     this.playTimeUnsaved = 0;
     saveProgress();
-    this.#checkUnlocks('playTime', total);
+    this.#checkPointCardUnlocks();
+  }
+
+  #checkPointCardUnlocks() {
+    const card = pointCard();
+    this.#checkUnlocks('playTime', card.playSec);
+    this.#checkUnlocks('distance', card.distance);
+    this.#checkUnlocks('kills', card.kills);
   }
 
   // ---- キャラの性能と解放 ----
@@ -427,6 +436,8 @@ export class Game {
         launches: () => value >= c.unlock.count,
         plays: () => value >= c.unlock.count,
         playTime: () => value >= c.unlock.seconds,
+        distance: () => value >= c.unlock.pixels,
+        kills: () => value >= c.unlock.count,
         allWeaponsMax: () => this.weapons.length >= CONFIG.slots.weapons && this.weapons.every((w) => w.isMax),
       }[type]();
       if (met && unlock(c.id)) this.#toast(`新しいキャラ「${c.name}」が解放された！`);
@@ -648,6 +659,7 @@ export class Game {
     const { enemyDropChance, maxDroppedBeans } = CONFIG.leveling;
     this.enemies = this.enemies.filter((e) => {
       if (!e.dead) return true;
+      addKills(1);
       sound.play('defeat');
       this.effects.push(new DefeatEffect(e.x, e.y, e.config.color, e.radius));
       this.#dropXp(e.x, e.y, e.config.xp);

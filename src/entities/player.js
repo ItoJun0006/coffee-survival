@@ -85,8 +85,11 @@ export class Player {
   update(dt, dir, push = { x: 0, y: 0 }) {
     const { width, height } = CONFIG.world;
     const speed = this.speed * (this.slowTimer > 0 ? this.slowFactor : 1);
+    const { x, y } = this;
     this.x = clamp(this.x + (dir.x * speed + push.x) * dt, this.radius, width - this.radius);
     this.y = clamp(this.y + (dir.y * speed + push.y) * dt, this.radius, height - this.radius);
+    // このフレームで実際に動いた距離（壁で止まった分は含まない）
+    this.moved = Math.hypot(this.x - x, this.y - y);
     this.caffeine -= CONFIG.player.caffeineDecayPerSec * dt;
     this.invincibleTimer = Math.max(0, this.invincibleTimer - dt);
     this.slowTimer = Math.max(0, this.slowTimer - dt);
