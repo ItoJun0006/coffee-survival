@@ -14,6 +14,7 @@ import { LevelUpMenu, levelLabel } from './level-up-menu.js';
 import { drawItemIcon } from './item-icons.js';
 import { sound } from './sound.js';
 import { font } from './font.js';
+import { Background } from './background.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -43,6 +44,7 @@ export class Game {
     this.character = loadLastCharacter();
     this.characterSelect = new CharacterSelect();
     this.levelUpMenu = new LevelUpMenu();
+    this.background = new Background();
     this.titleImage = new Image();
     this.titleImage.src = CONFIG.title.image;
     sound.init();
@@ -584,12 +586,9 @@ export class Game {
 
   draw() {
     const { ctx } = this;
-    ctx.fillStyle = CONFIG.colors.ground;
-    ctx.fillRect(0, 0, this.viewW, this.viewH);
-
     ctx.save();
     ctx.translate(-this.camera.x, -this.camera.y);
-    this.#drawGrid();
+    this.background.draw(ctx, this.camera, this.viewW, this.viewH);
     for (const w of this.weapons) w.drawBelow(ctx);
     for (const b of this.beans) b.draw(ctx);
     for (const o of this.xpOrbs) o.draw(ctx);
@@ -635,38 +634,21 @@ export class Game {
     ctx.restore();
   }
 
-  #drawGrid() {
-    const { ctx } = this;
-    const step = 80;
-    ctx.strokeStyle = CONFIG.colors.grid;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let x = 0; x <= CONFIG.world.width; x += step) {
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, CONFIG.world.height);
-    }
-    for (let y = 0; y <= CONFIG.world.height; y += step) {
-      ctx.moveTo(0, y);
-      ctx.lineTo(CONFIG.world.width, y);
-    }
-    ctx.stroke();
-  }
-
-  // 夜が深まる演出。まぶたの帳の間はプレイヤーの周り以外が暗くなる
+  // 夜が深まる演出。ランプの周りは少し明るい。まぶたの帳の間はプレイヤーの周り以外が暗くなる
   #drawDarkness() {
     const { ctx } = this;
-    if (this.boss?.has('curtain')) {
-      const px = this.player.x - this.camera.x;
-      const py = this.player.y - this.camera.y;
-      const r = CONFIG.boss.curtain.visionRadius;
-      const g = ctx.createRadialGradient(px, py, r * 0.5, px, py, r);
-      g.addColorStop(0, 'rgba(5, 3, 15, 0)');
-      g.addColorStop(1, 'rgba(5, 3, 15, 0.93)');
-      ctx.fillStyle = g;
-    } else {
+    if (!this.boss?.has('curtain')) {
       const a = CONFIG.night.maxDarkness * Math.min(1, this.time / CONFIG.boss.timeSec);
-      ctx.fillStyle = `rgba(5, 3, 20, ${a})`;
+      this.background.drawDarkness(ctx, this.camera, this.viewW, this.viewH, a);
+      return;
     }
+    const px = this.player.x - this.camera.x;
+    const py = this.player.y - this.camera.y;
+    const r = CONFIG.boss.curtain.visionRadius;
+    const g = ctx.createRadialGradient(px, py, r * 0.5, px, py, r);
+    g.addColorStop(0, 'rgba(5, 3, 15, 0)');
+    g.addColorStop(1, 'rgba(5, 3, 15, 0.93)');
+    ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.viewW, this.viewH);
   }
 

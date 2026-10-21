@@ -116,6 +116,58 @@ export const CONFIG = {
     maxCount: 150,
   },
   night: { maxDarkness: 0.55 },
+  // プレイ中の背景：夜の焙煎工房。配置は seed から毎回同じに決まる（当たり判定はない）
+  // 床・小物の色は、拾うもの（豆・経験値の粒）や敵より目立たない暗い色にする
+  stage: {
+    seed: 20261021,
+    outside: '#120c09',
+    floor: {
+      tileSize: 100,
+      tileColors: ['#2c231e', '#2a211c', '#2e2520', '#28201b'],
+      tileJitter: 0.05,
+      grout: '#1d1612',
+      groutWidth: 2,
+      stains: 45,
+      stainColor: 'rgba(12, 7, 4, 0.28)',
+      cracks: 30,
+      crackColor: 'rgba(15, 10, 7, 0.55)',
+    },
+    // 外周のレンガの壁。thickness はマップの外側に描く厚さ
+    wall: { thickness: 70, brickW: 46, brickH: 20, brick: '#4a2c22', brickAlt: '#43271e', mortar: '#24170f', top: '#5c3a2c', shadow: 'rgba(0, 0, 0, 0.45)' },
+    // 小物。weight は出やすさ、minGap は小物どうしの最小の間隔、clearRadius はスタート地点のまわりの空ける範囲
+    props: {
+      count: 30,
+      minGap: 240,
+      edgeMargin: 90,
+      clearRadius: 220,
+      types: {
+        roaster: { weight: 1 },
+        sacks: { weight: 3 },
+        pallet: { weight: 2 },
+        cans: { weight: 2 },
+      },
+      colors: {
+        iron: '#38322e', ironLight: '#4a433e', ironDark: '#231f1c', ember: 'rgba(214, 104, 48, 0.55)',
+        burlap: '#5c4c3c', burlapDark: '#4a3d30', stitch: '#3a2f25',
+        wood: '#4e3a2c', woodDark: '#3a2b20',
+        can: '#5a5d5f', canLight: '#6f7375', canDark: '#3f4244',
+      },
+    },
+    // 天井から下がるランプ。spacing ごとの格子から jitter だけずらして置く
+    // 床には常に淡い光の輪を描き、夜の暗さは lightRadius の範囲だけ strength の割合で弱める
+    lamps: {
+      spacing: 430,
+      jitter: 120,
+      // ランプの笠は、経験値の粒と見間違えないように、明るい点を描かず暗い輪と支えの線だけにする
+      shadeRadius: 13,
+      shade: '#1c1714',
+      shadeRim: '#4a3a2e',
+      pool: 'rgba(255, 190, 120, 0.06)',
+      poolRadius: 170,
+      lightRadius: 210,
+      strength: 0.7,
+    },
+  },
   // ラスボス：眠気の化身 ネムリーヌ
   boss: {
     name: '眠気の化身 ネムリーヌ',
@@ -177,8 +229,6 @@ export const CONFIG = {
     },
   },
   colors: {
-    ground: '#2a1a12',
-    grid: '#33221a',
     playerSlowed: '#8fa3c8',
     bean: '#8b5a3c',
     fakeBean: '#7d5a78',
