@@ -147,8 +147,6 @@ export const CONFIG = {
         require: { type: 'launches', count: 3, text: 'ゲームを 3 回起動する' },
       },
     ],
-    // キャラ選択画面のマスの見た目の候補（A・B・C）。選んでもらったら 1 つに絞る
-    selectLook: 'A',
     // 選択画面に並べるマスの数（最終目標）。まだ中身のないマスは「？？？」として鍵付きで出す
     plannedTotal: 66,
     placeholderUnlockText: '条件達成で解放',

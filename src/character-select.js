@@ -14,12 +14,10 @@ const PANEL_W = 300;
 const PANEL_H = 440;
 const PANEL_GAP = 30;
 const TOP = 96;
-// 見た目の候補ごとのマスの大きさ（縮める前）。groupGap は 3 列目と 4 列目の間（品種の区切り）に足す間
-const LOOKS = {
-  A: { w: 88, h: 100, gap: 10, groupGap: 0 },
-  B: { w: 64, h: 64, gap: 8, groupGap: 0 },
-  C: { w: 64, h: 70, gap: 6, groupGap: 18 },
-};
+// マスの大きさ（縮める前）。マスには豆の絵だけを出し、名前は右側の欄に出す
+const CARD_W = 64;
+const CARD_H = 64;
+const GAP = 8;
 
 // キャラ選択画面。左に全キャラのマス（11 段 × 6 列）、右に選んでいるキャラの詳しい性能を出す。
 // まだ解放していないキャラは影と鍵で出し、決定しようとすると、品種のキャラなら買うメニュー（仕様 016）、
@@ -123,25 +121,23 @@ export class CharacterSelect {
   // ---- 並べ方 ----
 
   #layout(viewW, viewH) {
-    const base = LOOKS[CONFIG.characters.selectLook];
     const avail = viewH - TOP - 64;
-    const k = Math.min(1, avail / (ROWS * base.h + (ROWS - 1) * base.gap));
-    const w = base.w * k;
-    const h = base.h * k;
-    const gap = base.gap * k;
-    const groupGap = base.groupGap * k;
-    const gridW = COLS * w + (COLS - 1) * gap + groupGap;
+    const k = Math.min(1, avail / (ROWS * CARD_H + (ROWS - 1) * GAP));
+    const w = CARD_W * k;
+    const h = CARD_H * k;
+    const gap = GAP * k;
+    const gridW = COLS * w + (COLS - 1) * gap;
     const gridH = ROWS * h + (ROWS - 1) * gap;
     const left = (viewW - (gridW + PANEL_GAP + PANEL_W)) / 2;
-    return { left, gridW, gridH, k, w, h, gap, groupGap, panelX: left + gridW + PANEL_GAP };
+    return { left, gridW, gridH, k, w, h, gap, panelX: left + gridW + PANEL_GAP };
   }
 
   #cards(viewW, viewH) {
-    const { left, w, h, gap, groupGap, k } = this.#layout(viewW, viewH);
+    const { left, w, h, gap, k } = this.#layout(viewW, viewH);
     return CHARACTERS.map((character, index) => {
       const col = index % COLS;
       const row = Math.floor(index / COLS);
-      return { character, index, x: left + col * (w + gap) + (col >= 3 ? groupGap : 0), y: TOP + row * (h + gap), w, h, k };
+      return { character, index, x: left + col * (w + gap), y: TOP + row * (h + gap), w, h, k };
     });
   }
 
@@ -163,9 +159,7 @@ export class CharacterSelect {
     ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
     ctx.fillText(`解放したキャラ ${unlocked} / ${CHARACTERS.length}`, viewW / 2, TOP - 30);
 
-    const cards = this.#cards(viewW, viewH);
-    if (CONFIG.characters.selectLook === 'C') this.#drawGroups(ctx, cards);
-    for (const card of cards) this.#drawCard(ctx, card, card.index === this.index);
+    for (const card of this.#cards(viewW, viewH)) this.#drawCard(ctx, card, card.index === this.index);
     this.#drawPanel(ctx, L);
 
     ctx.textAlign = 'center';
@@ -181,12 +175,10 @@ export class CharacterSelect {
   // マスは縮める前の大きさで描き、k 倍に縮める
   #drawCard(ctx, screenCard, selected) {
     const c = CONFIG.colors;
-    const look = CONFIG.characters.selectLook;
-    const base = LOOKS[look];
     ctx.save();
     ctx.translate(screenCard.x, screenCard.y);
     ctx.scale(screenCard.k, screenCard.k);
-    const card = { x: 0, y: 0, w: base.w, h: base.h };
+    const card = { x: 0, y: 0, w: CARD_W, h: CARD_H };
     const { character } = screenCard;
     const open = isAvailable(character);
     ctx.fillStyle = selected ? 'rgba(217, 160, 102, 0.25)' : c.hudBg;
@@ -198,8 +190,7 @@ export class CharacterSelect {
     }
 
     const cx = card.x + card.w / 2;
-    // A は名前を下に出すので上寄せ、B・C は名前を出さないので真ん中
-    const cy = card.y + (look === 'A' ? 40 : look === 'B' ? card.h / 2 - 4 : card.h / 2 + 4);
+    const cy = card.y + card.h / 2 - 4;
     if (open) {
       ctx.save();
       ctx.translate(cx, cy);
@@ -212,29 +203,8 @@ export class CharacterSelect {
       drawLock(ctx, cx, cy + 4, 10, price && canBuy(character) && coins() >= price ? CONFIG.coins.affordableLock : undefined);
     }
 
-    if (look !== 'A') {
-      // B は鍵のマスの下に値段だけを小さく出す。C は値段を品種の枠の見出しに出す
-      if (look === 'B' && !open && character.unlock?.price) this.#drawPrice(ctx, character, cx, card.h - 8);
-      ctx.restore();
-      return;
-    }
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = font(11, true);
-    ctx.fillStyle = open ? c.text : 'rgba(243, 230, 216, 0.4)';
-    const name = open ? character.name : '？？？';
-    if (ctx.measureText(name).width > card.w - 6 && name.includes(' ')) {
-      // マスに入りきらない名前（「ブルーマウンテン 浅煎り」など）は、品種名と焙煎度の 2 行にする
-      const [first, second] = [name.slice(0, name.lastIndexOf(' ')), name.slice(name.lastIndexOf(' ') + 1)];
-      if (ctx.measureText(first).width > card.w - 4) ctx.font = font(10, true);
-      ctx.fillText(first, cx, card.y + 76);
-      ctx.font = font(10);
-      ctx.fillText(second, cx, card.y + 90);
-    } else {
-      ctx.fillText(name, cx, card.y + 80);
-    }
-    // 買って解放する品種は、名前の下に値段を出す
-    if (!open && character.unlock?.price) this.#drawPrice(ctx, character, cx, card.y + 93);
+    // 鍵のマスは、下に値段を小さく出す
+    if (!open && character.unlock?.price) this.#drawPrice(ctx, character, cx, card.h - 8);
     ctx.restore();
   }
 
@@ -245,40 +215,6 @@ export class CharacterSelect {
     ctx.font = font(10);
     ctx.fillStyle = canBuy(character) && coins() >= character.unlock.price ? CONFIG.coins.affordableLock : 'rgba(243, 230, 216, 0.55)';
     ctx.fillText(coinText(character.unlock.price), cx + 4, y);
-  }
-
-  // C：3 マスずつ（品種ごと）を枠で囲み、枠の上に品種の名前と値段を出す
-  #drawGroups(ctx, cards) {
-    for (let i = 0; i < cards.length; i += 3) {
-      const group = cards.slice(i, i + 3);
-      const first = group[0];
-      const last = group[group.length - 1];
-      const k = first.k;
-      const x = first.x - 3 * k;
-      const y = first.y - 3 * k;
-      const w = last.x + last.w - first.x + 6 * k;
-      const h = first.h + 6 * k;
-      ctx.strokeStyle = 'rgba(217, 160, 102, 0.35)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x, y, w, h);
-      const ch = first.character;
-      const open = group.some((g) => isAvailable(g.character));
-      const label = ch.variety ? (open ? ch.variety.name : '？？？') : '特別な豆';
-      ctx.save();
-      ctx.translate(x + 4 * k, y + 9 * k);
-      ctx.scale(k, k);
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.font = font(10, true);
-      ctx.fillStyle = open ? CONFIG.colors.text : 'rgba(243, 230, 216, 0.5)';
-      ctx.fillText(label, 0, 0);
-      if (ch.variety && !open && ch.unlock?.price) {
-        const tw = ctx.measureText(label).width;
-        ctx.translate(tw + 30, 0);
-        this.#drawPrice(ctx, ch, 0, 0);
-      }
-      ctx.restore();
-    }
   }
 
   // まだ解放していないキャラの、うっすら見える影
