@@ -748,6 +748,97 @@ export class Game {
     }
   }
 
+  // ダイスケ豆が固まっている間の演出（ドット絵の層に描く）。k は 0（固まった瞬間）〜1（解ける直前）
+  #drawFreezeWorld(ctx) {
+    const f = CONFIG.characters.freeze;
+    const p = this.player;
+    const r = p.radius * (this.character.drawScale ?? 1);
+    const k = Math.min(1, this.frozenSec / f.stopSec);
+    const t = this.time;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    if (f.look === 'A') {
+      // A：氷づけ。豆が氷の塊に閉じこめられ、時間がたつほどひびが増える
+      const w = r * 2.3;
+      const h = r * 2.8;
+      ctx.fillStyle = f.ice;
+      ctx.fillRect(-w / 2, -h / 2, w, h);
+      ctx.strokeStyle = f.iceEdge;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-w / 2, -h / 2, w, h);
+      ctx.fillStyle = f.iceEdge;
+      ctx.fillRect(-w / 2 + 5, -h / 2 + 5, 4, h * 0.4);
+      ctx.strokeStyle = f.crack;
+      ctx.lineWidth = 2;
+      const cracks = Math.floor(k * 6);
+      for (let i = 0; i < cracks; i++) {
+        const a = i * 2.1 + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * w * 0.15, Math.sin(a) * h * 0.1);
+        ctx.lineTo(Math.cos(a) * w * 0.32, Math.sin(a + 0.3) * h * 0.3);
+        ctx.lineTo(Math.cos(a + 0.2) * w * 0.48, Math.sin(a) * h * 0.46);
+        ctx.stroke();
+      }
+    } else if (f.look === 'B') {
+      // B：居眠り。鼻ちょうちんがふくらみ、Z が次々に浮かんでいく
+      ctx.fillStyle = f.bubble;
+      ctx.beginPath();
+      ctx.arc(r * 0.55, r * 0.15, 4 + k * r * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = font(14, true);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i < 3; i++) {
+        const u = (t * 0.8 + i / 3) % 1;
+        ctx.globalAlpha = 1 - u;
+        ctx.fillStyle = f.zzz;
+        ctx.font = font(12 + u * 10, true);
+        ctx.fillText('Z', r * 0.7 + u * r * 0.8, -r * 0.8 - u * r * 1.4);
+      }
+      ctx.globalAlpha = 1;
+    } else {
+      // C：砂時計。豆は石のように灰色になり、頭の上の砂時計の砂が落ちきると解ける
+      ctx.fillStyle = f.stone;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r * 0.82, r * 1.05, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.translate(r * 1.1, -r * 1.2);
+      const hw = 9;
+      const hh = 12;
+      ctx.fillStyle = f.glass;
+      ctx.fillRect(-hw - 2, -hh - 3, (hw + 2) * 2, 3);
+      ctx.fillRect(-hw - 2, hh, (hw + 2) * 2, 3);
+      ctx.strokeStyle = f.glass;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-hw, -hh);
+      ctx.lineTo(hw, -hh);
+      ctx.lineTo(1.5, 0);
+      ctx.lineTo(hw, hh);
+      ctx.lineTo(-hw, hh);
+      ctx.lineTo(-1.5, 0);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = f.sand;
+      const top = 1 - k;
+      ctx.beginPath();
+      ctx.moveTo(-hw * top, -hh * top);
+      ctx.lineTo(hw * top, -hh * top);
+      ctx.lineTo(0, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-hw, hh);
+      ctx.lineTo(hw, hh);
+      ctx.lineTo(hw * (1 - k), hh * (1 - k));
+      ctx.lineTo(-hw * (1 - k), hh * (1 - k));
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(-1, 0, 2, hh);
+    }
+    ctx.restore();
+  }
+
   // ダイスケ豆が固まっている間、豆の上に残りの秒数を出す
   #drawFreezeCountdown() {
     const f = CONFIG.characters.freeze;
@@ -1019,6 +1110,7 @@ export class Game {
     for (const fx of this.effects) fx.draw(wctx);
     if (this.boss && !this.boss.dead) this.boss.draw(wctx);
     this.player.draw(wctx);
+    if (this.frozen) this.#drawFreezeWorld(wctx);
     for (const w of this.weapons) {
       w.draw(wctx);
       w.drawLevelFx(wctx, false);
