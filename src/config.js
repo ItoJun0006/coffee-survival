@@ -533,16 +533,10 @@ export const CONFIG = {
   // maxCount を超えたら新しい粒は作らず、今ある粒に経験値をまとめる
   xpOrb: { radius: 5, magnetRadius: 110, magnetSpeed: 420, maxCount: 300, color: '#f0d58a' },
   // 眠気の化身の手下。xp は倒したときに落とす経験値
-  // drainMaxStack：吸い取る敵に何体触れていても、吸い取りは強い方からこの体数分までしか重ならない
   enemies: {
     sheep: { name: 'うとうと羊', color: '#e8e2d6', xp: 1, radius: 16, speed: 70, hp: 2, appearSec: 0, weight: 6, contactCaffeine: 5 },
-    slime: { name: 'まぶたスライム', color: '#7a5c8e', xp: 2, radius: 18, speed: 50, hp: 4, appearSec: 120, weight: 2, drainPerSec: 12, drainMaxStack: 2 },
+    slime: { name: 'まぶたスライム', color: '#7a5c8e', xp: 2, radius: 18, speed: 50, hp: 4, appearSec: 120, weight: 2, drainPerSec: 12 },
     ghost: { name: 'ふとんゴースト', color: '#b9c4d8', xp: 2, radius: 20, speed: 90, hp: 3, appearSec: 240, weight: 2, slowSec: 1.5, slowFactor: 0.5 },
-    // ねぶくろイモムシ（仕様 020）。knockbackRate：押し返しを受ける割合。colors：寝袋・縫い目・チャック・顔の色
-    caterpillar: {
-      name: 'ねぶくろイモムシ', color: '#b5743a', xp: 5, radius: 26, speed: 35, hp: 16, appearSec: 360, weight: 1, contactCaffeine: 8, knockbackRate: 0.5,
-      colors: { bag: '#b5743a', seam: '#8a5428', zipper: '#e8c070', face: '#9fd36a', eye: '#1e120c' },
-    },
   },
   // 敵を倒したときのエフェクト
   effects: {
@@ -580,17 +574,6 @@ export const CONFIG = {
     stopBeforeBossSec: 30,
     title: 'ビッグウェーブ！',
     text: '眠気が押し寄せてくる…',
-  },
-  // ねぶくろキャンプ（仕様 020）：minSec〜maxSec のどこかで 1 回、type の敵 count 体がプレイヤーを輪のように取り囲んで現れる。
-  // 輪の半径は画面の対角線の半分 + extraRadius。ビッグウェーブの最中なら、終わるまで待つ
-  bagCamp: {
-    minSec: 360,
-    maxSec: 480,
-    type: 'caterpillar',
-    count: 12,
-    extraRadius: 40,
-    title: 'ねぶくろキャンプ！',
-    text: '寝袋に取り囲まれた…',
   },
   // 珈琲店の木の床（仕様 005）。横長の板を、継ぎ目をずらして並べた板張り
   // size はドット 1 マスの大きさ（pixelArt.size と合わせる）、periodDots は柄 1 枚の大きさ（ドットの数）
