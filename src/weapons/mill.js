@@ -28,9 +28,16 @@ export class Mill extends Weapon {
     return this.config.bladeRadius * this.stats.bladeRate;
   }
 
+  // 刃の数。当たる間隔の強化が下限からあふれた分だけ足す（仕様 012 FR-004）
+  get bladeCount() {
+    const { perBlade, maxExtra } = this.config.overflow;
+    const extra = this.game.character?.focus ? 0 : Math.min(maxExtra, Math.floor(this.intervalOverflow / perBlade));
+    return this.stats.count + extra;
+  }
+
   #blades() {
     const p = this.game.player;
-    const { count } = this.stats;
+    const count = this.bladeCount;
     const orbit = this.orbitRadius;
     return Array.from({ length: count }, (_, i) => {
       const a = this.angle + (i / count) * Math.PI * 2;
