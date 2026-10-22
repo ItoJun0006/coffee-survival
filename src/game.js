@@ -145,6 +145,8 @@ export class Game {
     this.stoneBurst = null;
     this.nextWaveAt = CONFIG.bigWave.firstSec;
     this.waveUntil = 0;
+    const camp = CONFIG.bagCamp;
+    this.bagCampAt = camp.minSec + Math.random() * (camp.maxSec - camp.minSec);
     this.#applyDebugWeapons();
   }
 
@@ -921,6 +923,7 @@ export class Game {
     const wave = CONFIG.bigWave;
     this.#updateBigWave();
     const inWave = this.time < this.waveUntil;
+    if (!inWave) this.#updateBagCamp();
     const t = Math.min(1, this.time / s.rampSec);
     const interval = s.startIntervalSec + (s.minIntervalSec - s.startIntervalSec) * t;
     // 1 回に出る数。2.5 体なら半々の確率で 2 体か 3 体
@@ -945,6 +948,25 @@ export class Game {
     this.waveUntil = this.nextWaveAt + w.durationSec;
     this.nextWaveAt += w.minIntervalSec + Math.random() * (w.maxIntervalSec - w.minIntervalSec);
     this.notice = { title: w.title, text: w.text, until: this.time + 2.5 };
+  }
+
+  // ねぶくろキャンプ（仕様 020）。時刻が来たら 1 回だけ、プレイヤーを輪のように取り囲んで敵を出す。
+  // 同時に出ている敵の上限には数えない
+  #updateBagCamp() {
+    if (this.bagCampAt === null || this.time < this.bagCampAt) return;
+    this.bagCampAt = null;
+    const { type, count, extraRadius, title, text } = CONFIG.bagCamp;
+    const radius = Math.hypot(this.viewW, this.viewH) / 2 + extraRadius;
+    const start = Math.random() * Math.PI * 2;
+    const strength = this.#enemyStrength();
+    strength.speed *= stage.enemySpeedRates[type] ?? stage.enemySpeedRate;
+    for (let i = 0; i < count; i++) {
+      const a = start + (i / count) * Math.PI * 2;
+      const x = clamp(this.player.x + Math.cos(a) * radius, 0, stage.world.width);
+      const y = clamp(this.player.y + Math.sin(a) * radius, 0, stage.world.height);
+      this.enemies.push(new Enemy(type, x, y, strength));
+    }
+    this.notice = { title, text, until: this.time + 2.5 };
   }
 
   #pickEnemyType() {
