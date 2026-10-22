@@ -59,7 +59,7 @@ export const groupMembers = (c) => (c.variety ? varietyMembers(c.variety) : [c])
 export const canBuy = (c) => !!c.unlock?.price && (!c.unlock.require || isUnlocked(readyId(c.unlock.group)));
 
 // 条件のある豆の一覧 { group, name, price, require }
-export const CONDITIONS = [...cfg.varieties.filter((v) => v.require), ...cfg.specials].map((x) => ({
+export const CONDITIONS = [...cfg.varieties, ...cfg.specials].filter((x) => x.require).map((x) => ({
   group: x.id, name: x.name, price: x.price, require: x.require,
 }));
 

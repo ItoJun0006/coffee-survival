@@ -83,23 +83,34 @@ export class Weapon {
         else s[k] = v;
       }
     }
-    this.#applyFocus(s);
+    this.#applyCountRule(s);
     this.#stats = s;
     this.#statsLevel = this.level;
     this.#statsConfig = c;
     return s;
   }
 
-  // ピーベリー（仕様 017）：攻撃の数を 1 にし、本来の数 N を focusCount に残す（威力と間隔の上乗せに使う）
-  #applyFocus(s) {
+  // 攻撃の数を変えるキャラ。ピーベリー（仕様 017）は数を 1 にし、本来の数 N を focusCount に残す（威力と間隔の上乗せに使う）。
+  // こーひー3兄弟（仕様 018）は数を 3 倍にし、1 発の威力を multiDamage 倍にする。数のない武器は変えない
+  #applyCountRule(s) {
     this.focusCount = 1;
-    if (!this.game.character?.focus) return;
+    this.multiDamage = 1;
+    const ch = this.game.character;
+    if (!ch?.focus && !ch?.multi) return;
+    const m = CONFIG.characters.multi;
     for (const k of CONFIG.characters.focus.countKeys) {
       const v = s[k];
       const n = Array.isArray(v) ? v.length : v;
-      if (typeof n !== 'number' || n <= 1) continue;
-      this.focusCount = n;
-      s[k] = Array.isArray(v) ? v.slice(0, 1) : 1;
+      if (typeof n !== 'number' || n < 1) continue;
+      if (ch.focus) {
+        if (n <= 1) continue;
+        this.focusCount = n;
+        s[k] = Array.isArray(v) ? v.slice(0, 1) : 1;
+      } else {
+        s[k] = Array.isArray(v) ? v.flatMap((d) => [d - m.sideDeg, d, d + m.sideDeg]) : v * m.countRate;
+        if ('spreadDeg' in s) s.spreadDeg = Math.max(s.spreadDeg, m.spreadDeg);
+        this.multiDamage = m.damageRate;
+      }
     }
   }
 
@@ -118,9 +129,9 @@ export class Weapon {
 
   // 強化によるダメージの倍率（Lv 1 で 1 倍）
   get damageRate() {
-    // ピーベリーは、1 つにした数の分だけ威力を上乗せする（仕様 017）
+    // ピーベリーは 1 つにした数の分だけ威力を上乗せし（仕様 017）、こーひー3兄弟は 1 発を弱くする（仕様 018）
     const focus = this.stats && this.focusCount > 1 ? this.focusCount ** CONFIG.characters.focus.damageExp : 1;
-    return (1 + CONFIG.weaponLevels.damagePerLevel * this.commonUpgrades) * focus;
+    return (1 + CONFIG.weaponLevels.damagePerLevel * this.commonUpgrades) * focus * (this.multiDamage ?? 1);
   }
 
   // 攻撃の間隔の倍率。キャラの倍率・強化の段階・発生頻度アップで縮む。ただし下限がある

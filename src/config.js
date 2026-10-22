@@ -122,6 +122,9 @@ export const CONFIG = {
     // ピーベリー（仕様 017）：攻撃の数（countKeys）をいつも 1 にし、本来の数 N に応じて威力を N^damageExp 倍、
     // 攻撃の間隔を N^intervalExp 分の 1 にする。数のない武器（offWeapons）は、レベルアップの候補に出る割合を offRate 倍にする。
     // eyeLook は目玉 1 つの見た目の候補（A・B・C）。選んでもらったら 1 つに絞る
+    // こーひー3兄弟（仕様 018）：攻撃の数（focus.countKeys）を countRate 倍にし、その攻撃の 1 発の威力を damageRate 倍にする。
+    // 吹く向きは、それぞれの左右 sideDeg にも足す。弾が同じ向きに重ならないよう、広がりを spreadDeg 以上にする。look は見た目の候補
+    multi: { countRate: 3, damageRate: 0.2, sideDeg: 25, spreadDeg: 10, look: 'A' },
     focus: { countKeys: ['count', 'drops', 'shots', 'directionsDeg'], damageExp: 0.65, intervalExp: 0.35, offWeapons: ['puddle', 'shockwave', 'ice'], offRate: 0.5, eyeLook: 'A' },
     // 特別なキャラ。require の条件を満たすと仕入れられるようになり、price の豆コインで買う（仕様 016 FR-018）。
     // roast は性能と色（品種 × 焙煎度のキャラと同じ形）、origin と desc は買うポップアップに出す
@@ -148,6 +151,14 @@ export const CONFIG = {
         origin: '1 つの実に 1 つだけ丸く育った珈琲豆', desc: '攻撃の数がいつも 1 つ。そのかわり 1 つが強く速い',
         roast: { trait: '一点集中', color: '#7a4a2a', crease: '#3e2414', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
         require: { type: 'maxClears', count: 3, text: '3 種類の豆で、Lv 8 の攻撃を持ったまま 1 面をクリアする' },
+      },
+      {
+        // 攻撃の数が 3 倍になるかわりに、1 発の威力が 20%（仕様 018）。値は下の multi を使う。値段と条件は仮
+        // drawScale：3 粒を並べると 1 粒が小さくなるので、見た目だけ大きくする（当たる範囲は変わらない）
+        id: 'brothers', name: 'こーひー3兄弟', price: 390, multi: true, drawScale: 1.45,
+        origin: 'いつも 3 粒いっしょの兄弟の豆', desc: '攻撃の数が 3 倍。そのかわり 1 発は 20%',
+        roast: { trait: '数で押す', color: '#8b5a2b', crease: '#4e2f16', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
+        require: null,
       },
       {
         id: 'baby', name: '赤ちゃん豆', price: 300,

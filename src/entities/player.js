@@ -10,6 +10,10 @@ const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 // 品種に模様（variety.pattern、仕様 016）があれば、豆の上に描く。模様は豆の輪郭の内側だけに描き、当たる範囲は変えない
 // dot はドット絵にするときのドットの大きさ（px）。0 ならなめらかな絵のまま
 export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 0, slowed = false, skin = false, dot = 0 } = {}) {
+  if (character.multi) {
+    drawBrothers(ctx, character, r, { look, bob, slowed, dot });
+    return;
+  }
   const { color, crease } = character.roast;
   const sx = 1 + bob * 0.06;
   const sy = 1 - bob * 0.06;
@@ -98,6 +102,36 @@ function drawDotEyes(ctx, r, look, dot, sx, sy) {
     ctx.fillRect(x + px, y + py, pupilW * dot, pupilH * dot);
   }
   ctx.restore();
+}
+
+// こーひー3兄弟（仕様 018）：3 粒の豆を並べて描く。見た目の候補 A・B・C を multi.look で切り替える。
+// 3 粒とも、ふつうの豆（drawCharacter）を小さくして描く。全体はほかのキャラと同じくらいの大きさに収める
+function drawBrothers(ctx, character, r, opts) {
+  const roasts = CONFIG.characters.roasts;
+  const bean = (roast, x, y, size, b = opts.bob) => {
+    ctx.save();
+    ctx.translate(x * r, y * r);
+    // 小さな豆にドット絵用の目（大きさが決まっている）を付けると目だけになるので、ふつうの目で描く
+    drawCharacter(ctx, { roast }, r * size, { ...opts, bob: b, dot: 0 });
+    ctx.restore();
+  };
+  const look = CONFIG.characters.multi.look;
+  if (look === 'A') {
+    // A：横に 3 粒。真ん中がお兄ちゃんで少し大きい
+    bean(character.roast, -0.62, 0.2, 0.45, opts.bob * 0.5);
+    bean(character.roast, 0.62, 0.2, 0.45, opts.bob * 0.5);
+    bean(character.roast, 0, -0.05, 0.6);
+  } else if (look === 'B') {
+    // B：2 粒の上に 1 粒が乗った、3 段のピラミッド
+    bean(character.roast, -0.4, 0.38, 0.48);
+    bean(character.roast, 0.4, 0.38, 0.48);
+    bean(character.roast, 0, -0.42, 0.48);
+  } else {
+    // C：浅煎り・中煎り・深煎りの 3 色の兄弟が肩を寄せる
+    bean(roasts[0], -0.58, 0.12, 0.47);
+    bean(roasts[2], 0.58, 0.12, 0.47);
+    bean(roasts[1], 0, 0, 0.53);
+  }
 }
 
 // 目玉 1 つ（ピーベリー、仕様 017）。見た目の候補 A・B・C を focus.eyeLook で切り替える。
