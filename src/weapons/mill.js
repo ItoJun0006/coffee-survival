@@ -7,30 +7,49 @@ export class Mill extends Weapon {
   constructor(game) {
     super(game, CONFIG.weapons.mill);
     this.angle = 0;
-    this.time = 0;
     this.hits = new HitTracker(this.config.hitCooldownSec);
   }
 
   baseStats() {
-    return { count: this.config.count, bladeRate: 1, spinRate: 1 };
+    return { count: this.config.count, bladeRate: 1, spinRate: 1, knockbackRate: 1, hitCooldownRate: 1 };
   }
 
-  // 今の回る半径。MAX は周期的に伸び縮みする
   get orbitRadius() {
-    const r = this.config.orbitRadius;
-    const pulse = this.stats.pulse;
-    if (!pulse) return r;
-    const k = (1 - Math.cos((this.time / pulse.periodSec) * Math.PI * 2)) / 2;
-    return r * (pulse.minRate + (pulse.maxRate - pulse.minRate) * k);
+    return this.config.orbitRadius;
   }
 
+  // 限界突破（Lv 9 から）で受けた段階の数。everyLevels Lv ごとに 1 段階
+  get breakSteps() {
+    const { max } = CONFIG.weaponLevels;
+    return Math.max(0, Math.floor((this.level - max) / this.config.limitBreak.everyLevels));
+  }
+
+  // 刃の半径。限界突破の段階ごとに小さくし、さらに隣の刃と重ならない大きさまでに抑える
   get bladeRadius() {
-    return this.config.bladeRadius * this.stats.bladeRate;
+    const c = this.config;
+    const r = c.bladeRadius * this.stats.bladeRate * c.limitBreak.shrinkRate ** this.breakSteps;
+    const n = this.bladeCount;
+    if (n < 2) return r;
+    return Math.min(r, this.orbitRadius * Math.sin(Math.PI / n) * c.fitRate);
+  }
+
+  upgradeDesc(nextLevel) {
+    const { max } = CONFIG.weaponLevels;
+    const { everyLevels, desc } = this.config.limitBreak;
+    if (nextLevel > max && (nextLevel - max) % everyLevels === 0) return desc;
+    return super.upgradeDesc(nextLevel);
+  }
+
+  // 刃の数。限界突破の段階の数と、当たる間隔の強化が下限からあふれた分だけ足す（仕様 012 FR-004）
+  get bladeCount() {
+    const { perBlade, maxExtra } = this.config.overflow;
+    const extra = this.game.character?.focus ? 0 : Math.min(maxExtra, Math.floor(this.intervalOverflow / perBlade));
+    return this.stats.count + this.breakSteps + extra;
   }
 
   #blades() {
     const p = this.game.player;
-    const { count } = this.stats;
+    const count = this.bladeCount;
     const orbit = this.orbitRadius;
     return Array.from({ length: count }, (_, i) => {
       const a = this.angle + (i / count) * Math.PI * 2;
@@ -43,12 +62,11 @@ export class Mill extends Weapon {
     const g = this.game;
     const s = this.stats;
     const p = g.player;
-    this.time += dt;
     this.angle += c.angularSpeed * s.spinRate * dt;
     // ミルは発動しないので、攻撃の間隔の強化は同じ敵に当たる間隔に効く
-    this.hits.cooldownSec = c.hitCooldownSec * this.intervalRate;
+    this.hits.cooldownSec = c.hitCooldownSec * s.hitCooldownRate * this.intervalRate;
     const blade = this.bladeRadius;
-    const reach = c.orbitRadius * (s.pulse?.maxRate ?? 1) + blade;
+    const reach = this.orbitRadius + blade;
     // 刃が届きうる円の中の敵だけを、刃と比べる
     const near = g.targets().filter((t) => Math.hypot(t.x - p.x, t.y - p.y) < reach + t.radius);
     if (!near.length) return;
@@ -59,7 +77,8 @@ export class Mill extends Weapon {
         this.hit(t);
         // プレイヤーから外向きに押し返す
         const a = Math.atan2(t.y - p.y, t.x - p.x);
-        g.knockback(t, Math.cos(a) * c.knockback, Math.sin(a) * c.knockback);
+        const k = c.knockback * s.knockbackRate;
+        g.knockback(t, Math.cos(a) * k, Math.sin(a) * k);
       }
     }
   }
