@@ -9,8 +9,9 @@ import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
-import { loadLastCharacter, saveLastCharacter, wearsSkin } from './characters.js';
-import { unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, saveProgress, pointCard } from './progress.js';
+import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin } from './characters.js';
+import { addMaxClear, refundRemovedVarieties, unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard, addCoins, coins } from './progress.js';
+import { coinText, drawCoin, drawCoinTally, tallyDone } from './coin-ui.js';
 import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu, levelLabel } from './level-up-menu.js';
 import { drawItemIcon } from './item-icons.js';
@@ -18,7 +19,9 @@ import { PixelLayer } from './pixel-layer.js';
 import { Floor } from './floor.js';
 import { sound } from './sound.js';
 import { font } from './font.js';
+import { Background } from './background.js';
 import { stage, setStage } from './stage.js';
+import { drawWeaponIcon, weaponIdOf } from './weapon-icons.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -38,6 +41,12 @@ function shuffle(list) {
 }
 
 export class Game {
+  // targets() の一覧を作り直すための、フレームの番号
+  #frame = 0;
+  #targetsFrame = -1;
+  #targetList = [];
+  #targetsDirty = false;
+
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
@@ -48,6 +57,13 @@ export class Game {
     const params = new URLSearchParams(location.search);
     this.debugBoss = params.has('boss');
     this.debugLevel = Number(params.get('level')) || 1;
+    // ?weapons=mill:8,drip:5 を付けて開くと、指定した攻撃を指定した Lv で持って始まる（動作確認用）
+    this.debugWeapons = (params.get('weapons') ?? '').split(',').filter(Boolean).map((s) => {
+      const [id, lv] = s.split(':');
+      return { id, level: Number(lv) || 1 };
+    });
+    // ?maxVariant=A|B|C を付けて開くと、MAX の見た目の案を切り替えられる（動作確認用）
+    this.debugMaxVariant = params.get('maxVariant');
     this.pixelLayer = new PixelLayer();
     this.floor = new Floor();
     this.resize();
@@ -57,8 +73,9 @@ export class Game {
       if (document.hidden) this.#pause();
     });
     this.character = loadLastCharacter();
-    this.characterSelect = new CharacterSelect();
+    this.characterSelect = new CharacterSelect((text) => this.#toast(text));
     this.levelUpMenu = new LevelUpMenu();
+    this.background = new Background();
     this.titleImage = new Image();
     this.titleImage.src = CONFIG.title.image;
     sound.init();
@@ -67,6 +84,7 @@ export class Game {
     this.#checkUnlocks('launches', recordLaunch());
     // 前回までのポイントカードで条件を満たしていれば、ここで解放する（閉じる直前に満たした場合など）
     this.#checkUnlocks('plays', pointCard().plays);
+    refundRemovedVarieties(CONFIG.characters.removedVarieties);
     this.#checkPointCardUnlocks();
     this.reset();
     this.state = 'title';
@@ -99,6 +117,9 @@ export class Game {
     this.moveDir = { x: 0, y: 0 };
     this.time = this.debugBoss ? CONFIG.boss.timeSec - 3 : 0;
     this.state = 'playing';
+    // そのプレイで倒した敵の数と、結果画面の豆コインの数え上げ（仕様 016）
+    this.runKills = 0;
+    this.coinTally = null;
     this.level = 1;
     this.xp = 0;
     // ボーナスで上がる攻撃力。キャラの攻撃力の倍率は characterDamageRate に分けて持つ
@@ -118,8 +139,30 @@ export class Game {
     this.notice = null;
     // 受け取った椿の花の種類
     this.camellias = [];
+    // ダイスケ豆が固まっているか（仕様 019）
+    this.frozen = false;
+    this.frozenSec = 0;
+    this.stoneBurst = null;
     this.nextWaveAt = CONFIG.bigWave.firstSec;
     this.waveUntil = 0;
+    this.#applyDebugWeapons();
+  }
+
+  // ?weapons= で指定した攻撃を持たせる。最初から持っている攻撃は Lv だけ変え、持てる数は超えない
+  #applyDebugWeapons() {
+    const { max } = CONFIG.weaponLevels;
+    for (const { id, level } of this.debugWeapons) {
+      const name = CONFIG.weapons[id]?.name;
+      if (!name) continue;
+      let weapon = this.weapons.find((w) => w.config.name === name);
+      if (!weapon) {
+        const W = WEAPON_ORDER.find((W) => new W(this).config.name === name);
+        if (!W || this.weapons.length >= CONFIG.slots.weapons) continue;
+        weapon = new W(this);
+        this.weapons.push(weapon);
+      }
+      weapon.level = Math.min(max, Math.max(1, level));
+    }
   }
 
   get xpToNext() {
@@ -157,9 +200,9 @@ export class Game {
     return Math.min(lv, max) + Math.max(0, lv - max) * overCapItemRate;
   }
 
-  // 範囲アップ：弾と範囲の大きさの倍率
+  // 範囲アップ：弾と範囲の大きさの倍率。品種の特別な力「範囲アップ」も掛ける
   get areaRate() {
-    return 1 + CONFIG.items.area.perLevel * this.#itemSteps('area');
+    return (1 + CONFIG.items.area.perLevel * this.#itemSteps('area')) * this.#power('areaRate', 1);
   }
 
   // 発生頻度アップ：攻撃の間隔の倍率。椿の花を持っていれば、さらに短くなる
@@ -177,7 +220,23 @@ export class Game {
   }
 
   get xpRate() {
-    return 1 + CONFIG.items.xp.perLevel * this.#itemSteps('xp');
+    return (1 + CONFIG.items.xp.perLevel * this.#itemSteps('xp')) * this.#power('xpRate', 1);
+  }
+
+  // ---- 品種の特別な力（仕様 016） ----
+
+  // 選んだキャラの特別な力の値。力がないか、その種類でないときは fallback
+  #power(key, fallback) {
+    return this.character.power?.[key] ?? fallback;
+  }
+
+  get #moving() {
+    return !!(this.moveDir.x || this.moveDir.y);
+  }
+
+  // キャラの攻撃の間隔の倍率。走り撃ちは、動いている間だけ短くなる
+  get attackIntervalRate() {
+    return this.characterIntervalRate * (this.#moving ? this.#power('movingIntervalRate', 1) : 1);
   }
 
   // ---- レベルアップの候補 ----
@@ -206,6 +265,7 @@ export class Game {
   #weaponChoice(weapon, isNew) {
     return {
       kind: 'weapon',
+      weaponId: weaponIdOf(weapon),
       name: weapon.name,
       desc: isNew ? weapon.desc : (weapon.upgradeDesc(weapon.level + 1) ?? weapon.desc),
       element: weapon.config.element,
@@ -280,7 +340,7 @@ export class Game {
   // エクストラステージで限界突破に当たったときは、限界突破の候補を必ず 1 枚入れる
   #openLevelUp() {
     this.overCap = Math.random() < stage.overCapChance;
-    const all = shuffle(this.#levelUpChoices());
+    const all = this.#shuffleChoices(this.#levelUpChoices());
     this.overCap = false;
     const isOverCap = (c) => !c.isNew && c.level >= CONFIG.weaponLevels.max;
     const pick = all.find(isOverCap);
@@ -288,6 +348,16 @@ export class Game {
     const choices = shuffle([...(pick ? [pick] : []), ...rest].slice(0, CONFIG.weaponLevels.choices));
     this.levelUpMenu.open([...(choices.length ? choices : this.#bonusChoices()), ...this.#rareChoices()], this.level);
     this.state = 'levelup';
+  }
+
+  // 候補をランダムに並べる。ピーベリーのときは、数のない武器のカードが前に来る割合を offRate 倍にする（仕様 017）
+  #shuffleChoices(list) {
+    const f = CONFIG.characters.focus;
+    if (!this.character.focus) return shuffle(list);
+    const offNames = f.offWeapons.map((id) => CONFIG.weapons[id].name);
+    const weight = (c) => (c.kind === 'weapon' && offNames.includes(c.name) ? f.offRate : 1);
+    // 重みつきの並べ替え：それぞれに「乱数の (1 / 重み) 乗」を付けて、大きい順に並べる
+    return list.map((c) => ({ c, key: Math.random() ** (1 / weight(c)) })).sort((a, b) => b.key - a.key).map((x) => x.c);
   }
 
   #applyChoice(choice) {
@@ -308,10 +378,18 @@ export class Game {
 
   // ---- 攻撃から使うヘルパー ----
 
+  // 攻撃が当たる相手の一覧。1 フレームに 1 回だけ作って使い回し、そのフレームで倒れた相手は除く
   targets() {
-    const list = this.enemies.filter((e) => !e.dead);
-    if (this.boss && !this.boss.dead) list.push(this.boss);
-    return list;
+    if (this.#targetsFrame !== this.#frame) {
+      this.#targetList = this.enemies.filter((e) => !e.dead);
+      if (this.boss && !this.boss.dead) this.#targetList.push(this.boss);
+      this.#targetsFrame = this.#frame;
+      this.#targetsDirty = false;
+    } else if (this.#targetsDirty) {
+      this.#targetList = this.#targetList.filter((t) => !t.dead);
+      this.#targetsDirty = false;
+    }
+    return this.#targetList;
   }
 
   nearestTarget(range) {
@@ -327,20 +405,38 @@ export class Game {
     return best;
   }
 
+  // 射程内の相手を近い順に count 体まで
+  nearestTargets(range, count) {
+    return this.targets()
+      .map((t) => ({ t, d: dist(t, this.player) - t.radius }))
+      .filter((e) => e.d < range)
+      .sort((a, b) => a.d - b.d)
+      .slice(0, count)
+      .map((e) => e.t);
+  }
+
   targetsInCircle(x, y, r) {
     return this.targets().filter((t) => Math.hypot(t.x - x, t.y - y) < r + t.radius);
   }
 
   dealDamage(target, amount, element) {
     let m = this.damageBonus * this.characterDamageRate * this.powerRate;
+    // 踏ん張り：止まっている間だけダメージが上がる
+    if (!this.#moving) m *= this.#power('standingDamageRate', 1);
     if (target === this.boss) m *= CONFIG.boss.elementMultiplier[element] ?? 1;
     target.damage(amount * m);
+    if (target.dead) this.#targetsDirty = true;
     sound.play('hit');
   }
 
-  // ボスは凍らず、押し返されない
-  freeze(target, sec) {
-    if (target !== this.boss) target.freeze(sec);
+  // ボスは凍らず、押し返されず、足どめされない
+  // guardSec は凍りが解けた直後に凍らない時間
+  freeze(target, sec, guardSec = CONFIG.weapons.ice.refreezeGuardSec) {
+    if (target !== this.boss) target.freeze(sec, guardSec);
+  }
+
+  slow(target, sec, rate) {
+    if (target !== this.boss) target.slow(sec, rate);
   }
 
   knockback(target, vx, vy) {
@@ -361,11 +457,16 @@ export class Game {
   }
 
   update(dt) {
+    this.#frame += 1;
     if (this.input.wasPressed('KeyM')) sound.toggleMute();
     // − で BGM を小さく、＋で大きく（日本語キーボードの ; ＋ キーと、テンキーにも対応）
     if (this.input.wasPressed('Minus', 'NumpadSubtract')) this.#changeMusicVolume(-1);
     if (this.input.wasPressed('Equal', 'Semicolon', 'NumpadAdd')) this.#changeMusicVolume(1);
     sound.setPaused(this.state === 'paused');
+    // 知らせは、レベルアップの選択・ポーズ・持っていく攻撃の選択の間は進めず、閉じてから出す
+    if (this.state === 'paused' || this.state === 'levelup' || this.state === 'carry') {
+      for (const t of this.toasts) t.until += dt * 1000;
+    }
     if (this.state === 'title') {
       if (this.input.consumeClick()) {
         this.characterSelect.open(this.character);
@@ -403,7 +504,10 @@ export class Game {
       return;
     }
     if (this.state !== 'playing') {
-      if (this.input.consumeClick()) this.#startRun();
+      if (!this.input.consumeClick()) return;
+      // 豆コインの数え上げの途中なら、まず数え上げを飛ばす
+      if (this.coinTally && !tallyDone(this.coinTally, performance.now())) this.coinTally.skipped = true;
+      else this.#startRun();
       return;
     }
     this.input.consumeClick();
@@ -416,12 +520,16 @@ export class Game {
     this.#recordProgress(dt);
     if (!this.boss && this.time >= CONFIG.boss.timeSec) this.#spawnBoss();
 
-    this.#updatePlayer(dt);
+    this.#updateFreeze(dt);
+    // 固まっている間は動けない。カフェインの減りや無敵時間などは、そのまま進む
+    if (this.frozen) this.player.update(dt, { x: 0, y: 0 });
+    else this.#updatePlayer(dt);
     this.#spawnBeans(dt);
     if (!this.boss) this.#spawnEnemies(dt);
     this.#updateEnemies(dt);
     if (this.boss) this.#updateBoss(dt);
-    for (const w of this.weapons) w.update(dt);
+    // ダイスケ豆が固まっている間は、攻撃も止まる（仕様 019）
+    if (!this.frozen) for (const w of this.weapons) w.update(dt);
     this.#removeDeadEnemies();
     for (const fx of this.effects) fx.update(dt);
     this.effects = this.effects.filter((fx) => fx.alive);
@@ -431,10 +539,11 @@ export class Game {
     if (!this.player.alive) this.#finish('gameover');
     else if (this.boss?.dead) this.#finish('clear');
 
-    // ドット絵のときは、画面の位置をドットの大きさごとにそろえて、止まっている絵がちらつかないようにする
-    const snap = CONFIG.pixelArt.enabled ? CONFIG.pixelArt.size : 1;
-    this.camera.x = Math.round((this.player.x - this.viewW / 2) / snap) * snap;
-    this.camera.y = Math.round((this.player.y - this.viewH / 2) / snap) * snap;
+    // 背景は画面の点（表示倍率 125% などでは 1px より細かい）単位でなめらかに動かす
+    // （3px ごとにそろえると、動きが 3・3・6px と不ぞろいになって画面が揺れる）
+    const dpr = window.devicePixelRatio || 1;
+    this.camera.x = Math.round((this.player.x - this.viewW / 2) * dpr) / dpr;
+    this.camera.y = Math.round((this.player.y - this.viewH / 2) * dpr) / dpr;
   }
 
   // ゲームオーバーかクリアで終わる。BGM は静かに消し、終わりの音を鳴らす
@@ -442,9 +551,30 @@ export class Game {
     this.state = state;
     sound.stopMusic();
     sound.play(state);
+    this.#earnCoins(state === 'clear');
     saveProgress();
     this.#checkPointCardUnlocks();
     if (state === 'clear') this.#checkUnlocks('bossDefeat');
+    if (state === 'clear' && stage.id === 'main') this.#checkUnlocks('clearCaffeine', this.player.caffeine / this.player.maxCaffeine);
+    // Lv 8 の攻撃を持ったまま 1 面をクリアしたキャラを数える（ピーベリーの条件。仕様 017）
+    if (state === 'clear' && stage.id === 'main' && this.weapons.some((w) => w.isMax)) this.#checkUnlocks('maxClears', addMaxClear(this.character.variety?.id ?? this.character.id));
+    if (state === 'clear' && stage.id === 'extra') this.#checkUnlocks('extraClear');
+  }
+
+  // ---- 豆コイン（仕様 016） ----
+
+  // 1 回のプレイが終わったときに、生き延びた時間・倒した敵・クリアの分の豆コインを足し、結果画面の数え上げを始める
+  #earnCoins(cleared) {
+    const c = CONFIG.coins;
+    const labels = c.tally.labels;
+    const rows = [
+      { label: labels.time, detail: formatTime(this.time), value: Math.floor(this.time / 60) * c.perMinute },
+      { label: labels.kills, detail: `${this.runKills.toLocaleString('ja-JP')} 体`, value: Math.floor(this.runKills / c.killsPerCoin) },
+    ];
+    if (cleared) rows.push(stage.id === 'extra' ? { label: labels.extraClear, value: c.extraClear } : { label: labels.clear, value: c.clear });
+    const before = coins();
+    addCoins(rows.reduce((sum, r) => sum + r.value, 0));
+    this.coinTally = { rows, before, startedAt: performance.now(), skipped: false };
   }
 
   // ---- ポイントカード ----
@@ -462,7 +592,7 @@ export class Game {
   // 持っていく攻撃を 1 つ選ぶ画面を開く
   #openCarryMenu() {
     const choices = this.weapons.map((weapon) => ({
-      kind: 'carry', weapon, name: weapon.name, desc: weapon.desc, element: weapon.config.element, level: weapon.level, isNew: false,
+      kind: 'carry', weapon, weaponId: weaponIdOf(weapon), name: weapon.name, desc: weapon.desc, element: weapon.config.element, level: weapon.level, isNew: false,
     }));
     this.levelUpMenu.open(choices, this.level, { title: 'エクストラステージへ', lead: '持っていく攻撃を 1 つ選ぶ（Lv はそのまま）' });
     this.state = 'carry';
@@ -478,7 +608,7 @@ export class Game {
     this.#checkUnlocks('plays', recordPlay());
   }
 
-  // 遊んでいる時間と動いた距離を累計に足す（倒した敵の数は #removeDeadEnemies で足す）。
+  // 遊んでいる時間と動いた距離を累計に足す（倒した敵の数は #removeDeadEnemies、拾った豆の数は #collectBeans で足す）。
   // ページを急に閉じても大きく失われないよう、5 秒ごとに保存して解放条件を調べる
   #recordProgress(dt) {
     addPlayTime(dt);
@@ -495,6 +625,7 @@ export class Game {
     this.#checkUnlocks('playTime', card.playSec);
     this.#checkUnlocks('distance', card.distance);
     this.#checkUnlocks('kills', card.kills);
+    this.#checkUnlocks('beans', card.beans);
   }
 
   // ---- キャラの性能と解放 ----
@@ -512,25 +643,31 @@ export class Game {
     const k = this.#growthProgress();
     const m = g ? g.from + (g.to - g.from) * k : 1;
     this.characterDamageRate = r.damageRate * m;
-    this.attackIntervalRate = r.attackIntervalRate / m;
+    this.characterIntervalRate = r.attackIntervalRate / m;
     this.player.setStats(r.speedRate * m, Math.round(r.maxCaffeine * m));
     if (g) this.player.drawScale = g.scaleFrom + (g.scaleTo - g.scaleFrom) * k;
   }
 
   // 解放の条件を調べ、満たしたキャラを解放して知らせる。value は起動の回数など
+  // 条件のある豆（特別なキャラ・高級品種）の条件を満たしたら、仕入れられるようにする（仕様 016 FR-018）
   #checkUnlocks(type, value) {
-    for (const c of CONFIG.characters.specials) {
-      if (c.unlock.type !== type) continue;
+    for (const c of CONDITIONS) {
+      const r = c.require;
+      if (r.type !== type) continue;
       const met = {
         bossDefeat: () => true,
-        launches: () => value >= c.unlock.count,
-        plays: () => value >= c.unlock.count,
-        playTime: () => value >= c.unlock.seconds,
-        distance: () => value >= c.unlock.pixels,
-        kills: () => value >= c.unlock.count,
+        extraClear: () => true,
+        maxClears: () => value >= r.count,
+        clearCaffeine: () => value >= r.ratio,
+        launches: () => value >= r.count,
+        plays: () => value >= r.count,
+        playTime: () => value >= r.seconds,
+        distance: () => value >= r.pixels,
+        kills: () => value >= r.count,
+        beans: () => value >= r.count,
         allWeaponsMax: () => this.weapons.length >= CONFIG.slots.weapons && this.weapons.every((w) => w.isMax),
       }[type]();
-      if (met && unlock(c.id)) this.#toast(`新しいキャラ「${c.name}」が解放された！`);
+      if (met && unlock(readyId(c.group))) this.#toast(CONFIG.coins.texts.ready.replace('{name}', c.name).replace('{price}', coinText(c.price)));
     }
   }
 
@@ -588,6 +725,123 @@ export class Game {
       { label: `音楽の音量  ◀ ${sound.musicVolume}% ▶`, x, y: y + gap, w, h, adjust: (d) => sound.changeMusicVolume(d) },
       { label: 'タイトルへ戻る', x, y: y + gap * 2, w, h, action: () => { saveProgress(); this.reset(); this.state = 'title'; } },
     ];
+  }
+
+  // ダイスケ豆（仕様 019）：毎分 startSec 秒目から stopSec 秒、移動と攻撃を止める。止まり終わったら、
+  // 止まっていた間に出ていたはずの回数ぶんを一度に撃つ（攻撃ごとに、間隔で割った回数。間隔のない攻撃はためない）
+  #updateFreeze(dt) {
+    const f = CONFIG.characters.freeze;
+    if (this.stoneBurst) {
+      this.stoneBurst.age += dt;
+      if (this.stoneBurst.age >= f.burstSec) this.stoneBurst = null;
+    }
+    const was = this.frozen;
+    const t = this.time % f.periodSec;
+    this.frozen = !!this.character.freeze && this.time >= f.startSec && t >= f.startSec && t < f.startSec + f.stopSec;
+    if (this.frozen) {
+      this.frozenSec = (was ? this.frozenSec : 0) + dt;
+      return;
+    }
+    if (!was) return;
+    // 石が弾けて、ためた弾が一斉に出る
+    this.stoneBurst = { x: this.player.x, y: this.player.y, age: 0 };
+    for (const w of this.weapons) {
+      if (!w.config.intervalSec) continue;
+      const n = Math.min(f.maxBurst, Math.floor(this.frozenSec / (w.config.intervalSec * w.intervalRate)));
+      for (let i = 0; i < n; i++) {
+        w.timer = Infinity;
+        w.update(0);
+      }
+    }
+  }
+
+  // ダイスケ豆が固まっている間の演出（ドット絵の層に描く）。k は 0（固まった瞬間）〜1（解ける直前）
+  #drawFreezeWorld(ctx) {
+    const f = CONFIG.characters.freeze;
+    const p = this.player;
+    const r = p.radius * (this.character.drawScale ?? 1);
+    const k = Math.min(1, this.frozenSec / f.stopSec);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    // 砂時計。豆は石のように灰色になり、頭の上の砂時計の砂が落ちきると解ける
+    ctx.fillStyle = f.stone;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.82, r * 1.05, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.translate(r * 1.1, -r * 1.2);
+    const hw = 9;
+    const hh = 12;
+    ctx.fillStyle = f.glass;
+    ctx.fillRect(-hw - 2, -hh - 3, (hw + 2) * 2, 3);
+    ctx.fillRect(-hw - 2, hh, (hw + 2) * 2, 3);
+    ctx.strokeStyle = f.glass;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-hw, -hh);
+    ctx.lineTo(hw, -hh);
+    ctx.lineTo(1.5, 0);
+    ctx.lineTo(hw, hh);
+    ctx.lineTo(-hw, hh);
+    ctx.lineTo(-1.5, 0);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fillStyle = f.sand;
+    const top = 1 - k;
+    ctx.beginPath();
+    ctx.moveTo(-hw * top, -hh * top);
+    ctx.lineTo(hw * top, -hh * top);
+    ctx.lineTo(0, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-hw, hh);
+    ctx.lineTo(hw, hh);
+    ctx.lineTo(hw * (1 - k), hh * (1 - k));
+    ctx.lineTo(-hw * (1 - k), hh * (1 - k));
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillRect(-1, 0, 2, hh);
+    ctx.restore();
+  }
+
+  // 解けた瞬間に、石のかけらが外へ飛び散る
+  #drawStoneBurst(ctx) {
+    const f = CONFIG.characters.freeze;
+    const b = this.stoneBurst;
+    const k = b.age / f.burstSec;
+    ctx.save();
+    ctx.globalAlpha = 1 - k;
+    ctx.fillStyle = f.stoneShard;
+    for (let i = 0; i < f.shards; i++) {
+      const a = (i / f.shards) * Math.PI * 2 + i * 0.7;
+      const d = f.burstDist * (0.3 + k * 0.7);
+      const s = f.shardSize * (1 - k * 0.4);
+      ctx.save();
+      ctx.translate(b.x + Math.cos(a) * d, b.y + Math.sin(a) * d);
+      ctx.rotate(a + k * 5);
+      ctx.fillRect(-s / 2, -s / 2, s, s);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  // ダイスケ豆が固まっている間、豆の上に残りの秒数を出す
+  #drawFreezeCountdown() {
+    const f = CONFIG.characters.freeze;
+    const { ctx } = this;
+    const left = Math.max(1, Math.ceil(f.stopSec - this.frozenSec));
+    const x = this.player.x - this.camera.x;
+    const y = this.player.y - this.camera.y - this.player.radius * (this.character.drawScale ?? 1) - 22;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = font(22, true);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(20, 12, 8, 0.85)';
+    ctx.strokeText(String(left), x, y);
+    ctx.fillStyle = f.countdownColor;
+    ctx.fillText(String(left), x, y);
+    ctx.restore();
   }
 
   #updatePlayer(dt) {
@@ -655,7 +909,8 @@ export class Game {
       if (b.fake) {
         p.drain(CONFIG.bean.fakeCaffeine);
       } else {
-        p.heal(CONFIG.bean.caffeine);
+        p.heal(CONFIG.bean.caffeine * this.#power('beanHealRate', 1));
+        addBeans(1);
       }
       return false;
     });
@@ -675,7 +930,10 @@ export class Game {
     while (this.enemyTimer >= interval) {
       this.enemyTimer -= interval;
       const n = Math.floor(group) + (Math.random() < group % 1 ? 1 : 0);
-      for (let i = 0; i < n && this.enemies.length < maxCount; i++) this.#spawnEnemy(this.#pickEnemyType());
+      for (let i = 0; i < n && this.enemies.length < maxCount; i++) {
+        const { x, y } = this.#spawnPoint();
+        this.#spawnEnemy(this.#pickEnemyType(), x, y, 0);
+      }
     }
   }
 
@@ -700,6 +958,38 @@ export class Game {
   }
 
   // 既定では画面のすぐ外に出現させる
+  // 通常の敵が現れる場所。マップの内側で、画面に映っておらず、プレイヤーがいる角のまわりでもない所。
+  // まず画面のすぐ外の円周上を、だめなら少し遠い円周上を探し、それでもなければマップ全体から探す
+  #spawnPoint() {
+    const { width, height } = stage.world;
+    const { viewPad, cornerRadius, ringTries, ringSteps, anywhereTries } = CONFIG.spawn;
+    const p = this.player;
+    const halfW = this.viewW / 2 + viewPad;
+    const halfH = this.viewH / 2 + viewPad;
+    const corners = [[0, 0], [width, 0], [0, height], [width, height]];
+    const corner = corners.find(([cx, cy]) => Math.hypot(p.x - cx, p.y - cy) < cornerRadius);
+    const ok = (x, y) => x >= 0 && x <= width && y >= 0 && y <= height
+      && (Math.abs(x - p.x) > halfW || Math.abs(y - p.y) > halfH)
+      && !(corner && Math.hypot(x - corner[0], y - corner[1]) < cornerRadius);
+    const base = Math.hypot(halfW, halfH);
+    for (const step of ringSteps) {
+      for (let i = 0; i < ringTries; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const x = p.x + Math.cos(a) * base * step;
+        const y = p.y + Math.sin(a) * base * step;
+        if (ok(x, y)) return { x, y };
+      }
+    }
+    for (let i = 0; i < anywhereTries; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      if (ok(x, y)) return { x, y };
+    }
+    // マップが画面より狭いなどで見つからないときは、プレイヤーから一番遠い角に出す
+    const [fx, fy] = corners.reduce((a, b) => (Math.hypot(p.x - a[0], p.y - a[1]) > Math.hypot(p.x - b[0], p.y - b[1]) ? a : b));
+    return { x: fx, y: fy };
+  }
+
   #spawnEnemy(type, cx = this.player.x, cy = this.player.y, distance = Math.hypot(this.viewW, this.viewH) / 2 + 40) {
     const a = Math.random() * Math.PI * 2;
     const x = clamp(cx + Math.cos(a) * distance, 0, stage.world.width);
@@ -766,6 +1056,7 @@ export class Game {
     this.enemies = this.enemies.filter((e) => {
       if (!e.dead) return true;
       addKills(1);
+      this.runKills += 1;
       sound.play('defeat');
       this.effects.push(new DefeatEffect(e.x, e.y, e.config.color, e.radius));
       this.#dropXp(e.x, e.y, e.config.xp);
@@ -778,21 +1069,26 @@ export class Game {
 
   draw() {
     const { ctx } = this;
-    ctx.fillStyle = CONFIG.colors.ground;
-    ctx.fillRect(0, 0, this.viewW, this.viewH);
-
     ctx.save();
     ctx.translate(-this.camera.x, -this.camera.y);
+    // 床と背景もドット絵なので、小数の位置に貼るときに点を補間させない（ぼやけてキャラのドットとそろわなくなる）
+    ctx.imageSmoothingEnabled = false;
+    // マップの外 → 木の床 → 壁・小物・ランプ の順に重ねる
+    this.background.drawOutside(ctx, this.camera, this.viewW, this.viewH);
     if (CONFIG.floor.enabled) this.floor.draw(ctx, this.camera, this.viewW, this.viewH);
-    else this.#drawGrid();
+    this.background.draw(ctx, this.camera, this.viewW, this.viewH);
     ctx.restore();
 
-    // 絵（攻撃・豆・粒・敵・ボス・プレイヤー）は、ドット絵にする層に描く。背景と文字はくっきりしたまま
+    // 絵（攻撃・豆・粒・敵・ボス・プレイヤー）は、ドット絵にする層に描く。文字はくっきりしたまま
     const pixel = CONFIG.pixelArt.enabled;
     const wctx = pixel ? this.pixelLayer.begin() : ctx;
     wctx.save();
-    wctx.translate(-this.camera.x, -this.camera.y);
-    for (const w of this.weapons) w.drawBelow(wctx);
+    // ドット絵の層は、プレイヤーをいつも画面の同じ位置に描く（小数のずれでプレイヤーのドットが跳ねないように）
+    wctx.translate(this.viewW / 2 - this.player.x, this.viewH / 2 - this.player.y);
+    for (const w of this.weapons) {
+      w.drawBelow(wctx);
+      w.drawLevelFx(wctx, true);
+    }
     for (const b of this.beans) b.draw(wctx);
     for (const o of this.xpOrbs) o.draw(wctx);
     for (const w of this.waves) w.draw(wctx);
@@ -800,10 +1096,16 @@ export class Game {
     for (const fx of this.effects) fx.draw(wctx);
     if (this.boss && !this.boss.dead) this.boss.draw(wctx);
     this.player.draw(wctx);
-    for (const w of this.weapons) w.draw(wctx);
+    if (this.frozen) this.#drawFreezeWorld(wctx);
+    if (this.stoneBurst) this.#drawStoneBurst(wctx);
+    for (const w of this.weapons) {
+      w.draw(wctx);
+      w.drawLevelFx(wctx, false);
+    }
     wctx.restore();
     if (pixel) this.pixelLayer.end(ctx);
 
+    if (this.frozen) this.#drawFreezeCountdown();
     if (this.state === 'clear') this.#drawDawn();
     else this.#drawDarkness();
 
@@ -863,38 +1165,21 @@ export class Game {
     ctx.restore();
   }
 
-  #drawGrid() {
-    const { ctx } = this;
-    const step = 80;
-    ctx.strokeStyle = CONFIG.colors.grid;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let x = 0; x <= stage.world.width; x += step) {
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, stage.world.height);
-    }
-    for (let y = 0; y <= stage.world.height; y += step) {
-      ctx.moveTo(0, y);
-      ctx.lineTo(stage.world.width, y);
-    }
-    ctx.stroke();
-  }
-
-  // 夜が深まる演出。まぶたの帳の間はプレイヤーの周り以外が暗くなる
+  // 夜が深まる演出。ランプの周りは少し明るい。まぶたの帳の間はプレイヤーの周り以外が暗くなる
   #drawDarkness() {
     const { ctx } = this;
-    if (this.boss?.has('curtain')) {
-      const px = this.player.x - this.camera.x;
-      const py = this.player.y - this.camera.y;
-      const r = CONFIG.boss.curtain.visionRadius;
-      const g = ctx.createRadialGradient(px, py, r * 0.5, px, py, r);
-      g.addColorStop(0, 'rgba(5, 3, 15, 0)');
-      g.addColorStop(1, 'rgba(5, 3, 15, 0.93)');
-      ctx.fillStyle = g;
-    } else {
+    if (!this.boss?.has('curtain')) {
       const a = CONFIG.night.maxDarkness * Math.min(1, this.time / CONFIG.boss.timeSec);
-      ctx.fillStyle = `rgba(5, 3, 20, ${a})`;
+      this.background.drawDarkness(ctx, this.camera, this.viewW, this.viewH, a);
+      return;
     }
+    const px = this.player.x - this.camera.x;
+    const py = this.player.y - this.camera.y;
+    const r = CONFIG.boss.curtain.visionRadius;
+    const g = ctx.createRadialGradient(px, py, r * 0.5, px, py, r);
+    g.addColorStop(0, 'rgba(5, 3, 15, 0)');
+    g.addColorStop(1, 'rgba(5, 3, 15, 0.93)');
+    ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.viewW, this.viewH);
   }
 
@@ -947,7 +1232,16 @@ export class Game {
     };
     ctx.font = font(11);
     line(`攻撃 ${this.weapons.length}/${slots.weapons}`, 'rgba(243, 230, 216, 0.85)');
-    for (const wp of this.weapons) line(`・${wp.name}  ${levelLabel(wp.level)}`, 'rgba(243, 230, 216, 0.6)');
+    for (const wp of this.weapons) {
+      ly += 2;
+      drawWeaponIcon(ctx, weaponIdOf(wp), x + 9, ly + 6, 18);
+      ctx.font = font(11);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = 'rgba(243, 230, 216, 0.6)';
+      ctx.fillText(`${wp.name}  ${levelLabel(wp.level)}`, x + 22, ly);
+      ly += 18;
+    }
     ly += 4;
     line(`アイテム ${this.items.length}/${slots.items}`, c.itemCard);
     for (const it of this.items) {
@@ -1041,6 +1335,9 @@ export class Game {
     ctx.font = font(13);
     ctx.fillStyle = 'rgba(243, 230, 216, 0.75)';
     ctx.fillText(`ポイントカード　プレイ ${plays} 回　累計 ${time}`, 16, this.viewH - 14);
+    // 今持っている豆コイン（仕様 016）
+    drawCoin(ctx, 24, this.viewH - 44, 7);
+    ctx.fillText(`${CONFIG.coins.name} ${coinText(coins())}`, 36, this.viewH - 36);
     ctx.restore();
   }
 
@@ -1150,10 +1447,17 @@ export class Game {
     ctx.fillText(cleared ? (extra ? 'エクストラステージクリア！' : '朝が来た！') : '眠りに落ちた…', this.viewW / 2, this.viewH / 2 - 30);
     ctx.font = font(16);
     ctx.fillText(`生存時間  ${formatTime(this.time)}`, this.viewW / 2, this.viewH / 2 + 10);
-    ctx.fillText(extra ? 'クリック / Space で 1 面からもう一度' : 'クリック / Space でもう一度', this.viewW / 2, this.viewH / 2 + 40);
+    // 豆コインの数え上げ（仕様 016）。明るいクリアの背景でも読めるよう、暗い地のパネルに描く
+    let y = this.viewH / 2 + 40;
+    if (this.coinTally) y = drawCoinTally(ctx, this.viewW / 2, this.viewH / 2 + 30, this.coinTally, performance.now()) + 26;
+    ctx.fillStyle = cleared ? '#3b2418' : CONFIG.colors.text;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = font(16);
+    ctx.fillText(extra ? 'クリック / Space で 1 面からもう一度' : 'クリック / Space でもう一度', this.viewW / 2, y);
     if (cleared && !extra) {
       ctx.font = font(18, true);
-      ctx.fillText('E：攻撃を 1 つ持ってエクストラステージへ', this.viewW / 2, this.viewH / 2 + 76);
+      ctx.fillText('E：攻撃を 1 つ持ってエクストラステージへ', this.viewW / 2, y + 36);
     }
   }
 }

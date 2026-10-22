@@ -2,19 +2,30 @@ import { CONFIG } from '../config.js';
 import { sound } from '../sound.js';
 import { flower, leaf } from '../item-icons.js';
 import { stage } from '../stage.js';
+import { drawPattern } from './variety-look.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
 // 珈琲豆のキャラを描く。look は目線の向き（長さ 0〜1）、bob は歩くときの弾み（0〜1）、skin はスキン「椿」を付けているか
-export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 0, slowed = false, skin = false } = {}) {
+// 品種に模様（variety.pattern、仕様 016）があれば、豆の上に描く。模様は豆の輪郭の内側だけに描き、当たる範囲は変えない
+// dot はドット絵にするときのドットの大きさ（px）。0 ならなめらかな絵のまま
+export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 0, slowed = false, skin = false, dot = 0 } = {}) {
+  if (character.multi) {
+    drawBrothers(ctx, character, r, { look, bob, slowed, dot });
+    return;
+  }
   const { color, crease } = character.roast;
+  const sx = 1 + bob * 0.06;
+  const sy = 1 - bob * 0.06;
   ctx.save();
-  ctx.scale(1 + bob * 0.06, 1 - bob * 0.06);
+  ctx.scale(sx, sy);
 
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.ellipse(0, 0, r * 0.82, r * 1.05, 0, 0, Math.PI * 2);
   ctx.fill();
+  const pattern = character.variety?.pattern;
+  if (pattern) drawPattern(ctx, pattern.kind, (character.roast.id === 'light' && pattern.lightColor) || pattern.color, r, r * 0.82, r * 1.05);
   // つや
   ctx.fillStyle = 'rgba(255,255,255,0.18)';
   ctx.beginPath();
@@ -28,19 +39,10 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   ctx.moveTo(0, -r * 0.88);
   ctx.quadraticCurveTo(r * 0.22, -r * 0.35, 0, r * 0.15);
   ctx.stroke();
-  // 目と口
-  for (const side of [-1, 1]) {
-    const ex = side * r * 0.38;
-    const ey = -r * 0.05;
-    ctx.fillStyle = '#fff8ee';
-    ctx.beginPath();
-    ctx.arc(ex, ey, r * 0.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#1e120c';
-    ctx.beginPath();
-    ctx.arc(ex + look.x * r * 0.08, ey + look.y * r * 0.08, r * 0.1, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  // 目と口。ピーベリー（仕様 017）は目玉が 1 つ
+  if (character.eyes === 'one') drawOneEye(ctx, r, look, dot);
+  else if (dot) drawDotEyes(ctx, r, look, dot, sx, sy);
+  else drawEyes(ctx, r, look);
   ctx.strokeStyle = '#fff8ee';
   ctx.lineWidth = Math.max(1.5, r * 0.08);
   ctx.beginPath();
@@ -58,42 +60,112 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   ctx.restore();
 }
 
-// スキン「椿」。椿の花の絵は、大きさ 80 を基準にしたアイコンの絵（item-icons.js）を使う
-function drawCamelliaSkin(ctx, r) {
-  const k = r / 40;
-  const at = (x, y, size, draw) => {
-    ctx.save();
-    ctx.translate(x * r, y * r);
-    ctx.scale(k * size, k * size);
-    draw();
-    ctx.restore();
-  };
-  const look = CONFIG.camellia.skin.look;
-  if (look === 'A') {
-    // A：頭に大きな椿の髪飾り
-    at(-0.5, -0.82, 1, () => {
-      leaf(ctx, 14, 10, 12, 0.6);
-      flower(ctx, 0, 0, 18);
-    });
-  } else if (look === 'B') {
-    // B：椿の花冠
-    at(0, -0.95, 1, () => {
-      leaf(ctx, -16, 4, 9, -0.4);
-      leaf(ctx, 16, 4, 9, 0.4);
-      flower(ctx, -24, 6, 11);
-      flower(ctx, 24, 6, 11);
-      flower(ctx, 0, -2, 13);
-    });
-  } else {
-    // C：体をぐるりと囲む椿の首飾り（花をまとう）
-    for (let i = 0; i < 5; i++) {
-      const a = Math.PI * (0.12 + i * 0.19);
-      at(Math.cos(a) * 0.82, Math.sin(a) * 0.72 + 0.12, 0.55, () => {
-        leaf(ctx, 12, 8, 10, 0.5 + i);
-        flower(ctx, 0, 0, 15);
-      });
-    }
+function drawEyes(ctx, r, look) {
+  for (const side of [-1, 1]) {
+    const ex = side * r * 0.38;
+    const ey = -r * 0.05;
+    ctx.fillStyle = CONFIG.player.eyes.white;
+    ctx.beginPath();
+    ctx.arc(ex, ey, r * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = CONFIG.player.eyes.pupil;
+    ctx.beginPath();
+    ctx.arc(ex + look.x * r * 0.08, ey + look.y * r * 0.08, r * 0.1, 0, Math.PI * 2);
+    ctx.fill();
   }
+}
+
+// ドット絵用の目。小さな丸は 1 マスより細くて欠けたり潰れたりするので、ドットのマス単位の四角で描く。
+// 幅と高さがマスの大きさのちょうど倍数なら、マスの格子とずれていても拾われるマスの数は変わらない。
+// 弾み（sx, sy の伸び縮み）は目の大きさにかけず、位置だけを動かす
+function drawDotEyes(ctx, r, look, dot, sx, sy) {
+  const { white, pupil, dotsW, dotsH, pupilW, pupilH } = CONFIG.player.eyes;
+  const w = dotsW * dot;
+  const h = dotsH * dot;
+  // 黒目の位置（白目の中のマス）。目線の向きで 1 マスずつ動かす
+  const step = (v, room) => Math.max(0, Math.min(room, Math.round(room / 2 + v * room)));
+  const px = step(look.x, dotsW - pupilW) * dot;
+  const py = step(look.y, dotsH - pupilH) * dot;
+  ctx.save();
+  ctx.scale(1 / sx, 1 / sy);
+  // 四角の端が点の途中にかかると、その点だけ背景と混ざった色になり、それが拾われると目がくすむ。
+  // ドット絵の層のマスの格子（画用紙の左上から dot px ごと）にぴったり合わせる
+  const t = ctx.getTransform();
+  const snapX = (x) => (Math.round((t.a * x + t.e) / dot) * dot - t.e) / t.a;
+  const snapY = (y) => (Math.round((t.d * y + t.f) / dot) * dot - t.f) / t.d;
+  for (const side of [-1, 1]) {
+    const x = snapX(side * r * 0.38 * sx - w / 2);
+    const y = snapY(-r * 0.05 * sy - h / 2);
+    ctx.fillStyle = white;
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = pupil;
+    ctx.fillRect(x + px, y + py, pupilW * dot, pupilH * dot);
+  }
+  ctx.restore();
+}
+
+// こーひー3兄弟（仕様 018）：浅煎り・中煎り・深煎りの 3 粒を、上から順に串に刺した形で描く。
+// 3 粒とも、ふつうの豆（drawCharacter）を小さくして描く
+function drawBrothers(ctx, character, r, opts) {
+  const m = CONFIG.characters.multi;
+  const roasts = CONFIG.characters.roasts;
+  // 1 粒の大きさと、粒どうしの間（どちらも r に対する割合）。少し重ねて、全体をふつうの豆と同じくらいの高さにする
+  const size = 0.5;
+  const gap = 0.62;
+  ctx.save();
+  ctx.rotate((m.tiltDeg * Math.PI) / 180);
+  // 串（豆の後ろ）
+  ctx.strokeStyle = m.stickDark;
+  ctx.lineWidth = Math.max(3, r * 0.16);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, -r * (gap + size + 0.25));
+  ctx.lineTo(0, r * (gap + size + 0.55));
+  ctx.stroke();
+  ctx.strokeStyle = m.stick;
+  ctx.lineWidth = Math.max(1.5, r * 0.08);
+  ctx.stroke();
+  roasts.forEach((roast, i) => {
+    ctx.save();
+    ctx.translate(0, (i - 1) * gap * r);
+    // 小さな豆にドット絵用の目（大きさが決まっている）を付けると目だけになるので、ふつうの目で描く
+    drawCharacter(ctx, { roast }, r * size, { ...opts, dot: 0 });
+    ctx.restore();
+  });
+  ctx.restore();
+}
+
+// 目玉 1 つ（ピーベリー、仕様 017）。顔の真ん中に大きな丸い目。
+// ドット絵のときも 1 マスより小さくならない大きさで描く（dot はドットの大きさ）
+function drawOneEye(ctx, r, look, dot) {
+  const { white, pupil } = CONFIG.player.eyes;
+  const ey = -r * 0.08;
+  const p = Math.max(r * 0.15, dot * 1.5);
+  const px = look.x * r * 0.1;
+  const py = look.y * r * 0.08;
+  // 顔の真ん中に、大きな丸い目
+  ctx.fillStyle = white;
+  ctx.beginPath();
+  ctx.arc(0, ey, r * 0.36, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = pupil;
+  ctx.beginPath();
+  ctx.arc(px, ey + py, p * 1.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = white;
+  ctx.beginPath();
+  ctx.arc(px - p * 0.45, ey + py - p * 0.45, Math.max(p * 0.35, dot * 0.6), 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// スキン「椿」（頭に大きな椿の髪飾り）。椿の花の絵は、大きさ 80 を基準にしたアイコンの絵（item-icons.js）を使う
+function drawCamelliaSkin(ctx, r) {
+  ctx.save();
+  ctx.translate(-0.5 * r, -0.82 * r);
+  ctx.scale(r / 40, r / 40);
+  leaf(ctx, 14, 10, 12, 0.6);
+  flower(ctx, 0, 0, 18);
+  ctx.restore();
 }
 
 export class Player {
@@ -106,6 +178,11 @@ export class Player {
     this.maxCaffeine = character.roast.maxCaffeine;
     this.caffeine = this.maxCaffeine;
     this.invincibleTimer = 0;
+    // 品種の特別な力（仕様 016）：無敵時間・カフェインの減りの倍率・経験値の粒を吸い寄せる距離の倍率
+    const power = character.power;
+    this.invincibleSec = power?.invincibleSec ?? CONFIG.player.invincibleSec;
+    this.decayRate = power?.decayRate ?? 1;
+    this.magnetRate = power?.magnetRate ?? 1;
     this.slowTimer = 0;
     this.slowFactor = 1;
     this.look = { x: 0, y: 0 };
@@ -132,7 +209,7 @@ export class Player {
     // このフレームで実際に動いた距離（壁で止まった分は含まない）
     this.moved = Math.hypot(this.x - x, this.y - y);
     // エクストラステージでは、カフェインは時間で減らない
-    if (stage.caffeineDecay) this.caffeine -= CONFIG.player.caffeineDecayPerSec * dt;
+    if (stage.caffeineDecay) this.caffeine -= CONFIG.player.caffeineDecayPerSec * this.decayRate * dt;
     this.invincibleTimer = Math.max(0, this.invincibleTimer - dt);
     this.slowTimer = Math.max(0, this.slowTimer - dt);
     // 動いている間だけ弾ませ、目線を進む方向に向ける
@@ -150,7 +227,7 @@ export class Player {
   hit(amount) {
     if (this.invincibleTimer > 0) return;
     this.caffeine -= amount;
-    this.invincibleTimer = CONFIG.player.invincibleSec;
+    this.invincibleTimer = this.invincibleSec;
     sound.play('damage');
   }
 
@@ -177,6 +254,7 @@ export class Player {
       bob: Math.abs(Math.sin(this.walkTime * 12)),
       slowed: this.slowTimer > 0,
       skin: this.skin,
+      dot: CONFIG.pixelArt.enabled ? CONFIG.pixelArt.size : 0,
     });
     ctx.restore();
   }

@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { circle } from './max-fx.js';
 
 export const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 export const angleTo = (from, to) => Math.atan2(to.y - from.y, to.x - from.x);
@@ -20,6 +21,9 @@ export class Weapon {
   #baseConfig;
   #config = null;
   #configRate = null;
+  #stats = null;
+  #statsLevel = 0;
+  #statsConfig = null;
 
   constructor(game, config) {
     this.game = game;
@@ -54,33 +58,99 @@ export class Weapon {
     return this.level >= CONFIG.weaponLevels.max;
   }
 
-  // 共通の強化（ダメージ・間隔）を受けた回数。ふつうは Lv が 1 上がるごとに 1 回
+  // MAX の見た目の案（A・B・C）。?maxVariant= があればそれを使う
+  get maxVariant() {
+    return this.game.debugMaxVariant ?? this.config.maxVisual?.variant ?? 'A';
+  }
+
+  // 強化の初期値。武器ごとに上書きする
+  baseStats() {
+    return {};
+  }
+
+  // 今の Lv までに受けた特別な強化をまとめたもの。upgrades を Lv の小さい順に重ねる。
+  // キー名が Rate で終わる値はかけ算、それ以外は上書き。desc はカードの説明なので重ねない
+  get stats() {
+    const c = this.config;
+    if (this.#stats && this.#statsLevel === this.level && this.#statsConfig === c) return this.#stats;
+    const s = this.baseStats();
+    const levels = Object.keys(c.upgrades ?? {}).map(Number).sort((a, b) => a - b);
+    for (const lv of levels) {
+      if (this.level < lv) continue;
+      for (const [k, v] of Object.entries(c.upgrades[lv])) {
+        if (k === 'desc') continue;
+        if (k.endsWith('Rate')) s[k] = (s[k] ?? 1) * v;
+        else s[k] = v;
+      }
+    }
+    this.#applyCountRule(s);
+    this.#stats = s;
+    this.#statsLevel = this.level;
+    this.#statsConfig = c;
+    return s;
+  }
+
+  // 攻撃の数を変えるキャラ。ピーベリー（仕様 017）は数を 1 にし、本来の数 N を focusCount に残す（威力と間隔の上乗せに使う）。
+  // こーひー3兄弟（仕様 018）は数を 3 倍にし、1 発の威力を multiDamage 倍にする。数のない武器は変えない
+  #applyCountRule(s) {
+    this.focusCount = 1;
+    this.multiDamage = 1;
+    const ch = this.game.character;
+    if (!ch?.focus && !ch?.multi) return;
+    const m = CONFIG.characters.multi;
+    for (const k of CONFIG.characters.focus.countKeys) {
+      const v = s[k];
+      const n = Array.isArray(v) ? v.length : v;
+      if (typeof n !== 'number' || n < 1) continue;
+      if (ch.focus) {
+        if (n <= 1) continue;
+        this.focusCount = n;
+        s[k] = Array.isArray(v) ? v.slice(0, 1) : 1;
+      } else {
+        s[k] = Array.isArray(v) ? v.flatMap((d) => [d - m.sideDeg, d, d + m.sideDeg]) : v * m.countRate;
+        if ('spreadDeg' in s) s.spreadDeg = Math.max(s.spreadDeg, m.spreadDeg);
+        this.multiDamage = m.damageRate;
+      }
+    }
+  }
+
+  // 共通の強化（ダメージ・間隔）を受けた回数。commonLevels がなければ Lv が 1 上がるごとに 1 回。
+  // commonLevels がある武器も、限界突破した Lv 9 から先は Lv が上がるたびに受ける
   get commonUpgrades() {
-    return this.level - 1;
+    const { commonLevels } = this.config;
+    if (!commonLevels) return this.level - 1;
+    return commonLevels.filter((lv) => this.level >= lv).length + Math.max(0, this.level - CONFIG.weaponLevels.max);
   }
 
   // 次の Lv で変わることの説明。null なら攻撃の説明をそのまま使う
-  upgradeDesc() {
-    return null;
+  upgradeDesc(nextLevel) {
+    return this.config.upgrades?.[nextLevel]?.desc ?? this.config.commonDesc ?? null;
   }
 
   // 強化によるダメージの倍率（Lv 1 で 1 倍）
   get damageRate() {
-    return 1 + CONFIG.weaponLevels.damagePerLevel * this.commonUpgrades;
+    // ピーベリーは 1 つにした数の分だけ威力を上乗せし（仕様 017）、こーひー3兄弟は 1 発を弱くする（仕様 018）
+    const focus = this.stats && this.focusCount > 1 ? this.focusCount ** CONFIG.characters.focus.damageExp : 1;
+    return (1 + CONFIG.weaponLevels.damagePerLevel * this.commonUpgrades) * focus * (this.multiDamage ?? 1);
+  }
+
+  // 攻撃の間隔の倍率。キャラの倍率・強化の段階・発生頻度アップで縮む。ただし下限がある
+  get intervalRate() {
+    const { intervalPerLevel, minIntervalRate } = CONFIG.weaponLevels;
+    const levelRate = 1 - intervalPerLevel * this.commonUpgrades;
+    const focus = this.stats && this.focusCount > 1 ? this.focusCount ** -CONFIG.characters.focus.intervalExp : 1;
+    return Math.max(minIntervalRate, this.game.attackIntervalRate * levelRate * this.game.frequencyRate * focus);
   }
 
   // 発動間隔が経過していれば true。発動したら this.timer = 0 に戻す
-  // 間隔はキャラの倍率・強化の段階・発生頻度アップで縮む。ただし下限がある
   tick(dt) {
     this.timer += dt;
-    const { intervalPerLevel, minIntervalRate } = CONFIG.weaponLevels;
-    const levelRate = 1 - intervalPerLevel * this.commonUpgrades;
-    const rate = Math.max(minIntervalRate, this.game.attackIntervalRate * levelRate * this.game.frequencyRate);
-    return this.timer >= this.config.intervalSec * rate;
+    return this.timer >= this.config.intervalSec * this.intervalRate;
   }
 
-  hit(target, damage = this.config.damage) {
-    this.game.dealDamage(target, damage * this.damageRate, this.config.element);
+  // element を省略したら攻撃の属性で当てる
+  hit(target, damage = this.config.damage, element = this.config.element) {
+    this.game.dealDamage(target, damage * this.damageRate, element);
   }
 
   update() {}
@@ -89,6 +159,40 @@ export class Weapon {
   drawBelow() {}
 
   draw() {}
+
+  // Lv 2・4・6 で上がる見た目の段階（1〜3）。Lv 1 と MAX は 0（MAX は武器ごとの MAX の見た目で描く）
+  get visualTier() {
+    if (this.isMax) return 0;
+    return CONFIG.weaponLevelVisual.tiers.filter((lv) => this.level >= lv).length;
+  }
+
+  // 段階の見た目を重ねる目印：{ x, y, r（はっきりした部分の半径）, k（濃さ 0〜1。省略で 1）}。武器ごとに上書きする
+  levelSpots() {
+    return [];
+  }
+
+  // true なら段階の見た目を敵より下に描く（床に広がる攻撃）
+  get levelFxBelow() {
+    return false;
+  }
+
+  // 段階の見た目：目印の縁（当たる範囲の内側）に、属性の色の光る線。below は敵より下の描画のときに true
+  drawLevelFx(ctx, below) {
+    const tier = this.visualTier;
+    if (!tier || below !== this.levelFxBelow) return;
+    const v = CONFIG.weaponLevelVisual;
+    const i = tier - 1;
+    ctx.save();
+    ctx.strokeStyle = (v.colors[this.config.element] ?? v.colors.none)[i];
+    for (const s of this.levelSpots()) {
+      const w = Math.min(v.width[i], s.r);
+      ctx.globalAlpha = v.alpha[i] * (s.k ?? 1);
+      ctx.lineWidth = w;
+      circle(ctx, s.x, s.y, s.r - w / 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
 }
 
 // 同じ相手には cooldownSec ごとに 1 回だけ当たる

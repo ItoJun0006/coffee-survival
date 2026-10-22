@@ -14,6 +14,12 @@ export class Enemy {
     this.damageRate = strength.damage;
     this.wobble = Math.random() * Math.PI * 2;
     this.freezeTimer = 0;
+    // 凍りが解けた直後の、凍らない残り時間と、そのときに入る長さ
+    this.freezeGuardTimer = 0;
+    this.freezeGuardSec = 0;
+    // 足どめの残り時間と、速さにかける倍率
+    this.slowTimer = 0;
+    this.slowRate = 1;
     this.kx = 0;
     this.ky = 0;
   }
@@ -30,8 +36,24 @@ export class Enemy {
     this.hp -= amount;
   }
 
-  freeze(sec) {
-    this.freezeTimer = Math.max(this.freezeTimer, sec);
+  // 凍っている間と、解けた直後の待ち時間の間は、凍らせ直さない
+  freeze(sec, guardSec = 0) {
+    if (this.frozen || this.freezeGuardTimer > 0) return;
+    this.freezeTimer = sec;
+    this.freezeGuardSec = guardSec;
+  }
+
+  // すぐに凍りを解き、待ち時間に入る
+  thaw() {
+    if (!this.frozen) return;
+    this.freezeTimer = 0;
+    this.freezeGuardTimer = this.freezeGuardSec;
+  }
+
+  // かけ直したときは、長い方の時間と強い方の倍率を残す
+  slow(sec, rate) {
+    this.slowRate = this.slowTimer > 0 ? Math.min(this.slowRate, rate) : rate;
+    this.slowTimer = Math.max(this.slowTimer, sec);
   }
 
   // 押し返しの速度（px/秒）。時間とともに弱まる
@@ -41,12 +63,16 @@ export class Enemy {
   }
 
   update(dt, target) {
+    this.slowTimer = Math.max(0, this.slowTimer - dt);
     if (this.frozen) {
       this.freezeTimer -= dt;
+      if (!this.frozen) this.freezeGuardTimer = this.freezeGuardSec;
     } else {
+      this.freezeGuardTimer = Math.max(0, this.freezeGuardTimer - dt);
       const d = Math.hypot(target.x - this.x, target.y - this.y) || 1;
-      this.x += ((target.x - this.x) / d) * this.speed * dt;
-      this.y += ((target.y - this.y) / d) * this.speed * dt;
+      const speed = this.speed * (this.slowTimer > 0 ? this.slowRate : 1);
+      this.x += ((target.x - this.x) / d) * speed * dt;
+      this.y += ((target.y - this.y) / d) * speed * dt;
       this.wobble += dt * 4;
     }
     this.x += this.kx * dt;
