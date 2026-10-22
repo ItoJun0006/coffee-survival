@@ -525,9 +525,10 @@ export const CONFIG = {
   // maxCount を超えたら新しい粒は作らず、今ある粒に経験値をまとめる
   xpOrb: { radius: 5, magnetRadius: 110, magnetSpeed: 420, maxCount: 300, color: '#f0d58a' },
   // 眠気の化身の手下。xp は倒したときに落とす経験値
+  // drainMaxStack：吸い取る敵に何体触れていても、吸い取りは強い方からこの体数分までしか重ならない
   enemies: {
     sheep: { name: 'うとうと羊', color: '#e8e2d6', xp: 1, radius: 16, speed: 70, hp: 2, appearSec: 0, weight: 6, contactCaffeine: 5 },
-    slime: { name: 'まぶたスライム', color: '#7a5c8e', xp: 2, radius: 18, speed: 50, hp: 4, appearSec: 120, weight: 2, drainPerSec: 12 },
+    slime: { name: 'まぶたスライム', color: '#7a5c8e', xp: 2, radius: 18, speed: 50, hp: 4, appearSec: 120, weight: 2, drainPerSec: 12, drainMaxStack: 2 },
     ghost: { name: 'ふとんゴースト', color: '#b9c4d8', xp: 2, radius: 20, speed: 90, hp: 3, appearSec: 240, weight: 2, slowSec: 1.5, slowFactor: 0.5 },
   },
   // 敵を倒したときのエフェクト
