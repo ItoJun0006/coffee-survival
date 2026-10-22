@@ -377,7 +377,8 @@ export const CONFIG = {
         2: { count: 3, desc: '刃が 3 枚になる' },
         4: { bladeRate: 1.35, desc: '刃が大きくなる' },
         6: { count: 4, spinRate: 1.2, desc: '刃が 4 枚になり、\n回転が速くなる' },
-        8: { count: 6, bladeRate: 1.3, knockbackRate: 1.3, desc: '刃が 6 枚になり、大きく\nなって強く押し返す' },
+        // hitCooldownRate：同じ敵に当たる間隔のもとの値（hitCooldownSec）にかける倍率（0.5 秒 → 0.35 秒）
+        8: { count: 6, bladeRate: 1.3, knockbackRate: 1.3, hitCooldownRate: 0.7, desc: '刃が 6 枚・大きくなり、\n速く当たって強く押し返す' },
       },
       commonDesc: 'ダメージが上がり、\n当たる間隔が縮む',
       // Lv 8（MAX）の見た目：削る熱で赤く光る刃と、飛び散る火花。edgeRate は光る縁の幅（刃の半径に対する割合）、sparkDist は火花が飛ぶ距離（px）

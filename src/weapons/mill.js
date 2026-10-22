@@ -11,7 +11,7 @@ export class Mill extends Weapon {
   }
 
   baseStats() {
-    return { count: this.config.count, bladeRate: 1, spinRate: 1, knockbackRate: 1 };
+    return { count: this.config.count, bladeRate: 1, spinRate: 1, knockbackRate: 1, hitCooldownRate: 1 };
   }
 
   get orbitRadius() {
@@ -64,7 +64,7 @@ export class Mill extends Weapon {
     const p = g.player;
     this.angle += c.angularSpeed * s.spinRate * dt;
     // ミルは発動しないので、攻撃の間隔の強化は同じ敵に当たる間隔に効く
-    this.hits.cooldownSec = c.hitCooldownSec * this.intervalRate;
+    this.hits.cooldownSec = c.hitCooldownSec * s.hitCooldownRate * this.intervalRate;
     const blade = this.bladeRadius;
     const reach = this.orbitRadius + blade;
     // 刃が届きうる円の中の敵だけを、刃と比べる
