@@ -16,12 +16,12 @@ function load() {
     const d = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (d && Array.isArray(d.unlocked)) {
       const n = (v) => Number(v) || 0;
-      return { unlocked: d.unlocked, launches: n(d.launches), plays: n(d.plays), playSec: n(d.playSec), distance: n(d.distance), kills: n(d.kills), beans: n(d.beans), coins: n(d.coins) };
+      return { unlocked: d.unlocked, launches: n(d.launches), plays: n(d.plays), playSec: n(d.playSec), distance: n(d.distance), kills: n(d.kills), beans: n(d.beans), coins: n(d.coins), maxClears: Array.isArray(d.maxClears) ? d.maxClears : [] };
     }
   } catch {
     // 保存領域が使えない・壊れているときは、何もない状態から始める
   }
-  return { unlocked: [], launches: 0, plays: 0, playSec: 0, distance: 0, kills: 0, beans: 0, coins: 0 };
+  return { unlocked: [], launches: 0, plays: 0, playSec: 0, distance: 0, kills: 0, beans: 0, coins: 0, maxClears: [] };
 }
 
 const data = load();
@@ -83,6 +83,13 @@ export function addBeans(n) {
 }
 
 export const pointCard = () => ({ plays: data.plays, playSec: data.playSec, distance: data.distance, kills: data.kills, beans: data.beans });
+
+// Lv 8 の攻撃を持ったまま 1 面をクリアしたキャラを記録し、その種類の数を返す（ピーベリーの条件。仕様 017）
+export function addMaxClear(characterId) {
+  if (!data.maxClears.includes(characterId)) data.maxClears.push(characterId);
+  saveProgress();
+  return data.maxClears.length;
+}
 
 // ---- 豆コイン（仕様 016） ----
 

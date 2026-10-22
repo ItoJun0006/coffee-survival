@@ -9,7 +9,7 @@ const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.
 
 // 66 体を 11 段 × 6 列で、スクロールせずに全部出す。マスは画面の高さに合わせて縮める
 const COLS = 6;
-const ROWS = 11;
+const ROWS = Math.ceil(CHARACTERS.length / COLS);
 const PANEL_W = 300;
 const PANEL_H = 440;
 const PANEL_GAP = 30;

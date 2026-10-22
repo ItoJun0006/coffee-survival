@@ -119,9 +119,13 @@ export const CONFIG = {
       { id: 'medium', name: '中煎り', trait: 'バランス', color: '#8b5a2b', crease: '#4e2f16', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
       { id: 'dark', name: '深煎り', trait: 'パワー', color: '#4a2c1a', crease: '#22130a', speedRate: 0.8, maxCaffeine: 130, damageRate: 1.5, attackIntervalRate: 1.3 },
     ],
+    // ピーベリー（仕様 017）：攻撃の数（countKeys）をいつも 1 にし、本来の数 N に応じて威力を N^damageExp 倍、
+    // 攻撃の間隔を N^intervalExp 分の 1 にする。数のない武器（offWeapons）は、レベルアップの候補に出る割合を offRate 倍にする。
+    // eyeLook は目玉 1 つの見た目の候補（A・B・C）。選んでもらったら 1 つに絞る
+    focus: { countKeys: ['count', 'drops', 'shots', 'directionsDeg'], damageExp: 0.65, intervalExp: 0.35, offWeapons: ['puddle', 'shockwave', 'ice'], offRate: 0.5, eyeLook: 'A' },
     // 特別なキャラ。require の条件を満たすと仕入れられるようになり、price の豆コインで買う（仕様 016 FR-018）。
     // roast は性能と色（品種 × 焙煎度のキャラと同じ形）、origin と desc は買うポップアップに出す
-    // require.type：extraClear＝エクストラステージをクリア、bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
+    // require.type：maxClears＝Lv 8 の攻撃を持ったまま 1 面をクリアしたキャラの種類が count 以上、extraClear＝エクストラステージをクリア、bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
     //   plays＝ゲームを count 回始める、playTime＝累計プレイ時間が seconds 秒以上（例：{ type: 'playTime', seconds: 3600, text: '…' }）、
     //   distance＝累計移動距離が pixels 以上（マップの端から端は 2000）、kills＝累計撃破数が count 以上、beans＝累計の拾った豆が count 以上
     // drawScale は見た目の大きさの倍率（当たる範囲は変わらない）
@@ -137,6 +141,13 @@ export const CONFIG = {
         origin: '苦みの強いロブスタ種の豆', desc: '最初の攻撃が豆ショットガン',
         roast: { trait: 'ショットガン', color: '#5b3b25', crease: '#2b180c', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
         require: { type: 'allWeaponsMax', text: '1 回のプレイで、攻撃 3 つをすべて最大まで強化する' },
+      },
+      {
+        // 攻撃の数がいつも 1 つになるかわりに、1 つが強く速い（仕様 017）。focus の値は下の focus を使う
+        id: 'peaberry', name: 'ピーベリー', price: 390, focus: true, eyes: 'one',
+        origin: '1 つの実に 1 つだけ丸く育った珈琲豆', desc: '攻撃の数がいつも 1 つ。そのかわり 1 つが強く速い',
+        roast: { trait: '一点集中', color: '#7a4a2a', crease: '#3e2414', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
+        require: { type: 'maxClears', count: 3, text: '3 種類の豆で、Lv 8 の攻撃を持ったまま 1 面をクリアする' },
       },
       {
         id: 'baby', name: '赤ちゃん豆', price: 300,

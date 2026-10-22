@@ -35,8 +35,9 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   ctx.moveTo(0, -r * 0.88);
   ctx.quadraticCurveTo(r * 0.22, -r * 0.35, 0, r * 0.15);
   ctx.stroke();
-  // 目と口
-  if (dot) drawDotEyes(ctx, r, look, dot, sx, sy);
+  // 目と口。ピーベリー（仕様 017）は目玉が 1 つ
+  if (character.eyes === 'one') drawOneEye(ctx, r, look, dot);
+  else if (dot) drawDotEyes(ctx, r, look, dot, sx, sy);
   else drawEyes(ctx, r, look);
   ctx.strokeStyle = '#fff8ee';
   ctx.lineWidth = Math.max(1.5, r * 0.08);
@@ -97,6 +98,68 @@ function drawDotEyes(ctx, r, look, dot, sx, sy) {
     ctx.fillRect(x + px, y + py, pupilW * dot, pupilH * dot);
   }
   ctx.restore();
+}
+
+// 目玉 1 つ（ピーベリー、仕様 017）。見た目の候補 A・B・C を focus.eyeLook で切り替える。
+// ドット絵のときも 1 マスより小さくならない大きさで描く（dot はドットの大きさ）
+function drawOneEye(ctx, r, look, dot) {
+  const { white, pupil } = CONFIG.player.eyes;
+  const lookAt = CONFIG.characters.focus.eyeLook;
+  const ey = -r * 0.08;
+  const p = Math.max(r * 0.15, dot * 1.5);
+  const px = look.x * r * 0.1;
+  const py = look.y * r * 0.08;
+  if (lookAt === 'A') {
+    // A：顔の真ん中に、大きな丸い目
+    ctx.fillStyle = white;
+    ctx.beginPath();
+    ctx.arc(0, ey, r * 0.36, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = pupil;
+    ctx.beginPath();
+    ctx.arc(px, ey + py, p * 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = white;
+    ctx.beginPath();
+    ctx.arc(px - p * 0.45, ey + py - p * 0.45, Math.max(p * 0.35, dot * 0.6), 0, Math.PI * 2);
+    ctx.fill();
+  } else if (lookAt === 'B') {
+    // B：横長のきりっとした目と、太い眉（集中している顔）
+    ctx.fillStyle = white;
+    ctx.beginPath();
+    ctx.ellipse(0, ey, r * 0.42, r * 0.22, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = pupil;
+    ctx.beginPath();
+    ctx.arc(px, ey + py * 0.5, p, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = pupil;
+    ctx.lineWidth = Math.max(r * 0.12, dot * 1.5);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.42, ey - r * 0.36);
+    ctx.lineTo(r * 0.42, ey - r * 0.26);
+    ctx.stroke();
+  } else {
+    // C：照準のような金色の輪をまとった目（狙いを 1 つにしぼる）
+    ctx.fillStyle = white;
+    ctx.beginPath();
+    ctx.arc(0, ey, r * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = pupil;
+    ctx.beginPath();
+    ctx.arc(px, ey + py, p, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = CONFIG.colors.xpBar;
+    ctx.lineWidth = Math.max(r * 0.07, dot);
+    ctx.beginPath();
+    ctx.arc(0, ey, r * 0.42, 0, Math.PI * 2);
+    for (const a of [0, 0.5, 1, 1.5]) {
+      ctx.moveTo(Math.cos(a * Math.PI) * r * 0.42, ey + Math.sin(a * Math.PI) * r * 0.42);
+      ctx.lineTo(Math.cos(a * Math.PI) * r * 0.58, ey + Math.sin(a * Math.PI) * r * 0.58);
+    }
+    ctx.stroke();
+  }
 }
 
 // スキン「椿」（頭に大きな椿の髪飾り）。椿の花の絵は、大きさ 80 を基準にしたアイコンの絵（item-icons.js）を使う

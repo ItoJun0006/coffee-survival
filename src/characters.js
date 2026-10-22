@@ -31,7 +31,8 @@ const specialCharacters = cfg.specials.map((s) => ({
   power: null,
   unlock: { group: s.id, name: s.name, price: s.price, require: s.require },
 }));
-const named = [...varietyGroups[0], ...specialCharacters, ...varietyGroups.slice(1).flat()];
+// 4 体目からの特別なキャラ（ピーベリーなど）は、入れ替える場所が決まるまで最後に並べる
+const named = [...varietyGroups[0], ...specialCharacters.slice(0, 3), ...varietyGroups.slice(1).flat(), ...specialCharacters.slice(3)];
 const placeholders = Array.from({ length: Math.max(0, cfg.plannedTotal - named.length) }, (_, i) => ({
   id: `placeholder-${i + 1}`,
   name: '？？？',

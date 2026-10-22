@@ -83,10 +83,24 @@ export class Weapon {
         else s[k] = v;
       }
     }
+    this.#applyFocus(s);
     this.#stats = s;
     this.#statsLevel = this.level;
     this.#statsConfig = c;
     return s;
+  }
+
+  // ピーベリー（仕様 017）：攻撃の数を 1 にし、本来の数 N を focusCount に残す（威力と間隔の上乗せに使う）
+  #applyFocus(s) {
+    this.focusCount = 1;
+    if (!this.game.character?.focus) return;
+    for (const k of CONFIG.characters.focus.countKeys) {
+      const v = s[k];
+      const n = Array.isArray(v) ? v.length : v;
+      if (typeof n !== 'number' || n <= 1) continue;
+      this.focusCount = n;
+      s[k] = Array.isArray(v) ? v.slice(0, 1) : 1;
+    }
   }
 
   // 共通の強化（ダメージ・間隔）を受けた回数。commonLevels がなければ Lv が 1 上がるごとに 1 回。
@@ -104,14 +118,17 @@ export class Weapon {
 
   // 強化によるダメージの倍率（Lv 1 で 1 倍）
   get damageRate() {
-    return 1 + CONFIG.weaponLevels.damagePerLevel * this.commonUpgrades;
+    // ピーベリーは、1 つにした数の分だけ威力を上乗せする（仕様 017）
+    const focus = this.stats && this.focusCount > 1 ? this.focusCount ** CONFIG.characters.focus.damageExp : 1;
+    return (1 + CONFIG.weaponLevels.damagePerLevel * this.commonUpgrades) * focus;
   }
 
   // 攻撃の間隔の倍率。キャラの倍率・強化の段階・発生頻度アップで縮む。ただし下限がある
   get intervalRate() {
     const { intervalPerLevel, minIntervalRate } = CONFIG.weaponLevels;
     const levelRate = 1 - intervalPerLevel * this.commonUpgrades;
-    return Math.max(minIntervalRate, this.game.attackIntervalRate * levelRate * this.game.frequencyRate);
+    const focus = this.stats && this.focusCount > 1 ? this.focusCount ** -CONFIG.characters.focus.intervalExp : 1;
+    return Math.max(minIntervalRate, this.game.attackIntervalRate * levelRate * this.game.frequencyRate * focus);
   }
 
   // 発動間隔が経過していれば true。発動したら this.timer = 0 に戻す

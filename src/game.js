@@ -10,7 +10,7 @@ import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
 import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin } from './characters.js';
-import { unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard, addCoins, coins } from './progress.js';
+import { addMaxClear, unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard, addCoins, coins } from './progress.js';
 import { coinText, drawCoin, drawCoinTally, tallyDone } from './coin-ui.js';
 import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu, levelLabel } from './level-up-menu.js';
@@ -335,7 +335,7 @@ export class Game {
   // エクストラステージで限界突破に当たったときは、限界突破の候補を必ず 1 枚入れる
   #openLevelUp() {
     this.overCap = Math.random() < stage.overCapChance;
-    const all = shuffle(this.#levelUpChoices());
+    const all = this.#shuffleChoices(this.#levelUpChoices());
     this.overCap = false;
     const isOverCap = (c) => !c.isNew && c.level >= CONFIG.weaponLevels.max;
     const pick = all.find(isOverCap);
@@ -343,6 +343,16 @@ export class Game {
     const choices = shuffle([...(pick ? [pick] : []), ...rest].slice(0, CONFIG.weaponLevels.choices));
     this.levelUpMenu.open([...(choices.length ? choices : this.#bonusChoices()), ...this.#rareChoices()], this.level);
     this.state = 'levelup';
+  }
+
+  // 候補をランダムに並べる。ピーベリーのときは、数のない武器のカードが前に来る割合を offRate 倍にする（仕様 017）
+  #shuffleChoices(list) {
+    const f = CONFIG.characters.focus;
+    if (!this.character.focus) return shuffle(list);
+    const offNames = f.offWeapons.map((id) => CONFIG.weapons[id].name);
+    const weight = (c) => (c.kind === 'weapon' && offNames.includes(c.name) ? f.offRate : 1);
+    // 重みつきの並べ替え：それぞれに「乱数の (1 / 重み) 乗」を付けて、大きい順に並べる
+    return list.map((c) => ({ c, key: Math.random() ** (1 / weight(c)) })).sort((a, b) => b.key - a.key).map((x) => x.c);
   }
 
   #applyChoice(choice) {
@@ -536,6 +546,8 @@ export class Game {
     saveProgress();
     this.#checkPointCardUnlocks();
     if (state === 'clear') this.#checkUnlocks('bossDefeat');
+    // Lv 8 の攻撃を持ったまま 1 面をクリアしたキャラを数える（ピーベリーの条件。仕様 017）
+    if (state === 'clear' && stage.id === 'main' && this.weapons.some((w) => w.isMax)) this.#checkUnlocks('maxClears', addMaxClear(this.character.id));
     if (state === 'clear' && stage.id === 'extra') this.#checkUnlocks('extraClear');
   }
 
@@ -635,6 +647,7 @@ export class Game {
       const met = {
         bossDefeat: () => true,
         extraClear: () => true,
+        maxClears: () => value >= r.count,
         launches: () => value >= r.count,
         plays: () => value >= r.count,
         playTime: () => value >= r.seconds,
