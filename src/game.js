@@ -1008,13 +1008,19 @@ export class Game {
 
   #updateEnemies(dt) {
     const p = this.player;
+    // 種類ごとの、触れている敵の吸い取りの量
+    const drains = {};
     for (const e of this.enemies) {
       e.update(dt, p);
       if (e.frozen || dist(e, p) >= e.radius + p.radius) continue;
       const c = e.config;
       if (c.contactCaffeine) p.hit(c.contactCaffeine * e.damageRate);
-      if (c.drainPerSec) p.drain(c.drainPerSec * e.damageRate * dt);
+      if (c.drainPerSec) (drains[e.type] ??= []).push(c.drainPerSec * e.damageRate);
       if (c.slowSec) p.slow(c.slowSec, c.slowFactor);
+    }
+    for (const [type, list] of Object.entries(drains)) {
+      const top = list.sort((a, b) => b - a).slice(0, CONFIG.enemies[type].drainMaxStack ?? list.length);
+      p.drain(top.reduce((sum, v) => sum + v, 0) * dt);
     }
   }
 
