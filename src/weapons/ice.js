@@ -124,85 +124,36 @@ export class Ice extends Weapon {
   #drawBlock(ctx, b) {
     const v = this.config.blockVisual;
     const k = b.age / v.blockSec;
-    const fade = 1 - k;
     ctx.save();
     ctx.translate(b.x, b.y);
-    if (v.look === 'A') {
-      // A：氷の塊がドンと現れ、割れて破片が外へ飛び散る
-      if (k < 0.35) {
-        const grow = 0.6 + (k / 0.35) * 0.4;
-        const s = b.r * 0.55 * grow;
-        ctx.fillStyle = v.ice;
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-          const a = (i / 6) * Math.PI * 2 + b.seed;
-          const rr = s * (0.8 + hash(b.seed + i) * 0.3);
-          ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = v.light;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      } else {
-        const t = (k - 0.35) / 0.65;
-        ctx.globalAlpha = 1 - t;
-        ctx.fillStyle = v.ice;
-        for (let i = 0; i < 8; i++) {
-          const a = (i / 8) * Math.PI * 2 + b.seed;
-          const d = b.r * (0.3 + t * 0.6);
-          ctx.save();
-          ctx.translate(Math.cos(a) * d, Math.sin(a) * d);
-          ctx.rotate(a + t * 4);
-          ctx.fillRect(-4, -4, 8, 8);
-          ctx.restore();
-        }
+    // 氷の塊がドンと現れ、割れて破片が外へ飛び散る
+    if (k < 0.35) {
+      const grow = 0.6 + (k / 0.35) * 0.4;
+      const s = b.r * 0.55 * grow;
+      ctx.fillStyle = v.ice;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + b.seed;
+        const rr = s * (0.8 + hash(b.seed + i) * 0.3);
+        ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
       }
-    } else if (v.look === 'B') {
-      // B：青白い輪が範囲いっぱいまで広がり、真ん中に氷の結晶の柱が立つ
-      ctx.globalAlpha = fade;
-      ctx.strokeStyle = v.glow;
-      ctx.lineWidth = 4;
-      circle(ctx, 0, 0, b.r * (0.3 + 0.7 * Math.min(1, k * 2)));
-      ctx.stroke();
-      // 結晶の柱 3 本（真ん中が高い）。下からせり上がる
-      const rise = Math.min(1, k * 3);
-      for (const [dx, hRate] of [[-16, 0.55], [0, 0.85], [16, 0.55]]) {
-        const hgt = b.r * hRate * rise;
-        ctx.fillStyle = v.ice;
-        ctx.beginPath();
-        ctx.moveTo(dx - 7, 10);
-        ctx.lineTo(dx - 7, 10 - hgt * 0.7);
-        ctx.lineTo(dx, 10 - hgt);
-        ctx.lineTo(dx + 7, 10 - hgt * 0.7);
-        ctx.lineTo(dx + 7, 10);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = v.light;
-        ctx.fillRect(dx - 2, 10 - hgt * 0.8, 3, hgt * 0.6);
-      }
-    } else {
-      // C：霜が地面に一気に広がり、雪の結晶の模様を残して消える
-      ctx.globalAlpha = 0.85 * fade;
-      ctx.fillStyle = v.floor;
-      circle(ctx, 0, 0, b.r * Math.min(1, 0.4 + k * 2));
+      ctx.closePath();
       ctx.fill();
       ctx.strokeStyle = v.light;
       ctx.lineWidth = 2;
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2 + b.seed;
-        const len = b.r * 0.9 * Math.min(1, 0.4 + k * 2);
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len);
-        // 枝
-        const mx = Math.cos(a) * len * 0.55;
-        const my = Math.sin(a) * len * 0.55;
-        ctx.moveTo(mx, my);
-        ctx.lineTo(mx + Math.cos(a + 0.6) * len * 0.25, my + Math.sin(a + 0.6) * len * 0.25);
-        ctx.moveTo(mx, my);
-        ctx.lineTo(mx + Math.cos(a - 0.6) * len * 0.25, my + Math.sin(a - 0.6) * len * 0.25);
-        ctx.stroke();
+      ctx.stroke();
+    } else {
+      const t = (k - 0.35) / 0.65;
+      ctx.globalAlpha = 1 - t;
+      ctx.fillStyle = v.ice;
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + b.seed;
+        const d = b.r * (0.3 + t * 0.6);
+        ctx.save();
+        ctx.translate(Math.cos(a) * d, Math.sin(a) * d);
+        ctx.rotate(a + t * 4);
+        ctx.fillRect(-4, -4, 8, 8);
+        ctx.restore();
       }
     }
     ctx.restore();

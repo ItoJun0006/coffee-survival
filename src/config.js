@@ -442,8 +442,8 @@ export const CONFIG = {
         8: { floor: { sec: 1.5, tickSec: 0.25 }, desc: '氷塊のあとに\n氷の床が残る' },
       },
       commonDesc: 'ダメージが上がり、\n飛ばす間隔が縮む',
-      // 氷塊が割れる演出（blockSec 秒）と氷の床の見た目。look は見た目の候補（A・B・C）で、選んでもらったら 1 つに絞る
-      blockVisual: { look: 'A', blockSec: 0.45, ice: '#cfeaff', light: '#ffffff', deep: '#5fa8d8', glow: '#7fd8ff', floor: 'rgba(170, 225, 255, 0.28)', floorEdge: 'rgba(220, 245, 255, 0.6)' },
+      // 氷塊が割れる演出（blockSec 秒。氷の塊が現れて割れ、破片が飛び散る）と、MAX の氷の床の見た目
+      blockVisual: { blockSec: 0.45, ice: '#cfeaff', light: '#ffffff', floor: 'rgba(170, 225, 255, 0.28)', floorEdge: 'rgba(220, 245, 255, 0.6)' },
       // Lv 8（MAX）の見た目：白い芯とシアンの淡い光をまとい、回りながら飛ぶ 6 本腕の雪の結晶。sparkle は後ろに残るきらめき（sparkleGap は 1 つ分の間隔 px）
       maxVisual: { arm: '#e6f7ff', core: '#ffffff', glow: '#5fd0ff', glowScale: 2.6, glowAlpha: 0.6, spin: 6, sparkle: '#bff0ff', sparkles: 4, sparkleGap: 8, sparkleAlpha: 0.65 },
     },
