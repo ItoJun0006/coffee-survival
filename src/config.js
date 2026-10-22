@@ -117,6 +117,9 @@ export const CONFIG = {
     ],
     // ピーベリー（仕様 017）：攻撃の数（countKeys）をいつも 1 にし、本来の数 N に応じて威力を N^damageExp 倍、
     // 攻撃の間隔を N^intervalExp 分の 1 にする。数のない武器（offWeapons）は、レベルアップの候補に出る割合を offRate 倍にする。
+    // ダイスケ豆（仕様 019）：periodSec ごとに、startSec 秒目から stopSec 秒のあいだ、移動と攻撃が止まる。
+    // 止まっていた間に出ていたはずの回数ぶんを、止まり終わった瞬間にまとめて撃つ（maxBurst 回まで）
+    freeze: { periodSec: 60, startSec: 55, stopSec: 5, maxBurst: 30, countdownColor: '#9cc7e8' },
     // こーひー3兄弟（仕様 018）：攻撃の数（focus.countKeys）を countRate 倍にし、その攻撃の 1 発の威力を damageRate 倍にする。
     // 吹く向きは、それぞれの左右 sideDeg にも足す。弾が同じ向きに重ならないよう、広がりを spreadDeg 以上にする。
     // 見た目は、浅煎り・中煎り・深煎りの 3 粒を串に刺したもの（stick は串の色、tiltDeg は串の傾き）
@@ -126,7 +129,7 @@ export const CONFIG = {
     removedVarieties: [{ id: 'kent', price: 220 }],
     // 特別なキャラ。require の条件を満たすと仕入れられるようになり、price の豆コインで買う（仕様 016 FR-018）。
     // roast は性能と色（品種 × 焙煎度のキャラと同じ形）、origin と desc は買うポップアップに出す
-    // require.type：maxClears＝Lv 8 の攻撃を持ったまま 1 面をクリアした品種（特別なキャラはそれぞれ 1 種類）の数が count 以上、extraClear＝エクストラステージをクリア、bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
+    // require.type：clearCaffeine＝カフェインが上限の ratio 以上のまま 1 面をクリア、maxClears＝Lv 8 の攻撃を持ったまま 1 面をクリアした品種（特別なキャラはそれぞれ 1 種類）の数が count 以上、extraClear＝エクストラステージをクリア、bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
     //   plays＝ゲームを count 回始める、playTime＝累計プレイ時間が seconds 秒以上（例：{ type: 'playTime', seconds: 3600, text: '…' }）、
     //   distance＝累計移動距離が pixels 以上（マップの端から端は 2000）、kills＝累計撃破数が count 以上、beans＝累計の拾った豆が count 以上
     // drawScale は見た目の大きさの倍率（当たる範囲は変わらない）
@@ -165,6 +168,13 @@ export const CONFIG = {
         origin: 'いつも 3 粒いっしょの兄弟の豆', desc: '攻撃の数が 3 倍。そのかわり 1 発は 20%',
         roast: { trait: '数で押す', color: '#8b5a2b', crease: '#4e2f16', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
         require: null,
+      },
+      {
+        // 毎分 5 秒固まり、止まっていた分の弾を解けた瞬間にまとめて撃つ（仕様 019）。値は下の freeze を使う。値段は仮
+        id: 'daisuke', name: 'ダイスケ豆', price: 390, freeze: true, drawScale: 1.3,
+        origin: '大きくて、ときどき固まってしまう豆', desc: '毎分 5 秒固まるが、解けた瞬間にためた弾をまとめて撃つ',
+        roast: { trait: 'ため撃ち', color: '#6e4426', crease: '#38200f', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
+        require: { type: 'clearCaffeine', ratio: 0.5, text: '眠気 50% 以下（カフェイン 50% 以上）のまま 1 面をクリアする' },
       },
     ],
     // 選択画面に並べるマスの数（最終目標）。まだ中身のないマスは「？？？」として鍵付きで出す

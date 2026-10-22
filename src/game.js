@@ -139,6 +139,9 @@ export class Game {
     this.notice = null;
     // 受け取った椿の花の種類
     this.camellias = [];
+    // ダイスケ豆が固まっているか（仕様 019）
+    this.frozen = false;
+    this.frozenSec = 0;
     this.nextWaveAt = CONFIG.bigWave.firstSec;
     this.waveUntil = 0;
     this.#applyDebugWeapons();
@@ -516,12 +519,16 @@ export class Game {
     this.#recordProgress(dt);
     if (!this.boss && this.time >= CONFIG.boss.timeSec) this.#spawnBoss();
 
-    this.#updatePlayer(dt);
+    this.#updateFreeze(dt);
+    // 固まっている間は動けない。カフェインの減りや無敵時間などは、そのまま進む
+    if (this.frozen) this.player.update(dt, { x: 0, y: 0 });
+    else this.#updatePlayer(dt);
     this.#spawnBeans(dt);
     if (!this.boss) this.#spawnEnemies(dt);
     this.#updateEnemies(dt);
     if (this.boss) this.#updateBoss(dt);
-    for (const w of this.weapons) w.update(dt);
+    // ダイスケ豆が固まっている間は、攻撃も止まる（仕様 019）
+    if (!this.frozen) for (const w of this.weapons) w.update(dt);
     this.#removeDeadEnemies();
     for (const fx of this.effects) fx.update(dt);
     this.effects = this.effects.filter((fx) => fx.alive);
@@ -547,6 +554,7 @@ export class Game {
     saveProgress();
     this.#checkPointCardUnlocks();
     if (state === 'clear') this.#checkUnlocks('bossDefeat');
+    if (state === 'clear' && stage.id === 'main') this.#checkUnlocks('clearCaffeine', this.player.caffeine / this.player.maxCaffeine);
     // Lv 8 の攻撃を持ったまま 1 面をクリアしたキャラを数える（ピーベリーの条件。仕様 017）
     if (state === 'clear' && stage.id === 'main' && this.weapons.some((w) => w.isMax)) this.#checkUnlocks('maxClears', addMaxClear(this.character.variety?.id ?? this.character.id));
     if (state === 'clear' && stage.id === 'extra') this.#checkUnlocks('extraClear');
@@ -649,6 +657,7 @@ export class Game {
         bossDefeat: () => true,
         extraClear: () => true,
         maxClears: () => value >= r.count,
+        clearCaffeine: () => value >= r.ratio,
         launches: () => value >= r.count,
         plays: () => value >= r.count,
         playTime: () => value >= r.seconds,
@@ -715,6 +724,47 @@ export class Game {
       { label: `音楽の音量  ◀ ${sound.musicVolume}% ▶`, x, y: y + gap, w, h, adjust: (d) => sound.changeMusicVolume(d) },
       { label: 'タイトルへ戻る', x, y: y + gap * 2, w, h, action: () => { saveProgress(); this.reset(); this.state = 'title'; } },
     ];
+  }
+
+  // ダイスケ豆（仕様 019）：毎分 startSec 秒目から stopSec 秒、移動と攻撃を止める。止まり終わったら、
+  // 止まっていた間に出ていたはずの回数ぶんを一度に撃つ（攻撃ごとに、間隔で割った回数。間隔のない攻撃はためない）
+  #updateFreeze(dt) {
+    const f = CONFIG.characters.freeze;
+    const was = this.frozen;
+    const t = this.time % f.periodSec;
+    this.frozen = !!this.character.freeze && this.time >= f.startSec && t >= f.startSec && t < f.startSec + f.stopSec;
+    if (this.frozen) {
+      this.frozenSec = (was ? this.frozenSec : 0) + dt;
+      return;
+    }
+    if (!was) return;
+    for (const w of this.weapons) {
+      if (!w.config.intervalSec) continue;
+      const n = Math.min(f.maxBurst, Math.floor(this.frozenSec / (w.config.intervalSec * w.intervalRate)));
+      for (let i = 0; i < n; i++) {
+        w.timer = Infinity;
+        w.update(0);
+      }
+    }
+  }
+
+  // ダイスケ豆が固まっている間、豆の上に残りの秒数を出す
+  #drawFreezeCountdown() {
+    const f = CONFIG.characters.freeze;
+    const { ctx } = this;
+    const left = Math.max(1, Math.ceil(f.stopSec - this.frozenSec));
+    const x = this.player.x - this.camera.x;
+    const y = this.player.y - this.camera.y - this.player.radius * (this.character.drawScale ?? 1) - 22;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = font(22, true);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(20, 12, 8, 0.85)';
+    ctx.strokeText(String(left), x, y);
+    ctx.fillStyle = f.countdownColor;
+    ctx.fillText(String(left), x, y);
+    ctx.restore();
   }
 
   #updatePlayer(dt) {
@@ -976,6 +1026,7 @@ export class Game {
     wctx.restore();
     if (pixel) this.pixelLayer.end(ctx);
 
+    if (this.frozen) this.#drawFreezeCountdown();
     if (this.state === 'clear') this.#drawDawn();
     else this.#drawDarkness();
 
