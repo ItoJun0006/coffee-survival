@@ -466,7 +466,7 @@ export class Game {
     if (this.input.wasPressed('Equal', 'Semicolon', 'NumpadAdd')) this.#changeMusicVolume(1);
     sound.setPaused(this.state === 'paused');
     // 知らせは、レベルアップの選択・ポーズ・持っていく攻撃の選択の間は進めず、閉じてから出す
-    if (this.state === 'paused' || this.state === 'levelup' || this.state === 'carry') {
+    if (this.state === 'paused' || this.state === 'levelup' || this.state === 'carry' || this.state === 'start') {
       for (const t of this.toasts) t.until += dt * 1000;
     }
     if (this.state === 'title') {
@@ -498,6 +498,18 @@ export class Game {
     if (this.state === 'carry') {
       const choice = this.levelUpMenu.update(this.input, this.viewW, this.viewH);
       if (choice) this.#startExtra(choice.weapon);
+      return;
+    }
+    if (this.state === 'start') {
+      // やり直しのクリックが続けて当たって、カードを選んでしまわないよう、開いた直後は少し待つ
+      if (performance.now() - this.levelUpMenu.openedAt < CONFIG.weaponLevels.startGuardMs) {
+        this.input.consumeClick();
+        return;
+      }
+      const choice = this.levelUpMenu.update(this.input, this.viewW, this.viewH);
+      if (!choice) return;
+      this.notice = { title: '最初の攻撃', text: choice.apply(), until: this.time + 2.5 };
+      this.state = 'playing';
       return;
     }
     // 1 面をクリアしたら、E キーでエクストラステージへ
@@ -587,6 +599,16 @@ export class Game {
     this.reset();
     this.playTimeUnsaved = 0;
     this.#checkUnlocks('plays', recordPlay());
+    // 最初の攻撃が決まっているキャラと、確認用の ?weapons=・?level= のときは選ばない（仕様 032）
+    if (!this.character.startWeapon && !this.debugWeapons.length && this.debugLevel <= 1) this.#openStartMenu();
+  }
+
+  // 最初の攻撃を、ランダムな候補から 1 つ選ぶ画面を開く（仕様 032）
+  #openStartMenu() {
+    this.weapons = [];
+    const choices = shuffle([...WEAPON_ORDER]).slice(0, CONFIG.weaponLevels.startChoices).map((W) => this.#weaponChoice(new W(this), true));
+    this.levelUpMenu.open(choices, this.level, { title: '最初の攻撃', lead: 'はじめに持つ攻撃を 1 つ選ぶ' });
+    this.state = 'start';
   }
 
   // ---- エクストラステージ（仕様 011） ----
@@ -1144,7 +1166,7 @@ export class Game {
     } else {
       this.#drawHud();
       if (this.state === 'paused') this.#drawPauseMenu();
-      if (this.state === 'levelup' || this.state === 'carry') this.levelUpMenu.draw(ctx, this.viewW, this.viewH);
+      if (this.state === 'levelup' || this.state === 'carry' || this.state === 'start') this.levelUpMenu.draw(ctx, this.viewW, this.viewH);
       this.#drawOverlay();
     }
     this.#drawSoundIndicator();
@@ -1301,7 +1323,7 @@ export class Game {
 
   #drawNotice() {
     // 選択画面の見出しと重ならないように、選んでいる間は出さない
-    if (!this.notice || this.time > this.notice.until || this.state === 'levelup') return;
+    if (!this.notice || this.time > this.notice.until || this.state === 'levelup' || this.state === 'start') return;
     const { ctx } = this;
     const k = Math.min(1, (this.notice.until - this.time) / 0.5);
     ctx.save();
@@ -1460,7 +1482,7 @@ export class Game {
   }
 
   #drawOverlay() {
-    if (this.state === 'playing' || this.state === 'paused' || this.state === 'levelup' || this.state === 'carry') return;
+    if (this.state === 'playing' || this.state === 'paused' || this.state === 'levelup' || this.state === 'carry' || this.state === 'start') return;
     const { ctx } = this;
     const cleared = this.state === 'clear';
     if (!cleared) {

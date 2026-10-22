@@ -275,7 +275,8 @@ export const CONFIG = {
   // max は 1 面の上限。エクストラステージでは stages.extra.maxLevel まで上げられ（限界突破）、
   // アイテムの限界突破した段階は、1 段階の効果が overCapItemRate 倍になる
   // levelFloor：Lv の強化だけで縮む間隔の倍率の下限（限界突破で 0 以下にならないように）
-  weaponLevels: { choices: 3, max: 8, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.25, overCapItemRate: 0.5, levelFloor: 0.05 },
+  // startChoices は、1 面の始めに選ぶ最初の攻撃の候補の数。startGuardMs は、その画面を開いてからクリックを受け付けない時間（仕様 032）
+  weaponLevels: { choices: 3, startChoices: 3, startGuardMs: 400, max: 8, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.25, overCapItemRate: 0.5, levelFloor: 0.05 },
   // Lv 2・4・6 で上がる見た目の段階（仕様 014）：攻撃の縁（当たる範囲の内側）に光る線を描く。
   // tiers は段階が上がる Lv。MAX（Lv 8）は武器ごとの maxVisual で描く。配列の値は段階 1・2・3 の順。
   // colors は属性ごとの線の色、width は線の太さ（px）、alpha は濃さ
