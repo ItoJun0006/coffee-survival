@@ -239,9 +239,12 @@ export const CONFIG = {
   //   world：マップの広さ、enemySpeedRate：敵の速さの倍率（enemySpeedRates で種類ごとに上書き）、
   //   caffeineDecay：カフェインが時間で減るか、levelUpHealRate：レベルが 1 上がるごとに回復する量（上限に対する割合）、
   //   maxLevel：攻撃とアイテムの上限の Lv、overCapChance：Lv 8 から先（限界突破）の候補が、レベルアップのたびに出る確率
+  //   敵の出方（仕様 060。書いていなければ 1 面と同じ）：enemyTimeOffsetSec：出る数・種類・強さを「経過時間 + この秒数」で決める、
+  //   enemyMaxCount：同時に出ている敵の上限、bigWaveMaxCount：ビッグウェーブの間の上限、bigWaveIntervalSec：ビッグウェーブの間隔 [最短, 最長]
   stages: {
     main: { name: '1 面', world: { width: 2000, height: 2000 }, enemySpeedRate: 1, enemySpeedRates: {}, caffeineDecay: true, levelUpHealRate: 0, maxLevel: 8, overCapChance: 0 },
-    extra: { name: 'エクストラステージ', world: { width: 1414, height: 1414 }, enemySpeedRate: 0.85, enemySpeedRates: { ghost: 0.8 }, caffeineDecay: false, levelUpHealRate: 0.1, maxLevel: 16, overCapChance: 0.2 },
+    extra: { name: 'エクストラステージ', world: { width: 1414, height: 1414 }, enemySpeedRate: 1, enemySpeedRates: {}, caffeineDecay: false, levelUpHealRate: 0.1, maxLevel: 16, overCapChance: 0.2,
+      enemyTimeOffsetSec: 480, enemyMaxCount: 250, bigWaveMaxCount: 330, bigWaveIntervalSec: [60, 90] },
   },
   player: {
     radius: 18,
@@ -559,7 +562,7 @@ export const CONFIG = {
     rampSec: 480,
     startGroup: 1,
     endGroup: 3,
-    maxCount: 150,
+    maxCount: 200,
     // 現れる場所（001 の FR-030）。画面の端から viewPad 外側より遠く、プレイヤーが角から cornerRadius 以内にいるときはその角から cornerRadius 以上離す。
     // 探し方：画面の外の円周上（半径を ringSteps 倍ずつ）を ringTries 回ずつ、だめならマップ全体を anywhereTries 回
     viewPad: 40,
@@ -577,7 +580,7 @@ export const CONFIG = {
     durationSec: 5,
     spawnRate: 3,
     // ビッグウェーブの間だけ、同時に出ている敵の上限をこの数に上げる
-    maxCount: 230,
+    maxCount: 280,
     stopBeforeBossSec: 30,
     title: 'ビッグウェーブ！',
     text: '眠気が押し寄せてくる…',
