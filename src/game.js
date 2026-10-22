@@ -10,7 +10,7 @@ import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
 import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin } from './characters.js';
-import { addMaxClear, unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard, addCoins, coins } from './progress.js';
+import { addMaxClear, refundRemovedVarieties, unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard, addCoins, coins } from './progress.js';
 import { coinText, drawCoin, drawCoinTally, tallyDone } from './coin-ui.js';
 import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu, levelLabel } from './level-up-menu.js';
@@ -84,6 +84,7 @@ export class Game {
     this.#checkUnlocks('launches', recordLaunch());
     // 前回までのポイントカードで条件を満たしていれば、ここで解放する（閉じる直前に満たした場合など）
     this.#checkUnlocks('plays', pointCard().plays);
+    refundRemovedVarieties(CONFIG.characters.removedVarieties);
     this.#checkPointCardUnlocks();
     this.reset();
     this.state = 'title';
@@ -547,7 +548,7 @@ export class Game {
     this.#checkPointCardUnlocks();
     if (state === 'clear') this.#checkUnlocks('bossDefeat');
     // Lv 8 の攻撃を持ったまま 1 面をクリアしたキャラを数える（ピーベリーの条件。仕様 017）
-    if (state === 'clear' && stage.id === 'main' && this.weapons.some((w) => w.isMax)) this.#checkUnlocks('maxClears', addMaxClear(this.character.id));
+    if (state === 'clear' && stage.id === 'main' && this.weapons.some((w) => w.isMax)) this.#checkUnlocks('maxClears', addMaxClear(this.character.variety?.id ?? this.character.id));
     if (state === 'clear' && stage.id === 'extra') this.#checkUnlocks('extraClear');
   }
 

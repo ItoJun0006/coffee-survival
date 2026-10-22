@@ -104,96 +104,58 @@ function drawDotEyes(ctx, r, look, dot, sx, sy) {
   ctx.restore();
 }
 
-// こーひー3兄弟（仕様 018）：3 粒の豆を並べて描く。見た目の候補 A・B・C を multi.look で切り替える。
-// 3 粒とも、ふつうの豆（drawCharacter）を小さくして描く。全体はほかのキャラと同じくらいの大きさに収める
+// こーひー3兄弟（仕様 018）：浅煎り・中煎り・深煎りの 3 粒を、上から順に串に刺した形で描く。
+// 3 粒とも、ふつうの豆（drawCharacter）を小さくして描く
 function drawBrothers(ctx, character, r, opts) {
+  const m = CONFIG.characters.multi;
   const roasts = CONFIG.characters.roasts;
-  const bean = (roast, x, y, size, b = opts.bob) => {
+  // 1 粒の大きさと、粒どうしの間（どちらも r に対する割合）。少し重ねて、全体をふつうの豆と同じくらいの高さにする
+  const size = 0.5;
+  const gap = 0.62;
+  ctx.save();
+  ctx.rotate((m.tiltDeg * Math.PI) / 180);
+  // 串（豆の後ろ）
+  ctx.strokeStyle = m.stickDark;
+  ctx.lineWidth = Math.max(3, r * 0.16);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, -r * (gap + size + 0.25));
+  ctx.lineTo(0, r * (gap + size + 0.55));
+  ctx.stroke();
+  ctx.strokeStyle = m.stick;
+  ctx.lineWidth = Math.max(1.5, r * 0.08);
+  ctx.stroke();
+  roasts.forEach((roast, i) => {
     ctx.save();
-    ctx.translate(x * r, y * r);
+    ctx.translate(0, (i - 1) * gap * r);
     // 小さな豆にドット絵用の目（大きさが決まっている）を付けると目だけになるので、ふつうの目で描く
-    drawCharacter(ctx, { roast }, r * size, { ...opts, bob: b, dot: 0 });
+    drawCharacter(ctx, { roast }, r * size, { ...opts, dot: 0 });
     ctx.restore();
-  };
-  const look = CONFIG.characters.multi.look;
-  if (look === 'A') {
-    // A：横に 3 粒。真ん中がお兄ちゃんで少し大きい
-    bean(character.roast, -0.62, 0.2, 0.45, opts.bob * 0.5);
-    bean(character.roast, 0.62, 0.2, 0.45, opts.bob * 0.5);
-    bean(character.roast, 0, -0.05, 0.6);
-  } else if (look === 'B') {
-    // B：2 粒の上に 1 粒が乗った、3 段のピラミッド
-    bean(character.roast, -0.4, 0.38, 0.48);
-    bean(character.roast, 0.4, 0.38, 0.48);
-    bean(character.roast, 0, -0.42, 0.48);
-  } else {
-    // C：浅煎り・中煎り・深煎りの 3 色の兄弟が肩を寄せる
-    bean(roasts[0], -0.58, 0.12, 0.47);
-    bean(roasts[2], 0.58, 0.12, 0.47);
-    bean(roasts[1], 0, 0, 0.53);
-  }
+  });
+  ctx.restore();
 }
 
-// 目玉 1 つ（ピーベリー、仕様 017）。見た目の候補 A・B・C を focus.eyeLook で切り替える。
+// 目玉 1 つ（ピーベリー、仕様 017）。顔の真ん中に大きな丸い目。
 // ドット絵のときも 1 マスより小さくならない大きさで描く（dot はドットの大きさ）
 function drawOneEye(ctx, r, look, dot) {
   const { white, pupil } = CONFIG.player.eyes;
-  const lookAt = CONFIG.characters.focus.eyeLook;
   const ey = -r * 0.08;
   const p = Math.max(r * 0.15, dot * 1.5);
   const px = look.x * r * 0.1;
   const py = look.y * r * 0.08;
-  if (lookAt === 'A') {
-    // A：顔の真ん中に、大きな丸い目
-    ctx.fillStyle = white;
-    ctx.beginPath();
-    ctx.arc(0, ey, r * 0.36, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = pupil;
-    ctx.beginPath();
-    ctx.arc(px, ey + py, p * 1.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = white;
-    ctx.beginPath();
-    ctx.arc(px - p * 0.45, ey + py - p * 0.45, Math.max(p * 0.35, dot * 0.6), 0, Math.PI * 2);
-    ctx.fill();
-  } else if (lookAt === 'B') {
-    // B：横長のきりっとした目と、太い眉（集中している顔）
-    ctx.fillStyle = white;
-    ctx.beginPath();
-    ctx.ellipse(0, ey, r * 0.42, r * 0.22, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = pupil;
-    ctx.beginPath();
-    ctx.arc(px, ey + py * 0.5, p, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = pupil;
-    ctx.lineWidth = Math.max(r * 0.12, dot * 1.5);
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(-r * 0.42, ey - r * 0.36);
-    ctx.lineTo(r * 0.42, ey - r * 0.26);
-    ctx.stroke();
-  } else {
-    // C：照準のような金色の輪をまとった目（狙いを 1 つにしぼる）
-    ctx.fillStyle = white;
-    ctx.beginPath();
-    ctx.arc(0, ey, r * 0.3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = pupil;
-    ctx.beginPath();
-    ctx.arc(px, ey + py, p, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = CONFIG.colors.xpBar;
-    ctx.lineWidth = Math.max(r * 0.07, dot);
-    ctx.beginPath();
-    ctx.arc(0, ey, r * 0.42, 0, Math.PI * 2);
-    for (const a of [0, 0.5, 1, 1.5]) {
-      ctx.moveTo(Math.cos(a * Math.PI) * r * 0.42, ey + Math.sin(a * Math.PI) * r * 0.42);
-      ctx.lineTo(Math.cos(a * Math.PI) * r * 0.58, ey + Math.sin(a * Math.PI) * r * 0.58);
-    }
-    ctx.stroke();
-  }
+  // 顔の真ん中に、大きな丸い目
+  ctx.fillStyle = white;
+  ctx.beginPath();
+  ctx.arc(0, ey, r * 0.36, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = pupil;
+  ctx.beginPath();
+  ctx.arc(px, ey + py, p * 1.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = white;
+  ctx.beginPath();
+  ctx.arc(px - p * 0.45, ey + py - p * 0.45, Math.max(p * 0.35, dot * 0.6), 0, Math.PI * 2);
+  ctx.fill();
 }
 
 // スキン「椿」（頭に大きな椿の髪飾り）。椿の花の絵は、大きさ 80 を基準にしたアイコンの絵（item-icons.js）を使う

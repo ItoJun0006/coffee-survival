@@ -84,11 +84,22 @@ export function addBeans(n) {
 
 export const pointCard = () => ({ plays: data.plays, playSec: data.playSec, distance: data.distance, kills: data.kills, beans: data.beans });
 
-// Lv 8 の攻撃を持ったまま 1 面をクリアしたキャラを記録し、その種類の数を返す（ピーベリーの条件。仕様 017）
-export function addMaxClear(characterId) {
-  if (!data.maxClears.includes(characterId)) data.maxClears.push(characterId);
+// Lv 8 の攻撃を持ったまま 1 面をクリアした品種（特別なキャラはキャラの id）を記録し、その種類の数を返す（ピーベリーの条件。仕様 017）
+export function addMaxClear(key) {
+  if (!data.maxClears.includes(key)) data.maxClears.push(key);
   saveProgress();
   return data.maxClears.length;
+}
+
+// 外した品種（removed：{ id, price } の配列）を前に買っていたら、そのキャラを消して値段の豆コインを返す（仕様 016 FR-022）
+export function refundRemovedVarieties(removed) {
+  for (const { id, price } of removed) {
+    const owned = data.unlocked.filter((u) => u.startsWith(`${id}-`));
+    if (!owned.length) continue;
+    data.unlocked = data.unlocked.filter((u) => !u.startsWith(`${id}-`));
+    data.coins += price;
+  }
+  saveProgress();
 }
 
 // ---- 豆コイン（仕様 016） ----
