@@ -136,20 +136,23 @@ export class Weapon {
 
   // 攻撃の間隔の倍率。キャラの倍率・強化の段階・発生頻度アップで縮む。ただし下限がある
   get intervalRate() {
-    return Math.max(CONFIG.weaponLevels.minIntervalRate, this.rawIntervalRate);
+    return Math.max(CONFIG.weaponLevels.minIntervalRate, this.rawIntervalRate());
   }
 
-  // 下限をかける前の、攻撃の間隔の倍率。限界突破で Lv の強化が 1 以上になっても 0 以下にならないよう、levelFloor で止める
-  get rawIntervalRate() {
+  // 下限をかける前の、攻撃の間隔の倍率。限界突破で Lv の強化が 1 以上になっても 0 以下にならないよう、levelFloor で止める。
+  // upgrades を渡すと、共通の強化をその回数までとして計算する
+  rawIntervalRate(upgrades = this.commonUpgrades) {
     const { intervalPerLevel, levelFloor } = CONFIG.weaponLevels;
-    const levelRate = Math.max(levelFloor, 1 - intervalPerLevel * this.commonUpgrades);
+    const levelRate = Math.max(levelFloor, 1 - intervalPerLevel * upgrades);
     const focus = this.stats && this.focusCount > 1 ? this.focusCount ** -CONFIG.characters.focus.intervalExp : 1;
     return this.game.attackIntervalRate * levelRate * this.game.frequencyRate * focus;
   }
 
-  // 間隔の強化が下限からあふれた割合（あふれていなければ 0。下限の 0.2 倍ぶん短くなるはずなら 0.25）
+  // 間隔の強化が下限からあふれた割合（あふれていなければ 0。下限の 0.2 倍ぶん短くなるはずなら 0.25）。
+  // 限界突破（Lv 9 から）の共通の強化は数えない（限界突破の強さは、武器ごとの決まりで足す）
   get intervalOverflow() {
-    return Math.max(0, CONFIG.weaponLevels.minIntervalRate / this.rawIntervalRate - 1);
+    const upgrades = Math.min(this.commonUpgrades, CONFIG.weaponLevels.max - 1);
+    return Math.max(0, CONFIG.weaponLevels.minIntervalRate / this.rawIntervalRate(upgrades) - 1);
   }
 
   // 発動間隔が経過していれば true。発動したら this.timer = 0 に戻す

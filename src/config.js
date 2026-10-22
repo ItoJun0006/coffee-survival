@@ -369,12 +369,15 @@ export const CONFIG = {
       //   あふれた割合が perBlade たまるごとに刃を 1 枚足す（maxExtra 枚まで）。ピーベリーは数が 1 のままなので足さない
       name: 'ミル・トルネード', desc: '2 枚の刃が\nまわりを回り続け、\n敵を押し返す', element: 'none', count: 2, orbitRadius: 70, bladeRadius: 12, angularSpeed: 3, damage: 1, hitCooldownSec: 0.5, knockback: 200,
       overflow: { perBlade: 0.2, maxExtra: 6 },
+      // limitBreak：限界突破（Lv 9 から）では、everyLevels Lv ごとに刃を 1 枚足し、刃の大きさを shrinkRate 倍にする。
+      // fitRate：どの Lv でも、刃どうしが重ならないよう、刃の半径を「隣の刃との距離の半分 × fitRate」までに抑える
+      limitBreak: { everyLevels: 2, shrinkRate: 0.9, desc: '刃が 1 枚増え、\n少し小さくなる' },
+      fitRate: 0.9,
       upgrades: {
         2: { count: 3, desc: '刃が 3 枚になる' },
         4: { bladeRate: 1.35, desc: '刃が大きくなる' },
         6: { count: 4, spinRate: 1.2, desc: '刃が 4 枚になり、\n回転が速くなる' },
-        // pulse：回る半径が periodSec 周期で minRate〜maxRate 倍に伸び縮みする
-        8: { count: 6, pulse: { minRate: 0.65, maxRate: 1.45, periodSec: 2.4 }, desc: '刃が 6 枚になり、\n輪が伸び縮みする' },
+        8: { count: 6, bladeRate: 1.3, knockbackRate: 1.3, desc: '刃が 6 枚になり、大きく\nなって強く押し返す' },
       },
       commonDesc: 'ダメージが上がり、\n当たる間隔が縮む',
       // Lv 8（MAX）の見た目：削る熱で赤く光る刃と、飛び散る火花。edgeRate は光る縁の幅（刃の半径に対する割合）、sparkDist は火花が飛ぶ距離（px）
