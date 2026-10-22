@@ -409,21 +409,21 @@ export const CONFIG = {
       },
     },
     drip: {
-      name: 'ドリップの雨', desc: '敵の頭上に\n熱い雫を降らせる', element: 'hot', intervalSec: 1.2, drops: 3, radius: 40, delaySec: 0.6, damage: 3, range: 500,
+      // rainRadius：雫を落とすプレイヤーのまわりの範囲（px）。この中のランダムな場所に落とし、敵は狙わない（2026-10-23 に変更）
+      areaKeys: ['rainRadius'],
+      name: 'ドリップの雨', desc: 'まわりのランダムな所に\n熱い雫を降らせる', element: 'hot', intervalSec: 1.2, drops: 3, radius: 40, delaySec: 0.6, damage: 3, rainRadius: 220,
       // 雫が落ち始める高さと、着弾の輪が消えるまでの時間。dropSize は落ちてくる雫の大きさ
       fallHeight: 220, splashSec: 0.3, dropSize: 6,
-      // 狙う敵が足りないとき、余った雫を落とすプレイヤーのまわりの範囲
-      scatterRadius: 180,
       // MAX の、着弾点に残る湯気
       linger: { durationSec: 1, tickSec: 0.5, damageRate: 0.35 },
       upgrades: {
         2: { drops: 4, desc: '雫が 4 つになる' },
         4: { radiusRate: 1.25, desc: '雫の範囲が広がる' },
-        6: { drops: 5, spreadTargets: true, desc: '雫が 5 つになり、\n別々の敵を狙う' },
+        6: { drops: 5, rainRate: 1.25, desc: '雫が 5 つになり、\n降らせる範囲が広がる' },
         8: { drops: 8, linger: true, damageRate: 0.75, desc: '雫が 8 つになり、\n着弾点に湯気が残る' },
       },
       commonDesc: 'ダメージが上がり、\n降らせる間隔が縮む',
-      // Lv 8（MAX）の見た目：狙った所の上に小さなドリッパーが現れて落とす・珈琲色の湯気の範囲。mist は着弾点に残る湯気の範囲、crown は着弾で跳ねる雫の数
+      // Lv 8（MAX）の見た目：落とす所の上に小さなドリッパーが現れて落とす・珈琲色の湯気の範囲。mist は着弾点に残る湯気の範囲、crown は着弾で跳ねる雫の数
       maxVisual: {
         dripper: '#b8733a', dripperRim: '#e0a36a', dripperSize: 11, dripperFadeSec: 0.12,
         drop: '#6b3e22', glow: '#ff9a3c', glowRadius: 14, glowAlpha: 0.45,
