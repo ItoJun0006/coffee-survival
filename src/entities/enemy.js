@@ -58,8 +58,9 @@ export class Enemy {
 
   // 押し返しの速度（px/秒）。時間とともに弱まる
   knockback(vx, vy) {
-    this.kx += vx;
-    this.ky += vy;
+    const rate = this.config.knockbackRate ?? 1;
+    this.kx += vx * rate;
+    this.ky += vy * rate;
   }
 
   update(dt, target) {
@@ -87,6 +88,7 @@ export class Enemy {
     ctx.translate(this.x, this.y);
     if (this.type === 'sheep') this.#drawSheep(ctx);
     else if (this.type === 'slime') this.#drawSlime(ctx);
+    else if (this.type === 'caterpillar') this.#drawCaterpillar(ctx);
     else this.#drawGhost(ctx);
     if (this.frozen) {
       ctx.fillStyle = 'rgba(190, 230, 255, 0.5)';
@@ -137,6 +139,43 @@ export class Enemy {
     ctx.fill();
     ctx.globalAlpha = 1;
     this.#drawSleepyEyes(ctx, r * 0.35, -r * 0.2, '#3a4560');
+  }
+
+  // キルトの縦長の寝袋から顔だけ出したイモムシ。左右にゆっくり揺れる
+  #drawCaterpillar(ctx) {
+    const r = this.radius;
+    const c = this.config.colors;
+    ctx.rotate(Math.sin(this.wobble * 0.5) * 0.12);
+    ctx.fillStyle = c.bag;
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.15, r * 0.85, r * 1.05, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 横の縫い目と、金色の点線のチャック
+    ctx.strokeStyle = c.seam;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let i = -1; i <= 1; i++) {
+      ctx.moveTo(-r * 0.8, r * 0.15 + i * r * 0.45);
+      ctx.lineTo(r * 0.8, r * 0.15 + i * r * 0.45);
+    }
+    ctx.stroke();
+    ctx.setLineDash([3, 4]);
+    ctx.strokeStyle = c.zipper;
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.5);
+    ctx.lineTo(0, r * 1.1);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // 顔と、顔にかかる寝袋の口
+    ctx.fillStyle = c.face;
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.62, r * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = c.bag;
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.3, r * 0.6, r * 0.22, 0, 0, Math.PI * 2);
+    ctx.fill();
+    this.#drawSleepyEyes(ctx, r * 0.18, -r * 0.65, c.eye);
   }
 
   // 閉じかけの目（横線）
