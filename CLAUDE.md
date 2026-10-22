@@ -20,9 +20,9 @@
 - 2026-10-23 までは一時的な例外として、機能ごとのブランチを作らず `develop` に直接コミット・プッシュする
 - 詳しくは `.specify/memory/constitution.md` の原則 V を参照
 
-### 係の分担（メイン・敵・キャラ）
+### 係の分担（メイン・敵・キャラ・音楽）
 
-- 3 つのセッション（otWeb_main・otWeb_lite_enemy・otWeb_lite_character）で分担する。触ってよいファイル・設定のまとまり・仕様書とタスクの番号は `specs/031-parallel-agents/spec.md` に従う
+- 4 つのセッション（otWeb_main・otWeb_lite_enemy・otWeb_lite_character・otWeb_lite_sound）で分担する。触ってよいファイル・設定のまとまり・仕様書とタスクの番号は `specs/031-parallel-agents/spec.md` に従う
 - `main`・`release` への取り込みはメイン（otWeb_main）だけが行う
 
 ### 見た目の変更とアイデア
