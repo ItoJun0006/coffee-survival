@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-20
 
-**Status**: Draft
+**Status**: 一部実装（User Story 1 は実装済み。User Story 2「選んだキャラをタイトルに出す」は未実装。バックログ B004）
 
 **Input**: User description: "タイトル画面のアート"
 

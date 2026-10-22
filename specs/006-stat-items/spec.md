@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-20
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "武器以外にステータス強化アイテムを追加（武器の弾の大きさや発生頻度を強化できる）"
 
