@@ -22,7 +22,7 @@
 - [NEEDS CLARIFICATION] 引き寄せる距離と強さ。引き離す極の間は、落ちている粒を押し出すだけか、触れても拾えなくなるか
 - [NEEDS CLARIFICATION] 敵にも効くか（引き離す極で敵を少し押し返すと、守りの時間になる）
 - [NEEDS CLARIFICATION] 極の表示（色・残り秒数）と、入れ替わる直前の知らせ。見た目なので 3 案から選ぶ
-- [NEEDS CLARIFICATION] 66 マスのどこに入れるか？ 今は 66 マスがすべてうまっている（016 FR-001）。マスを増やす（`plannedTotal`）か、品種を 1 つ外すか（016 FR-022 のケントと同じ）
+- [NEEDS CLARIFICATION] どの品種を外して、そのマスに入れるか（66 マスは品種と入れ替えると決まった。021 の Clarifications）
 - [NEEDS CLARIFICATION] 値段（豆コイン）と、仕入れられるようになる条件（016 FR-018）
 - [NEEDS CLARIFICATION] 見た目（キャラの絵）。3 案を作って選ぶ（憲法「開発の流れ」の 4）
 

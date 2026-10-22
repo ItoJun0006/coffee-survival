@@ -22,7 +22,7 @@
 - [NEEDS CLARIFICATION] 落とす確率と 1 枚あたりの価値（1 プレイで何枚くらい増えるのがよいか）
 - [NEEDS CLARIFICATION] ゲームオーバーになったとき、拾ったコインを全部もらえるか
 - [NEEDS CLARIFICATION] 見た目（ジャコウネコの耳など）。3 案から選ぶ
-- [NEEDS CLARIFICATION] 66 マスのどこに入れるか？ 今は 66 マスがすべてうまっている（016 FR-001）。マスを増やす（`plannedTotal`）か、品種を 1 つ外すか（016 FR-022 のケントと同じ）
+- [NEEDS CLARIFICATION] どの品種を外して、そのマスに入れるか（66 マスは品種と入れ替えると決まった。021 の Clarifications）
 - [NEEDS CLARIFICATION] 値段（豆コイン）と、仕入れられるようになる条件（016 FR-018）
 - [NEEDS CLARIFICATION] 見た目（キャラの絵）。3 案を作って選ぶ（憲法「開発の流れ」の 4）
 

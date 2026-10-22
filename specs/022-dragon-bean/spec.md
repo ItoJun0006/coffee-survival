@@ -23,7 +23,7 @@
 - [NEEDS CLARIFICATION] 値段（例：1 回目 20 枚、買うたびに 10 枚ずつ高くなる）と、1 回のプレイで買える回数の上限
 - [NEEDS CLARIFICATION] 本人の性能を下げて釣り合いを取るか（例：経験値 0.7 倍）
 - [NEEDS CLARIFICATION] なぜ「ドラゴン」か（宝の山を集めるドラゴン？）と説明文
-- [NEEDS CLARIFICATION] 66 マスのどこに入れるか？ 今は 66 マスがすべてうまっている（016 FR-001）。マスを増やす（`plannedTotal`）か、品種を 1 つ外すか（016 FR-022 のケントと同じ）
+- [NEEDS CLARIFICATION] どの品種を外して、そのマスに入れるか（66 マスは品種と入れ替えると決まった。021 の Clarifications）
 - [NEEDS CLARIFICATION] 値段（豆コイン）と、仕入れられるようになる条件（016 FR-018）
 - [NEEDS CLARIFICATION] 見た目（キャラの絵）。3 案を作って選ぶ（憲法「開発の流れ」の 4）
 
