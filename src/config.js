@@ -119,10 +119,10 @@ export const CONFIG = {
     // 攻撃の間隔を N^intervalExp 分の 1 にする。数のない武器（offWeapons）は、レベルアップの候補に出る割合を offRate 倍にする。
     // ダイスケ豆（仕様 019）：periodSec ごとに、startSec 秒目から stopSec 秒のあいだ、移動と攻撃が止まる。
     // 止まっていた間に出ていたはずの回数ぶんを、止まり終わった瞬間にまとめて撃つ（maxBurst 回まで）
-    // look は固まっている間の演出の候補（A 氷づけ／B 居眠り／C 砂時計）。選んでもらったら 1 つに絞る
-    freeze: { periodSec: 60, startSec: 55, stopSec: 5, maxBurst: 30, countdownColor: '#9cc7e8', look: 'A',
-      ice: 'rgba(170, 225, 255, 0.45)', iceEdge: '#e6f7ff', crack: '#ffffff', zzz: '#f3e6d8', bubble: 'rgba(200, 230, 255, 0.7)',
-      glass: '#e6d6b8', sand: '#f0d58a', stone: 'rgba(120, 110, 100, 0.55)' },
+    // 固まっている間は、豆が石のように灰色になり、頭の上の砂時計の砂が落ちていく。解けた瞬間に石が弾ける
+    // （burstSec 秒、大きさ shardSize px のかけら shards 個が burstDist px まで飛ぶ）
+    freeze: { periodSec: 60, startSec: 55, stopSec: 5, maxBurst: 30, countdownColor: '#9cc7e8',
+      glass: '#e6d6b8', sand: '#f0d58a', stone: 'rgba(120, 110, 100, 0.55)', stoneShard: '#8a8078', burstSec: 0.5, shards: 12, burstDist: 64, shardSize: 10 },
     // こーひー3兄弟（仕様 018）：攻撃の数（focus.countKeys）を countRate 倍にし、その攻撃の 1 発の威力を damageRate 倍にする。
     // 吹く向きは、それぞれの左右 sideDeg にも足す。弾が同じ向きに重ならないよう、広がりを spreadDeg 以上にする。
     // 見た目は、浅煎り・中煎り・深煎りの 3 粒を串に刺したもの（stick は串の色、tiltDeg は串の傾き）
