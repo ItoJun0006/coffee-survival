@@ -22,8 +22,10 @@
 
 ## Phase 1: 決めること
 
-- [ ] T001 [US7] タイトル画面と結果画面での記録の見せ方を 3 案から選んでもらう：specs/001-game-baseline/candidates/records-abc.jpg（A 黒板の表／B 1 行ずつ「今回（ベスト）」／C 3 枚のカード）。決まったら spec.md の Clarifications に書く（ユーザーの選択待ち）
-- [ ] T002 [US7] エクストラステージ（011）のプレイを記録に数えるかを決めてもらう。spec.md の記録は、エクストラステージができる前に書いたもの（ユーザーの判断待ち）
+- [x] T001 [US7] タイトル画面と結果画面での記録の見せ方を 3 案から選んでもらう：specs/001-game-baseline/candidates/records-abc.jpg（A 黒板の表／B 1 行ずつ「今回（ベスト）」／C 3 枚のカード）。決まったら spec.md の Clarifications に書く
+  - 2026-10-23：C（3 枚のカード）に決まった。spec.md の Clarifications に書いた
+- [x] T002 [US7] エクストラステージ（011）のプレイを記録に数えるかを決めてもらう。spec.md の記録は、エクストラステージができる前に書いたもの
+  - 2026-10-23：数えない（1 面だけ）に決まった。spec.md の FR-066 に書いた
 
 **Checkpoint**: 見せ方と数え方が決まり、Clarifications に書いてある
 
