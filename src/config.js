@@ -80,10 +80,6 @@ export const CONFIG = {
         rates: { speed: 0.95, caffeine: 0.95, damage: 1.1, interval: 1.05 }, pattern: { kind: 'spots', color: '#d9534f', lightColor: '#b0302a' },
       },
       {
-        id: 'catimor', name: 'カティモール', origin: '病気に強い掛け合わせの品種', trait: '丈夫', price: 300, power: 'guard',
-        rates: { speed: 1, caffeine: 1.1, damage: 0.9, interval: 1.05 }, pattern: { kind: 'cross', color: '#8fd16a', lightColor: '#4f9a3a' },
-      },
-      {
         id: 'pacamara', name: 'パカマラ', origin: 'パーカスとマラゴジッペを掛け合わせた大粒の品種', trait: '大粒', price: 320, power: 'beanHeal',
         rates: { speed: 0.9, caffeine: 1.1, damage: 1.05, interval: 1.1 }, pattern: { kind: 'ring', color: '#f3dcb4', lightColor: '#604937' },
       },
@@ -128,13 +124,22 @@ export const CONFIG = {
     // 見た目は、浅煎り・中煎り・深煎りの 3 粒を串に刺したもの（stick は串の色、tiltDeg は串の傾き）
     multi: { countRate: 3, damageRate: 0.2, sideDeg: 25, spreadDeg: 10, stick: '#c9a46a', stickDark: '#8a6a3a', tiltDeg: 15 },
     focus: { countKeys: ['count', 'drops', 'shots', 'directionsDeg'], damageExp: 0.65, intervalExp: 0.35, offWeapons: ['puddle', 'shockwave', 'ice'], offRate: 0.5 },
-    // 新しいキャラを足すために外した品種（仕様 016 FR-022）。前に買っていた人には、値段の豆コインを返す
-    removedVarieties: [{ id: 'kent', price: 220 }],
+    // クリエイター豆（仕様 021）：珈琲豆が出ず、レベルアップの 3 枚のうち 1 枚が必ずエナジードリンク（選ぶと上限の healRate 回復）。
+    // startLevel より上は、Lv が 1 上がるごとにダメージ・攻撃の速さ・移動の速さが rate 倍ずつ伸びる（maxRate 倍まで）。経験値は xpRate 倍。
+    // 見た目は赤いヘッドホンとエナジードリンクの缶（band はヘッドホンの輪、cup は耳あて、can は缶、bolt は缶の稲妻、rim は缶のふち）
+    creator: {
+      startLevel: 10, rate: 1.15, maxRate: 10, xpRate: 1.2,
+      drink: { name: 'エナジードリンク', desc: 'カフェインを\n上限まで回復する', healRate: 1, text: 'エナジードリンクで目が覚めた！' },
+      colors: { band: '#2b2b33', cup: '#e04848', can: '#2fd06a', bolt: '#ffe14a', rim: '#c9d3d9' },
+    },
+    // 新しいキャラを足すために外した品種（仕様 016 FR-022。カティモールはクリエイター豆のため、仕様 021）。前に買っていた人には、値段の豆コインを返す
+    removedVarieties: [{ id: 'kent', price: 220 }, { id: 'catimor', price: 300 }],
     // 特別なキャラ。require の条件を満たすと仕入れられるようになり、price の豆コインで買う（仕様 016 FR-018）。
     // roast は性能と色（品種 × 焙煎度のキャラと同じ形）、origin と desc は買うポップアップに出す
     // require.type：clearCaffeine＝カフェインが上限の ratio 以上のまま 1 面をクリア、maxClears＝Lv 8 の攻撃を持ったまま 1 面をクリアした品種（特別なキャラはそれぞれ 1 種類）の数が count 以上、extraClear＝エクストラステージをクリア、bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
     //   plays＝ゲームを count 回始める、playTime＝累計プレイ時間が seconds 秒以上（例：{ type: 'playTime', seconds: 3600, text: '…' }）、
-    //   distance＝累計移動距離が pixels 以上（マップの端から端は 2000）、kills＝累計撃破数が count 以上、beans＝累計の拾った豆が count 以上
+    //   distance＝累計移動距離が pixels 以上（マップの端から端は 2000）、kills＝累計撃破数が count 以上、beans＝累計の拾った豆が count 以上、
+    //   maxLevel＝1 回のプレイで Lv level になる
     // drawScale は見た目の大きさの倍率（当たる範囲は変わらない）
     specials: [
       {
@@ -178,6 +183,13 @@ export const CONFIG = {
         origin: '大きくて、ときどき固まってしまう豆', desc: '毎分 5 秒固まるが、解けた瞬間にためた弾をまとめて撃つ',
         roast: { trait: 'ため撃ち', color: '#6e4426', crease: '#38200f', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
         require: { type: 'clearCaffeine', ratio: 0.5, text: '眠気 50% 以下（カフェイン 50% 以上）のまま 1 面をクリアする' },
+      },
+      {
+        // 豆が出ず、エナジードリンクで眠気をしのぐ。Lv 10 から 1.15 倍ずつ伸びる（仕様 021）。値は上の creator を使う
+        id: 'creator', name: 'クリエイター豆', price: 800, creator: true,
+        origin: '徹夜で作り続ける、エナジードリンク好きの豆', desc: '豆は出ないが、Lv 10 から 1.15 倍ずつ強くなる',
+        roast: { trait: '徹夜', color: '#7d5636', crease: '#3f2818', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
+        require: { type: 'maxLevel', level: 30, text: '1 回のプレイで Lv 30 になる' },
       },
     ],
     // 選択画面に並べるマスの数（最終目標）。まだ中身のないマスは「？？？」として鍵付きで出す

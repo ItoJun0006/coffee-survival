@@ -21,7 +21,7 @@
 
 - [NEEDS CLARIFICATION] カフェインの上限（例：60）と、敵に触れて減る量の倍率（例：1.5 倍）
 - [NEEDS CLARIFICATION] 珈琲豆を拾ったときの回復はそのままか
-- [NEEDS CLARIFICATION] 66 マスのどこに入れるか？ 今は 66 マスがすべてうまっている（016 FR-001）。マスを増やす（`plannedTotal`）か、品種を 1 つ外すか（016 FR-022 のケントと同じ）
+- [NEEDS CLARIFICATION] 空いたマスのどこに入れるか（外す品種はカティモール・マラゴジッペ・パカマラ・ビジャサルチと決まった。021 の Clarifications）
 - [NEEDS CLARIFICATION] 値段（豆コイン）と、仕入れられるようになる条件（016 FR-018）
 - [NEEDS CLARIFICATION] 見た目（キャラの絵）。3 案を作って選ぶ（憲法「開発の流れ」の 4）
 

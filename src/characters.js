@@ -136,5 +136,33 @@ export function describeStats(character) {
   }
   const lines = [`移動 ×${r.speedRate}　カフェイン上限 ${r.maxCaffeine}`, `攻撃力 ×${r.damageRate}　攻撃間隔 ×${r.attackIntervalRate}`];
   if (character.startWeapon) lines.push(`最初の武器：${CONFIG.weapons[character.startWeapon].name}`);
+  if (character.creator) lines.push('珈琲豆は出ない。レベルアップで必ずエナジードリンク', `Lv ${cfg.creator.startLevel} から ${cfg.creator.rate} 倍ずつ伸びる（${cfg.creator.maxRate} 倍まで）`);
   return lines;
+}
+
+// ---- クリエイター豆（仕様 021） ----
+// 珈琲豆が出ず、レベルアップのたびに必ずエナジードリンクのカードが出る。Lv が startLevel より上は、1 上がるごとに rate 倍ずつ伸びる
+
+const cr = cfg.creator;
+
+// 珈琲豆を出さないキャラか
+export const noBeans = (c) => !!c.creator;
+
+// ダメージ・攻撃の速さ・移動の速さに掛ける倍率。Lv startLevel までは 1、そこから rate 倍ずつ、maxRate 倍まで
+export const creatorGrowth = (c, level) => (c.creator ? Math.min(cr.maxRate, cr.rate ** Math.max(0, level - cr.startLevel)) : 1);
+
+export const creatorXpRate = (c) => (c.creator ? cr.xpRate : 1);
+
+// レベルアップの候補の最後の 1 枚を、エナジードリンクにする（枚数は choices のまま）。候補がないとき（ボーナスを出すとき）は変えない
+export function withEnergyDrink(c, player, choices) {
+  if (!c.creator || !choices.length) return choices;
+  const { name, desc, healRate, text } = cr.drink;
+  const drink = {
+    kind: 'bonus', name, desc, element: 'none', level: 0, isNew: false,
+    apply: () => {
+      player.heal(player.maxCaffeine * healRate);
+      return text;
+    },
+  };
+  return [...choices.slice(0, CONFIG.weaponLevels.choices - 1), drink];
 }
