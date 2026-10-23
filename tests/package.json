@@ -1,0 +1,12 @@
+{
+  "name": "coffee-survival-tests",
+  "private": true,
+  "type": "module",
+  "description": "珈琲サバイバルの動作確認（ヘッドレスブラウザ）。ゲーム本体はビルド不要のまま、テストだけが Playwright を使う",
+  "scripts": {
+    "test": "node run.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
