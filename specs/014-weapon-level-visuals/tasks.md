@@ -25,3 +25,4 @@ description: "Task list for 014-weapon-level-visuals"
 - [x] T005 [US1] 選ばなかった案の描き方と設定、`weaponLevelVisual.variant` を消す（`?levelVariant` は、ほかに使うものがなければ消す）
 - [x] T006 [US1] 武器ごとに Lv 1・2・4・6・8 を見比べ、Acceptance Scenarios と Edge Cases（当たる範囲、見間違え、60fps）を確かめる。移動・ポーズ・リトライ・コンソールのエラーも確かめる
 - [x] T007 spec.md の Clarifications に選んだ案を書き、Status を Implemented にする。specs/002-weapon-visuals/spec.md の FR-003 との食い違いがあればユーザーに報告する
+- [x] T008 [US1] 豆マシンガン・豆ショットガンの弾の縁が、段階 3 で経験値の粒と見分けにくい件を直す：3 案を拡大して見比べ、C（縁の色を赤銅色にする）を残す。`CONFIG.weapons.beanGun`・`beanShotgun` の `levelColors` と、src/weapons/base.js の `drawLevelFx`
