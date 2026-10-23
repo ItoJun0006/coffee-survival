@@ -946,11 +946,11 @@ export class Game {
     this.#updateBigWave();
     const inWave = this.time < this.waveUntil;
     if (!inWave) this.#updateBagCamp();
-    const t = Math.min(1, this.time / s.rampSec);
+    const t = Math.min(1, this.#enemyTime() / s.rampSec);
     const interval = s.startIntervalSec + (s.minIntervalSec - s.startIntervalSec) * t;
     // 1 回に出る数。2.5 体なら半々の確率で 2 体か 3 体
     const group = (s.startGroup + (s.endGroup - s.startGroup) * t) * (inWave ? wave.spawnRate : 1);
-    const maxCount = inWave ? wave.maxCount : s.maxCount;
+    const maxCount = inWave ? stage.bigWaveMaxCount ?? wave.maxCount : stage.enemyMaxCount ?? s.maxCount;
     this.enemyTimer += dt;
     while (this.enemyTimer >= interval) {
       this.enemyTimer -= interval;
@@ -968,7 +968,8 @@ export class Game {
     if (this.time < this.nextWaveAt) return;
     if (this.nextWaveAt > CONFIG.boss.timeSec - w.stopBeforeBossSec) return;
     this.waveUntil = this.nextWaveAt + w.durationSec;
-    this.nextWaveAt += w.minIntervalSec + Math.random() * (w.maxIntervalSec - w.minIntervalSec);
+    const [minSec, maxSec] = stage.bigWaveIntervalSec ?? [w.minIntervalSec, w.maxIntervalSec];
+    this.nextWaveAt += minSec + Math.random() * (maxSec - minSec);
     this.notice = { title: w.title, text: w.text, until: this.time + 2.5 };
   }
 
@@ -992,7 +993,7 @@ export class Game {
   }
 
   #pickEnemyType() {
-    const types = Object.entries(CONFIG.enemies).filter(([, c]) => this.time >= c.appearSec);
+    const types = Object.entries(CONFIG.enemies).filter(([, c]) => this.#enemyTime() >= c.appearSec);
     let roll = Math.random() * types.reduce((sum, [, c]) => sum + c.weight, 0);
     for (const [type, c] of types) {
       roll -= c.weight;
@@ -1043,10 +1044,15 @@ export class Game {
     this.enemies.push(new Enemy(type, x, y, strength));
   }
 
+  // 敵の出方と強さを決める時間。エクストラステージは 1 面の続きになるよう、経過時間に足す（仕様 060）
+  #enemyTime() {
+    return this.time + (stage.enemyTimeOffsetSec ?? 0);
+  }
+
   // 今の生存時間に応じた敵の強さの倍率
   #enemyStrength() {
     const s = CONFIG.enemyScaling;
-    const min = this.time / 60;
+    const min = this.#enemyTime() / 60;
     return { hp: 1 + s.hpPerMin * min, speed: 1 + s.speedPerMin * min, damage: 1 + s.damagePerMin * min };
   }
 
