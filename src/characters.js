@@ -158,7 +158,7 @@ export function withEnergyDrink(c, player, choices) {
   if (!c.creator || !choices.length) return choices;
   const { name, desc, healRate, text } = cr.drink;
   const drink = {
-    kind: 'bonus', name, desc, element: 'none', level: 0, isNew: false,
+    kind: 'drink', name, desc, element: 'none', level: 0, isNew: false,
     apply: () => {
       player.heal(player.maxCaffeine * healRate);
       return text;
