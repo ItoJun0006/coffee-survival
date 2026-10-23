@@ -21,7 +21,7 @@
 
 - [NEEDS CLARIFICATION] まくらウサギ（013）を倒したら 5 つにするか
 - [NEEDS CLARIFICATION] 椿の花（010）はアイテムの枠を使わないので、今までどおり出してよいか
-- [NEEDS CLARIFICATION] どの品種を外して、そのマスに入れるか（66 マスは品種と入れ替えると決まった。021 の Clarifications）
+- [NEEDS CLARIFICATION] 空いたマスのどこに入れるか（外す品種はカティモール・マラゴジッペ・パカマラ・ビジャサルチと決まった。021 の Clarifications）
 - [NEEDS CLARIFICATION] 値段（豆コイン）と、仕入れられるようになる条件（016 FR-018）
 - [NEEDS CLARIFICATION] 見た目（キャラの絵）。3 案を作って選ぶ（憲法「開発の流れ」の 4）
 
