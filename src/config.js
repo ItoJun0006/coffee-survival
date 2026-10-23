@@ -350,6 +350,14 @@ export const CONFIG = {
       colors: { body: '#2fb85e', glow: '#7dff9e', rim: '#c9d3d9', rimDark: '#8a959c', bolt: '#ffe14a', tab: '#c9d3d9', bubble: 'rgba(210, 255, 220, 0.8)', title: '#9be8a8' },
     },
   },
+  // 攻撃の見え方（仕様 035）：攻撃の絵をまとめて薄くする割合（%）。ポーズメニューで steps を順に切り替え、ブラウザに保存する。
+  // previewBackdrop はポーズメニューでこの段を選んでいる間の、後ろを暗くする濃さ（ふだんは 0.6）。後ろのゲーム画面で濃さを確かめられる
+  weaponAlpha: {
+    steps: [100, 75, 50, 25],
+    default: 100,
+    label: '攻撃の見え方',
+    previewBackdrop: 0.15,
+  },
   // ステータス強化アイテム。perLevel は 1 段階（Lv）ごとの効果。最大 Lv は weaponLevels.max と同じ
   items: {
     area: { name: '範囲アップ', desc: 'すべての弾と範囲が\n大きくなる', perLevel: 0.1 },
