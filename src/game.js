@@ -9,7 +9,7 @@ import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
-import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin } from './characters.js';
+import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin, noBeans, creatorGrowth, creatorXpRate, withEnergyDrink } from './characters.js';
 import { addMaxClear, refundRemovedVarieties, unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard, addCoins, coins } from './progress.js';
 import { coinText, drawCoin, drawCoinTally, tallyDone } from './coin-ui.js';
 import { CharacterSelect } from './character-select.js';
@@ -182,6 +182,7 @@ export class Game {
     }
     if (this.level > before) {
       this.#applyCharacterStats();
+      this.#checkUnlocks('maxLevel', this.level);
       // エクストラステージでは、上がった Lv の数だけカフェインを回復する
       if (stage.levelUpHealRate) this.player.heal(this.player.maxCaffeine * stage.levelUpHealRate * (this.level - before));
       sound.play('levelUp');
@@ -222,7 +223,7 @@ export class Game {
   }
 
   get xpRate() {
-    return (1 + CONFIG.items.xp.perLevel * this.#itemSteps('xp')) * this.#power('xpRate', 1);
+    return (1 + CONFIG.items.xp.perLevel * this.#itemSteps('xp')) * this.#power('xpRate', 1) * creatorXpRate(this.character);
   }
 
   // ---- 品種の特別な力（仕様 016） ----
@@ -347,7 +348,8 @@ export class Game {
     const isOverCap = (c) => !c.isNew && c.level >= CONFIG.weaponLevels.max;
     const pick = all.find(isOverCap);
     const rest = all.filter((c) => c !== pick);
-    const choices = shuffle([...(pick ? [pick] : []), ...rest].slice(0, CONFIG.weaponLevels.choices));
+    // クリエイター豆は、最後の 1 枚がエナジードリンクになる（仕様 021）
+    const choices = withEnergyDrink(this.character, this.player, shuffle([...(pick ? [pick] : []), ...rest].slice(0, CONFIG.weaponLevels.choices)));
     this.levelUpMenu.open([...(choices.length ? choices : this.#bonusChoices()), ...this.#rareChoices()], this.level);
     this.state = 'levelup';
   }
@@ -666,9 +668,11 @@ export class Game {
     const g = this.character.growth;
     const k = this.#growthProgress();
     const m = g ? g.from + (g.to - g.from) * k : 1;
-    this.characterDamageRate = r.damageRate * m;
-    this.characterIntervalRate = r.attackIntervalRate / m;
-    this.player.setStats(r.speedRate * m, Math.round(r.maxCaffeine * m));
+    // クリエイター豆は、Lv 10 から 1.15 倍ずつ伸びる（カフェインの上限は伸びない。仕様 021）
+    const c = creatorGrowth(this.character, this.level);
+    this.characterDamageRate = r.damageRate * m * c;
+    this.characterIntervalRate = r.attackIntervalRate / m / c;
+    this.player.setStats(r.speedRate * m * c, Math.round(r.maxCaffeine * m));
     if (g) this.player.drawScale = g.scaleFrom + (g.scaleTo - g.scaleFrom) * k;
   }
 
@@ -689,6 +693,7 @@ export class Game {
         distance: () => value >= r.pixels,
         kills: () => value >= r.count,
         beans: () => value >= r.count,
+        maxLevel: () => value >= r.level,
         allWeaponsMax: () => this.weapons.length >= CONFIG.slots.weapons && this.weapons.every((w) => w.isMax),
       }[type]();
       if (met && unlock(readyId(c.group))) this.#toast(CONFIG.coins.texts.ready.replace('{name}', c.name).replace('{price}', coinText(c.price)));
@@ -892,6 +897,7 @@ export class Game {
   }
 
   #spawnBeans(dt) {
+    if (noBeans(this.character)) return; // クリエイター豆は珈琲豆が出ない（仕様 021）
     const { spawnIntervalSec, spawnRadius, maxCount } = CONFIG.bean;
     this.beanTimer += dt;
     while (this.beanTimer >= spawnIntervalSec) {
@@ -1116,7 +1122,7 @@ export class Game {
       sound.play('defeat');
       this.effects.push(new DefeatEffect(e.x, e.y, e.config.color, e.radius));
       this.#dropXp(e.x, e.y, e.config.xp);
-      if (Math.random() < enemyDropChance && this.beans.length < CONFIG.bean.maxCount + maxDroppedBeans) {
+      if (!noBeans(this.character) && Math.random() < enemyDropChance && this.beans.length < CONFIG.bean.maxCount + maxDroppedBeans) {
         this.beans.push(new Bean(e.x, e.y));
       }
       return false;
