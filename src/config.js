@@ -381,6 +381,8 @@ export const CONFIG = {
     // range は敵を探す距離、豆が飛ぶ距離は（強化前の）range × flightRate
     beanGun: {
       name: '豆マシンガン', desc: '近い敵に豆を\n連射する', element: 'none', intervalSec: 0.35, speed: 520, radius: 6, damage: 1, range: 450, flightRate: 1.5,
+      // Lv 2・4・6 の縁の色（仕様 014）。弾が小さく縁で塗りつぶされるので、経験値の粒（金色）と見分けやすい赤銅色にする
+      levelColors: ['#a07a58', '#c9733a', '#d0603a'],
       commonLevels: [3, 5, 7],
       upgrades: {
         2: { count: 2, spreadDeg: 10, desc: '豆が 2 つになる' },
@@ -395,6 +397,8 @@ export const CONFIG = {
     // 散弾ロブスタの最初の武器。豆マシンガンと同じ枠で、同じように強化できる。baseCount は最初の豆の数
     beanShotgun: {
       name: '豆ショットガン', desc: '近い敵に向けて\n豆を扇形にばらまく', element: 'none', intervalSec: 0.85, speed: 480, radius: 6, damage: 0.9, range: 300, flightRate: 1.1,
+      // Lv 2・4・6 の縁の色（仕様 014）。弾が小さく縁で塗りつぶされるので、経験値の粒（金色）と見分けやすい赤銅色にする
+      levelColors: ['#a07a58', '#c9733a', '#d0603a'],
       baseCount: 5, baseSpreadDeg: 14,
       commonLevels: [3, 5, 7],
       upgrades: {
