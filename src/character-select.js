@@ -143,6 +143,19 @@ export class CharacterSelect {
 
   // ---- 描画 ----
 
+  // 右上（音の表示の下）に、今持っている豆コインを出す。キャラの値段と見比べられるようにする（アイデア 12）
+  #drawCoins(ctx, viewW) {
+    const text = `${CONFIG.coins.name} ${coinText(coins())}`;
+    ctx.save();
+    ctx.font = font(16, true);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = CONFIG.coins.affordableLock;
+    ctx.fillText(text, viewW - 16, 64);
+    drawCoin(ctx, viewW - 30 - ctx.measureText(text).width, 64, 8);
+    ctx.restore();
+  }
+
   draw(ctx, viewW, viewH) {
     const c = CONFIG.colors;
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -161,6 +174,7 @@ export class CharacterSelect {
 
     for (const card of this.#cards(viewW, viewH)) this.#drawCard(ctx, card, card.index === this.index);
     this.#drawPanel(ctx, L);
+    this.#drawCoins(ctx, viewW);
 
     ctx.textAlign = 'center';
     ctx.font = font(13);
