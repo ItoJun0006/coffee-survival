@@ -1,0 +1,13 @@
+{
+  "name": "coffee-survival-tests",
+  "private": true,
+  "type": "module",
+  "description": "珈琲サバイバルの動作確認テスト（ヘッドレスブラウザ）",
+  "scripts": {
+    "setup": "playwright install chromium",
+    "test": "node smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
