@@ -19,7 +19,7 @@
 - [ ] 【敵】B001 レア敵「まくらウサギ」を作る：specs/013-rare-enemy/tasks.md の T003〜T018（16 個）。倒すとそのプレイの間だけ攻撃の枠が 4 つになる
 - [x] 【メイン】B002 8 種類の武器の強化の仕上げ：specs/012-weapon-upgrades/tasks.md の T060〜T066（7 個）。遊んで当たり方・重さを確かめ、仕様書の数字を最終の値に直す（アイス珈琲の作り変え・ミル・トルネードの押し返しも含めて確かめる）（2026-10-23 に完了。ショックウェーブ MAX の大きさとドリップの雨の範囲は playtest.md の P18・P19）
 - [x] 【メイン】B003 自分の記録（自己ベスト）を残す：specs/001-game-baseline/spec.md の User Story 7 と「記録」の FR。結果画面に今回の生存時間・倒した敵の数・到達レベルと自己ベスト、タイトルに自己ベストとクリア回数を出す。決めること：タイトルと結果画面での記録の見せ方（3 案）。先に tasks.md を作る。tasks.md は specs/001-game-baseline/tasks.md（2026-10-23 に作った）。見せ方の 3 案は specs/001-game-baseline/candidates/records-abc.jpg（2026-10-23 に完了。見せ方は C、エクストラステージは数えない）
-- [ ] 【メイン】B004 選んだキャラをタイトル画面に出す：specs/004-title-art/spec.md の User Story 2。決めること：タイトルの絵のどこに・どの大きさで出すか（3 案）。先に tasks.md を作る
+- [ ] 【メイン】B004 選んだキャラをタイトル画面に出す：specs/004-title-art/spec.md の User Story 2。決めること：タイトルの絵のどこに・どの大きさで出すか（3 案）。先に tasks.md を作る。tasks.md は specs/004-title-art/tasks.md（2026-10-23 に作った）。3 案は specs/004-title-art/candidates/title-character-abc.jpg（ユーザーの選択待ち）
 - [x] 【キャラ】B005 弾が 1 つだけの「一点集中」キャラ「ピーベリー」：specs/017-focus-character/spec.md（2026-10-22 に実装。見た目は A、ケントを外したマスに入れた）
 - [ ] 【キャラ】B013 攻撃の数が 3 倍の「こーひー3兄弟」：specs/018-coffee-brothers/spec.md（2026-10-22 に実装。見た目は串に刺した 3 色の豆）。残り：値段と仕入れの条件を決める（今は仮に 390 枚・条件なし）
 - [ ] 【キャラ】B014 1 分に 5 秒固まる「ダイスケ豆」：specs/019-daisuke-bean/spec.md（2026-10-22 に実装。空いていた 1 マスに入れた）。残り：値段を決める（今は仮に 390 枚）。固まっている間の演出は砂時計に決めた
