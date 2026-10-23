@@ -12,6 +12,8 @@ import { BeanShotgun } from './weapons/bean-shotgun.js';
 import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin, noBeans, creatorGrowth, creatorXpRate, withEnergyDrink } from './characters.js';
 import { addMaxClear, refundRemovedVarieties, unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard, addCoins, coins } from './progress.js';
 import { coinText, drawCoin, drawCoinTally, tallyDone } from './coin-ui.js';
+import { recordResult, records } from './records.js';
+import { drawResultRecords, drawTitleRecords } from './records-ui.js';
 import { CharacterSelect } from './character-select.js';
 import { LevelUpMenu, levelLabel } from './level-up-menu.js';
 import { drawItemIcon } from './item-icons.js';
@@ -120,6 +122,8 @@ export class Game {
     // そのプレイで倒した敵の数と、結果画面の豆コインの数え上げ（仕様 016）
     this.runKills = 0;
     this.coinTally = null;
+    // そのプレイの記録と自己ベストとの比べ（仕様 001 の User Story 7）。1 面で終わったときだけ作る
+    this.runRecord = null;
     this.level = 1;
     this.xp = 0;
     // ボーナスで上がる攻撃力。キャラの攻撃力の倍率は characterDamageRate に分けて持つ
@@ -568,6 +572,11 @@ export class Game {
     sound.stopMusic();
     sound.play(state);
     this.#earnCoins(state === 'clear');
+    // 自分の記録は 1 面のプレイだけで数える（エクストラステージは数えない。FR-066）
+    if (stage.id === 'main') {
+      const run = { time: this.time, kills: this.runKills, level: this.level };
+      this.runRecord = { run, result: recordResult({ ...run, cleared: state === 'clear' }) };
+    }
     saveProgress();
     this.#checkPointCardUnlocks();
     if (state === 'clear') this.#checkUnlocks('bossDefeat');
@@ -1383,6 +1392,7 @@ export class Game {
     if (img.complete && img.naturalWidth) this.#drawTitleArt(img);
     else this.#drawTitleText();
     this.#drawPointCard();
+    drawTitleRecords(this.ctx, this.viewW, records());
   }
 
   // タイトル画面の左下に、ポイントカード（プレイ回数・累計プレイ時間）を出す
@@ -1506,12 +1516,23 @@ export class Game {
     ctx.textBaseline = 'middle';
     ctx.font = font(28, true);
     const extra = stage.id === 'extra';
-    ctx.fillText(cleared ? (extra ? 'エクストラステージクリア！' : '朝が来た！') : '眠りに落ちた…', this.viewW / 2, this.viewH / 2 - 30);
-    ctx.font = font(16);
-    ctx.fillText(`生存時間  ${formatTime(this.time)}`, this.viewW / 2, this.viewH / 2 + 10);
+    const cx = this.viewW / 2;
+    // 1 面は、記録のカード（仕様 001 の User Story 7）の分だけ上から始める
+    const rec = this.runRecord;
+    const headingY = rec ? this.viewH / 2 - 160 : this.viewH / 2 - 30;
+    ctx.fillText(cleared ? (extra ? 'エクストラステージクリア！' : '朝が来た！') : '眠りに落ちた…', cx, headingY);
+    let tallyTop;
+    if (rec) {
+      const r = CONFIG.records.result;
+      tallyTop = drawResultRecords(ctx, cx, headingY + r.headingGap, rec.run, rec.result) + r.tallyGap;
+    } else {
+      ctx.font = font(16);
+      ctx.fillText(`生存時間  ${formatTime(this.time)}`, cx, this.viewH / 2 + 10);
+      tallyTop = this.viewH / 2 + 30;
+    }
     // 豆コインの数え上げ（仕様 016）。明るいクリアの背景でも読めるよう、暗い地のパネルに描く
-    let y = this.viewH / 2 + 40;
-    if (this.coinTally) y = drawCoinTally(ctx, this.viewW / 2, this.viewH / 2 + 30, this.coinTally, performance.now()) + 26;
+    let y = tallyTop + 10;
+    if (this.coinTally) y = drawCoinTally(ctx, cx, tallyTop, this.coinTally, performance.now()) + 26;
     ctx.fillStyle = cleared ? '#3b2418' : CONFIG.colors.text;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

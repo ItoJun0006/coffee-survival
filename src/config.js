@@ -8,6 +8,22 @@ export const CONFIG = {
     background: '#0a0807',
     zoom: { amount: 0.025, periodSec: 12 },
   },
+  // 自分の記録（自己ベスト。仕様 001 の User Story 7。見せ方は C「3 枚のカード」）
+  //   result：結果画面のカード（今回の数を大きく、下に自己ベスト）。titleCard：タイトル画面の右上の小さなカード
+  records: {
+    labels: { time: '生存時間', kills: '倒した敵', level: '到達レベル' },
+    titleLabels: { time: '最長生存', kills: '最多撃破', level: '最高 Lv', clears: 'クリア' },
+    none: '自己ベスト　記録なし',
+    updated: '自己ベスト更新！',
+    best: 'ベスト',
+    result: { w: 150, h: 96, gap: 16, headingGap: 30, tallyGap: 18 },
+    titleCard: { w: 92, h: 54, gap: 8, top: 56, right: 16 },
+    colors: {
+      panel: 'rgba(20, 12, 8, 0.85)', edge: 'rgba(243, 230, 216, 0.35)', titleEdge: 'rgba(240, 213, 138, 0.6)',
+      label: 'rgba(243, 230, 216, 0.75)', best: 'rgba(243, 230, 216, 0.6)', value: '#f3e6d8', gold: '#f0d58a',
+      ribbon: '#c0392b', ribbonText: '#fff4e2',
+    },
+  },
   // プレイ中の絵（キャラ・敵・攻撃など）のドット絵化。size は 1 マスの大きさ（px）。
   // 縁取りは、濃さが solidAlpha 以上のマスの隣で、emptyAlpha 以下のマスに付ける。outline を null にすると縁取りなし
   pixelArt: { enabled: true, size: 3, outline: [20, 12, 8], solidAlpha: 0.7, emptyAlpha: 0.15 },
