@@ -144,15 +144,33 @@ export class CharacterSelect {
   // ---- 描画 ----
 
   // 右上（音の表示の下）に、今持っている豆コインを出す。キャラの値段と見比べられるようにする（アイデア 12）
+  // 見た目は知らせ（トースト）と同じ黒い箱と金の枠に 1 行。数字を大きく、「豆コイン」「枚」は小さく書く
   #drawCoins(ctx, viewW) {
-    const text = `${CONFIG.coins.name} ${coinText(coins())}`;
+    const { name, unit } = CONFIG.coins;
+    const num = coinText(coins()).replace(` ${unit}`, '');
+    const top = 52;
+    const h = 44;
     ctx.save();
-    ctx.font = font(16, true);
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = font(28, true);
+    const numW = ctx.measureText(num).width;
+    ctx.font = font(13);
+    const nameW = ctx.measureText(name).width;
+    const unitW = ctx.measureText(unit).width;
+    const w = numW + nameW + unitW + 70;
+    const left = viewW - 16 - w;
+    ctx.fillStyle = 'rgba(20, 12, 8, 0.85)';
+    ctx.fillRect(left, top, w, h);
+    ctx.strokeStyle = CONFIG.colors.xpBar;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(left, top, w, h);
+    drawCoin(ctx, left + 20, top + h / 2, 10);
     ctx.fillStyle = CONFIG.coins.affordableLock;
-    ctx.fillText(text, viewW - 16, 64);
-    drawCoin(ctx, viewW - 30 - ctx.measureText(text).width, 64, 8);
+    ctx.fillText(name, left + 36, top + 30);
+    ctx.fillText(unit, left + 44 + nameW + numW, top + 30);
+    ctx.font = font(28, true);
+    ctx.fillText(num, left + 40 + nameW, top + 32);
     ctx.restore();
   }
 
