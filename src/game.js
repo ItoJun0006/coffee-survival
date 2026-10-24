@@ -35,6 +35,32 @@ const formatTime = (sec) => {
 };
 
 // 並びをランダムに入れ替えた配列を返す（元の配列も入れ替わる）
+// 隠しコマンド「COFFEE」（仕様 037）：オンのときは、どのキャラもカフェオレ色の豆で描く（性能は変えない）
+const CAFE_AU_LAIT_KEY = 'coffee-survival.cafeAuLait';
+let cafeAuLaitOn = false;
+try {
+  cafeAuLaitOn = localStorage.getItem(CAFE_AU_LAIT_KEY) === '1';
+} catch {
+  // 保存できない環境では、そのプレイの間だけ覚える
+}
+
+function toggleCafeAuLait() {
+  cafeAuLaitOn = !cafeAuLaitOn;
+  try {
+    localStorage.setItem(CAFE_AU_LAIT_KEY, cafeAuLaitOn ? '1' : '');
+  } catch {
+    // 保存できなくても、切り替えだけは効かせる
+  }
+  return cafeAuLaitOn;
+}
+
+// 描くときだけ色を変えたキャラの写しを返す。性能（速さ・カフェインなど）は元のまま
+function cafeAuLaitLook(character) {
+  if (!cafeAuLaitOn) return character;
+  const look = CONFIG.secrets.cafeAuLait.looks[CONFIG.secrets.cafeAuLait.style];
+  return { ...character, roast: { ...character.roast, color: look.color, crease: look.crease }, variety: look.pattern ? { ...character.variety, pattern: look.pattern } : character.variety };
+}
+
 function shuffle(list) {
   for (let i = list.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -107,7 +133,7 @@ export class Game {
   reset() {
     sound.setMode('normal');
     sound.startMusic();
-    this.player = new Player(stage.world.width / 2, stage.world.height / 2, this.character);
+    this.player = new Player(stage.world.width / 2, stage.world.height / 2, cafeAuLaitLook(this.character));
     this.player.skin = wearsSkin(this.character);
     this.beans = [];
     this.xpOrbs = [];
@@ -478,6 +504,7 @@ export class Game {
       for (const t of this.toasts) t.until += dt * 1000;
     }
     if (this.state === 'title') {
+      this.#checkSecretCommand();
       if (this.input.consumeClick()) {
         this.characterSelect.open(this.character);
         this.state = 'select';
@@ -607,6 +634,18 @@ export class Game {
   // ---- ポイントカード ----
 
   // ゲームを始める（キャラ選択から、またはゲームオーバー・クリアからのやり直し）。プレイ回数を 1 増やす
+  // タイトルで打った文字を覚えておき、隠しコマンド（仕様 037）と一致したら切り替える
+  #checkSecretCommand() {
+    const { word, onText, offText } = CONFIG.secrets.cafeAuLait;
+    for (const ch of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+      if (!this.input.wasPressed(`Key${ch}`)) continue;
+      this.typed = ((this.typed ?? '') + ch).slice(-word.length);
+      if (this.typed !== word) continue;
+      this.typed = '';
+      this.#toast(toggleCafeAuLait() ? onText : offText);
+    }
+  }
+
   #startRun() {
     setStage('main');
     this.reset();

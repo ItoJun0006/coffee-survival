@@ -358,6 +358,20 @@ export const CONFIG = {
     label: '攻撃の見え方',
     previewBackdrop: 0.15,
   },
+  // 隠し要素。cafeAuLait：タイトルで word を打つと、豆がカフェオレ色になる（もう一度打つと戻る。仕様 037）
+  secrets: {
+    cafeAuLait: {
+      word: 'COFFEE',
+      onText: '隠しコマンド！ 豆がカフェオレ色になった',
+      offText: 'カフェオレ色をやめた',
+      style: 'A',
+      looks: {
+        A: { color: '#c49a6c', crease: '#7a5232' },
+        B: { color: '#a8784c', crease: '#5e3c22', pattern: { kind: 'waves', color: '#f3e6d0' } },
+        C: { color: '#7a4f2e', crease: '#3f2614', pattern: { kind: 'peak', color: '#f6ead6' } },
+      },
+    },
+  },
   // ステータス強化アイテム。perLevel は 1 段階（Lv）ごとの効果。最大 Lv は weaponLevels.max と同じ
   items: {
     area: { name: '範囲アップ', desc: 'すべての弾と範囲が\n大きくなる', perLevel: 0.1 },
