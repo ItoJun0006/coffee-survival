@@ -20,6 +20,7 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   ctx.save();
   ctx.scale(sx, sy);
   if (character.creator) drawHeadphoneBand(ctx, r);
+  if (character.dragon) drawDragonBack(ctx, r);
 
   ctx.fillStyle = color;
   ctx.beginPath();
@@ -44,6 +45,7 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   if (character.eyes === 'one') drawOneEye(ctx, r, look, dot);
   else if (dot) drawDotEyes(ctx, r, look, dot, sx, sy);
   else drawEyes(ctx, r, look);
+  if (character.dragon) drawSharpEyes(ctx, r, color, dot);
   ctx.strokeStyle = '#fff8ee';
   ctx.lineWidth = Math.max(1.5, r * 0.08);
   ctx.beginPath();
@@ -51,6 +53,7 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   ctx.stroke();
   if (skin) drawCamelliaSkin(ctx, r);
   if (character.creator) drawCreatorGear(ctx, r);
+  if (character.dragon) drawHorns(ctx, r);
 
   if (slowed) {
     ctx.globalAlpha = 0.45;
@@ -198,6 +201,69 @@ function drawCreatorGear(ctx, r) {
   ctx.closePath();
   ctx.fill();
   ctx.restore();
+}
+
+// ドラゴン豆（仕様 022）：濃い緑の翼としっぽは豆の後ろ、角は前に描く。目は内側の上を豆の色でかくして吊り目にする
+function drawDragonBack(ctx, r) {
+  const { wing } = CONFIG.characters.dragon.colors;
+  ctx.fillStyle = wing;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(side * r * 0.7, -r * 0.2);
+    ctx.lineTo(side * r * 1.45, -r * 0.75);
+    ctx.lineTo(side * r * 1.3, -r * 0.3);
+    ctx.lineTo(side * r * 1.5, -r * 0.1);
+    ctx.lineTo(side * r * 1.2, r * 0.05);
+    ctx.lineTo(side * r * 1.3, r * 0.25);
+    ctx.lineTo(side * r * 0.75, r * 0.2);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // しっぽ（先は三角）
+  ctx.strokeStyle = wing;
+  ctx.lineWidth = r * 0.16;
+  ctx.beginPath();
+  ctx.moveTo(r * 0.5, r * 0.8);
+  ctx.quadraticCurveTo(r * 1.2, r * 1.05, r * 1.25, r * 0.55);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(r * 1.25, r * 0.35);
+  ctx.lineTo(r * 1.4, r * 0.6);
+  ctx.lineTo(r * 1.1, r * 0.6);
+  ctx.fill();
+}
+
+function drawHorns(ctx, r) {
+  ctx.fillStyle = CONFIG.characters.dragon.colors.horn;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(side * r * 0.25, -r * 0.92);
+    ctx.lineTo(side * r * 0.55, -r * 1.38);
+    ctx.lineTo(side * r * 0.5, -r * 0.82);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+// 目（drawEyes・drawDotEyes と同じ位置と大きさ）の上の辺を、内側ほど深く豆の色でかくす
+function drawSharpEyes(ctx, r, color, dot) {
+  const { dotsW, dotsH } = CONFIG.player.eyes;
+  const cut = CONFIG.characters.dragon.eyeCut;
+  const halfW = dot ? (dotsW * dot) / 2 : r * 0.2;
+  const halfH = dot ? (dotsH * dot) / 2 : r * 0.2;
+  const ey = -r * 0.05;
+  ctx.fillStyle = color;
+  for (const side of [-1, 1]) {
+    const inner = side * (r * 0.38 - halfW) - side;
+    const outer = side * (r * 0.38 + halfW) + side;
+    ctx.beginPath();
+    ctx.moveTo(inner, ey - halfH - 2);
+    ctx.lineTo(outer, ey - halfH - 2);
+    ctx.lineTo(outer, ey - halfH + 0.5);
+    ctx.lineTo(inner, ey - halfH + halfH * 2 * cut);
+    ctx.closePath();
+    ctx.fill();
+  }
 }
 
 // スキン「椿」（頭に大きな椿の髪飾り）。椿の花の絵は、大きさ 80 を基準にしたアイコンの絵（item-icons.js）を使う
