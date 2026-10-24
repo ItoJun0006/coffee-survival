@@ -1075,7 +1075,8 @@ export class Game {
     // 手下全体の体力の倍率（仕様 061）。エクストラは #enemyTime が 8:00 相当から始まるので、最初から hpRateEnd になる
     const ramp = Math.min(1, this.#enemyTime() / s.hpRateRampSec);
     const hpRate = s.hpRateStart + (s.hpRateEnd - s.hpRateStart) * ramp;
-    return { hp: (1 + s.hpPerMin * min) * hpRate, speed: 1 + s.speedPerMin * min, damage: 1 + s.damagePerMin * min };
+    // 手下全体の攻撃力の倍率（仕様 063）
+    return { hp: (1 + s.hpPerMin * min) * hpRate, speed: 1 + s.speedPerMin * min, damage: (1 + s.damagePerMin * min) * s.damageRate };
   }
 
   #updateEnemies(dt) {
