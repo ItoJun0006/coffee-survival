@@ -649,7 +649,8 @@ export const CONFIG = {
     size: 3,
     periodDots: 192,
     planks: { width: 8, length: 32 },
-    colors: { base: [54, 35, 24], tone: 0.18, gap: [30, 19, 13], grain: 0.08, knot: 0.2 },
+    // woods は板の色の種類（濃い茶・少し赤みの茶・少し灰色がかった茶）。板ごとに 1 つ選ぶ（2026-10-24 の朝のデザイン案の A）
+    colors: { woods: [[54, 35, 24], [62, 35, 25], [50, 40, 32]], tone: 0.1, gap: [30, 19, 13], grain: 0.08, knot: 0.2 },
   },
   night: { maxDarkness: 0.55 },
   // プレイ中の背景：夜の珈琲店の店内（background.js）。配置は seed から毎回同じに決まる（当たり判定はない）

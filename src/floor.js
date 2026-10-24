@@ -68,12 +68,14 @@ function plankAt(x, y) {
   const off = Math.floor(hash(row, 7) * length);
   const col = Math.floor((x + off) / length);
   // 柄のつなぎ目で同じ板が別の色にならないよう、番号を柄の幅でくり返す
-  return { id: hash(row, col % (CONFIG.floor.periodDots / length)), u: (x + off) % length, v: y % width, len: length, wid: width };
+  const c = col % (CONFIG.floor.periodDots / length);
+  return { id: hash(row, c), wood: hash(row, c, 3), u: (x + off) % length, v: y % width, len: length, wid: width };
 }
 
-// 板の中の位置から、そのドットの色を決める
-function dotColor({ id, u, v, len, wid }) {
-  const { base, tone, gap, grain, knot } = CONFIG.floor.colors;
+// 板の中の位置から、そのドットの色を決める。wood は板の木の種類を選ぶための 0 以上 1 未満の数
+function dotColor({ id, wood, u, v, len, wid }) {
+  const { woods, tone, gap, grain, knot } = CONFIG.floor.colors;
+  const base = woods[Math.floor(wood * woods.length)];
   // 継ぎ目（板の端の 1 マス）
   if (u === 0 || v === 0) return gap;
   // 板ごとに少しずつ明るさを変える
