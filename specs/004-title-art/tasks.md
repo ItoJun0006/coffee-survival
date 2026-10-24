@@ -4,6 +4,8 @@
 
 **Created**: 2026-10-23（バックログ B004）
 
+**2026-10-24：User Story 2 は作らないと決めたので、この tasks.md のタスクは行わない。**
+
 User Story 1（タイトルのイラスト）は実装済み。この tasks.md は User Story 2 だけを扱う。
 
 ## Format: `[ID] [P?] [Story] Description`
