@@ -336,6 +336,12 @@ export const CONFIG = {
     card: { bg: '#1f2a24', edge: '#6b4a2c', edgeWidth: 7, text: '#f3efe6', sub: 'rgba(243, 239, 230, 0.8)', muted: 'rgba(243, 239, 230, 0.25)' },
     // 種類ごとの色（カードの帯・選んでいるときの光）
     kindColors: { weapon: '#d9a066', item: '#8fc7a0', bonus: '#f0d58a', carry: '#b9a0e0' },
+    // ドラゴン豆の「もう 1 つ選ぶ」の 4 枚目のカード（仕様 036）。tagScale は値札の大きさ（カードに対する割合）
+    extraPick: {
+      style: 'A',
+      tagScale: 0.8,
+      colors: { gold: '#e8c060', scaleBg: '#173d24', scale: 'rgba(120, 200, 140, 0.25)', text: '#f3efe6', paper: '#efe2c4', ink: '#3b2418', string: '#8a6a3a' },
+    },
     // エナジードリンク（仕様 033）：カードの代わりに描く缶。sizeRate はカードの高さに対する缶の高さ、widthRate は缶の高さに対する幅。
     // bobPx・bobSpeed は上下に揺れる幅（px）と速さ、tiltRad は傾きの最大（ラジアン）、bubbles は泡の数
     drink: {
