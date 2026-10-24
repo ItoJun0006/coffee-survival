@@ -705,6 +705,7 @@ export class Game {
         kills: () => value >= r.count,
         beans: () => value >= r.count,
         maxLevel: () => value >= r.level,
+        dragonDefeat: () => true,
         allWeaponsMax: () => this.weapons.length >= CONFIG.slots.weapons && this.weapons.every((w) => w.isMax),
       }[type]();
       if (met && unlock(readyId(c.group))) this.#toast(CONFIG.coins.texts.ready.replace('{name}', c.name).replace('{price}', coinText(c.price)));

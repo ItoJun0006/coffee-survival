@@ -112,6 +112,14 @@ export function addCoins(n) {
   saveProgress();
 }
 
+// 豆コインを払う：足りていれば n 枚へらして true を返す（ドラゴン豆の「もう 1 つ選ぶ」など。仕様 022）
+export function spendCoins(n) {
+  if (data.coins < n) return false;
+  data.coins -= n;
+  saveProgress();
+  return true;
+}
+
 // 品種を買う：値段が足りていれば、その品種のキャラ（ids）をまとめて解放し、true を返す
 export function buyVariety(ids, price) {
   if (data.coins < price) return false;
