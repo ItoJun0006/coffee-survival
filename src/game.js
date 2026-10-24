@@ -24,6 +24,7 @@ import { font } from './font.js';
 import { Background } from './background.js';
 import { stage, setStage } from './stage.js';
 import { drawWeaponIcon, weaponIdOf } from './weapon-icons.js';
+import { weaponAlpha, WeaponLayer } from './weapon-alpha.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -67,6 +68,7 @@ export class Game {
     // ?maxVariant=A|B|C を付けて開くと、MAX の見た目の案を切り替えられる（動作確認用）
     this.debugMaxVariant = params.get('maxVariant');
     this.pixelLayer = new PixelLayer();
+    this.weaponLayer = new WeaponLayer();
     this.floor = new Floor();
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -761,7 +763,9 @@ export class Game {
     return [
       { label: '再開', x, y, w, h, action: () => { this.state = 'playing'; } },
       { label: `音楽の音量  ◀ ${sound.musicVolume}% ▶`, x, y: y + gap, w, h, adjust: (d) => sound.changeMusicVolume(d) },
-      { label: 'タイトルへ戻る', x, y: y + gap * 2, w, h, action: () => { saveProgress(); this.reset(); this.state = 'title'; } },
+      // 攻撃の見え方（仕様 035）。→ で薄く、← で濃く
+      { label: `${CONFIG.weaponAlpha.label}  ◀ ${weaponAlpha.value}% ▶`, x, y: y + gap * 2, w, h, adjust: (d) => weaponAlpha.change(d), weaponAlpha: true },
+      { label: 'タイトルへ戻る', x, y: y + gap * 3, w, h, action: () => { saveProgress(); this.reset(); this.state = 'title'; } },
     ];
   }
 
@@ -1068,7 +1072,10 @@ export class Game {
   #enemyStrength() {
     const s = CONFIG.enemyScaling;
     const min = this.#enemyTime() / 60;
-    return { hp: 1 + s.hpPerMin * min, speed: 1 + s.speedPerMin * min, damage: 1 + s.damagePerMin * min };
+    // 手下全体の体力の倍率（仕様 061）。エクストラは #enemyTime が 8:00 相当から始まるので、最初から hpRateEnd になる
+    const ramp = Math.min(1, this.#enemyTime() / s.hpRateRampSec);
+    const hpRate = s.hpRateStart + (s.hpRateEnd - s.hpRateStart) * ramp;
+    return { hp: (1 + s.hpPerMin * min) * hpRate, speed: 1 + s.speedPerMin * min, damage: 1 + s.damagePerMin * min };
   }
 
   #updateEnemies(dt) {
@@ -1156,10 +1163,13 @@ export class Game {
     wctx.save();
     // ドット絵の層は、プレイヤーをいつも画面の同じ位置に描く（小数のずれでプレイヤーのドットが跳ねないように）
     wctx.translate(this.viewW / 2 - this.player.x, this.viewH / 2 - this.player.y);
-    for (const w of this.weapons) {
-      w.drawBelow(wctx);
-      w.drawLevelFx(wctx, true);
-    }
+    // 攻撃の絵は、攻撃の見え方（仕様 035）の濃さでまとめて重ねる
+    this.weaponLayer.draw(wctx, (lctx) => {
+      for (const w of this.weapons) {
+        w.drawBelow(lctx);
+        w.drawLevelFx(lctx, true);
+      }
+    });
     for (const b of this.beans) b.draw(wctx);
     for (const o of this.xpOrbs) o.draw(wctx);
     for (const w of this.waves) w.draw(wctx);
@@ -1169,10 +1179,12 @@ export class Game {
     this.player.draw(wctx);
     if (this.frozen) this.#drawFreezeWorld(wctx);
     if (this.stoneBurst) this.#drawStoneBurst(wctx);
-    for (const w of this.weapons) {
-      w.draw(wctx);
-      w.drawLevelFx(wctx, false);
-    }
+    this.weaponLayer.draw(wctx, (lctx) => {
+      for (const w of this.weapons) {
+        w.draw(lctx);
+        w.drawLevelFx(lctx, false);
+      }
+    });
     wctx.restore();
     if (pixel) this.pixelLayer.end(ctx);
 
@@ -1485,7 +1497,10 @@ export class Game {
   #drawPauseMenu() {
     const { ctx } = this;
     const c = CONFIG.colors;
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    // 「攻撃の見え方」を選んでいる間は後ろを暗くしすぎず、変えた濃さがその場で後ろのゲーム画面に見えるようにする（仕様 035）
+    const items = this.#pauseMenuItems();
+    const previewing = items[this.pauseIndex]?.weaponAlpha;
+    ctx.fillStyle = `rgba(0,0,0,${previewing ? CONFIG.weaponAlpha.previewBackdrop : 0.6})`;
     ctx.fillRect(0, 0, this.viewW, this.viewH);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -1494,7 +1509,7 @@ export class Game {
     ctx.fillText('ポーズ中', this.viewW / 2, this.viewH / 2 - 60);
 
     ctx.font = font(18, true);
-    this.#pauseMenuItems().forEach((it, i) => {
+    items.forEach((it, i) => {
       const selected = i === this.pauseIndex;
       ctx.fillStyle = selected ? c.hudBar : c.hudBg;
       ctx.fillRect(it.x, it.y, it.w, it.h);
