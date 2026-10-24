@@ -79,8 +79,28 @@ export class BeanGun extends Weapon {
       this.#drawMax(ctx);
       return;
     }
-    ctx.fillStyle = CONFIG.colors.bullet;
-    for (const b of this.bullets) this.#bean(ctx, b.x, b.y, b.radius, b.angle);
+    this.#drawBeans(ctx);
+  }
+
+  // 豆そのもの。twoTone の設定がある武器（豆マシンガン）は 2 色の豆、ない武器（豆ショットガン）は 1 色の豆
+  #drawBeans(ctx) {
+    const t = this.config.twoTone;
+    if (!t) {
+      ctx.fillStyle = CONFIG.colors.bullet;
+      for (const b of this.bullets) this.#bean(ctx, b.x, b.y, b.radius, b.angle);
+      return;
+    }
+    const max = this.isMax;
+    for (const b of this.bullets) {
+      const r = b.radius;
+      ctx.fillStyle = max ? t.maxBody : t.body;
+      this.#bean(ctx, b.x, b.y, r, b.angle);
+      // 明るい部分は、豆の中心から進む向きへずらした小さな楕円
+      ctx.fillStyle = max ? t.maxFront : t.front;
+      ctx.beginPath();
+      ctx.ellipse(b.x + Math.cos(b.angle) * r * t.frontY, b.y + Math.sin(b.angle) * r * t.frontY, r * t.frontW, r * t.frontH, b.angle + Math.PI / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   #bean(ctx, x, y, r, angle) {
@@ -124,8 +144,7 @@ export class BeanGun extends Weapon {
       ctx.fill();
     }
     ctx.restore();
-    // 豆そのものは光の上に、いつもの色で描く（当たる範囲と同じ大きさ）
-    ctx.fillStyle = CONFIG.colors.bullet;
-    for (const b of this.bullets) this.#bean(ctx, b.x, b.y, b.radius, b.angle);
+    // 豆そのものは光の上に描く（当たる範囲と同じ大きさ）
+    this.#drawBeans(ctx);
   }
 }
