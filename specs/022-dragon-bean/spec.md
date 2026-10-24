@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-22
 
-**Status**: Draft（決めることが残っている。キャラのアビリティ案：`specs/character-ideas.md`）
+**Status**: キャラの部分は実装済み（2026-10-24）。ボス（敵係）と「もう 1 つ選ぶ」の画面（メイン）を待っている。キャラのアビリティ案：`specs/character-ideas.md`）
 
 **Input**: User description: "今まで集めた豆コインを使用して、レベルアップを追加で獲得できるキャラ。調整が必要。"
 
@@ -67,3 +67,12 @@
 
 - 書いてある数値（例の値）は初期案。決まったら Clarifications に書き、遊んでから決めるものは `specs/backlog/playtest.md` に足す（憲法「開発の流れ」の 6）。
 - 特別なキャラとして扱い、品種の倍率と特別な力は付けない（016）。性能は、ことわりがなければアラビカ中煎りと同じ。
+
+## 実装メモ（2026-10-24、キャラ係）
+
+- 設定：`src/config.js` の `characters.dragon`（値段 30 枚・3 回・ボスの確率 5%・色・吊り目）と `characters.specials` の `dragon`。品種マラゴジッペを外した（`removedVarieties`。買っていた人には 340 枚を返す）。
+- 見た目：`src/entities/player.js` の `drawDragonBack`（翼としっぽ）・`drawHorns`・`drawSharpEyes`（吊り目）。
+- 判定：`src/characters.js` の `dragonExtraPick(character, used)`（{ price, left, enough, ok }。ドラゴン豆でないときは null）。支払いは `src/progress.js` の `spendCoins(n)`。
+- 解放：`src/game.js` の `#checkUnlocks` に条件 `dragonDefeat` を足した。ドラゴンのボスを倒したところで `this.#checkUnlocks('dragonDefeat', 1)` を呼べば仕入れられるようになる。
+- お願い（2026-10-24 にメイン経由で送った）：敵係＝ドラゴンのボス（1 面クリア時に 5%、`characters.dragon.bossChance`）。メイン＝レベルアップの画面の「30 枚でもう 1 つ選ぶ」（`dragonExtraPick` と `spendCoins` を使う。見た目は 3 案から）。
+- 確かめたこと（ヘッドレスブラウザ）：選択画面 66 マス（マラゴジッペが消え、？？？ が 4 マス）、ドラゴン豆の絵（選択画面・プレイ中）、`dragonExtraPick` の値、コンソールにエラーなし。
