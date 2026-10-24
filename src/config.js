@@ -393,6 +393,9 @@ export const CONFIG = {
       commonDesc: 'ダメージが上がり、\n連射が速くなる',
       // Lv 8（MAX）の見た目。trail は残像の数と間隔（秒）、flash は撃った瞬間の光
       maxVisual: { glow: '#ffb347', core: '#ffe08a', glowScale: 2.4, trail: 4, trailGapSec: 0.018, flashSec: 0.12, flashRadius: 26 },
+      // 2 色の豆（仕様 014 の FR-007）。body は豆の色、front は進む側の半分の明るい色。max〜 は Lv 8（MAX）のときの色
+      // frontY は明るい部分の中心を進む側へずらす量、frontW・frontH はその大きさ（どれも豆の大きさ radius に対する割合）
+      twoTone: { body: '#5a321b', front: '#e8c79a', maxBody: '#8a3f1c', maxFront: '#ffe08a', frontY: 0.3, frontW: 0.58, frontH: 0.6 },
     },
     // 散弾ロブスタの最初の武器。豆マシンガンと同じ枠で、同じように強化できる。baseCount は最初の豆の数
     beanShotgun: {
