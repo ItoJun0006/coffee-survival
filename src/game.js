@@ -123,6 +123,8 @@ export class Game {
     this.state = 'playing';
     // そのプレイで倒した敵の数と、結果画面の豆コインの数え上げ（仕様 016）
     this.runKills = 0;
+    // レベルアップの「豆コイン」カードでもらった枚数（仕様 036）。プレイが終わったときに足す
+    this.runCardCoins = 0;
     this.coinTally = null;
     // そのプレイの記録と自己ベストとの比べ（仕様 001 の User Story 7）。1 面で終わったときだけ作る
     this.runRecord = null;
@@ -174,8 +176,9 @@ export class Game {
   }
 
   get xpToNext() {
-    const { baseXp, xpGrowth } = CONFIG.leveling;
-    return baseXp + xpGrowth * (this.level - 1);
+    const { baseXp, xpGrowth, xpGrowthSq } = CONFIG.leveling;
+    const n = this.level - 1;
+    return baseXp + xpGrowth * n + xpGrowthSq * n * n;
   }
 
   #gainXp(amount) {
@@ -356,8 +359,25 @@ export class Game {
     const rest = all.filter((c) => c !== pick);
     // クリエイター豆は、最後の 1 枚がエナジードリンクになる（仕様 021）
     const choices = withEnergyDrink(this.character, this.player, shuffle([...(pick ? [pick] : []), ...rest].slice(0, CONFIG.weaponLevels.choices)));
-    this.levelUpMenu.open([...(choices.length ? choices : this.#bonusChoices()), ...this.#rareChoices()], this.level);
+    const base = this.#withCoinCard(choices.length ? choices : this.#bonusChoices());
+    this.levelUpMenu.open([...base, ...this.#rareChoices()], this.level);
     this.state = 'levelup';
+  }
+
+  // coinCard.chance の確率で「豆コイン」のカードを 1 枚まぜる（仕様 036）。3 枚あるときは、攻撃・アイテム・ボーナスの最後の 1 枚と入れ替える
+  #withCoinCard(list) {
+    const cc = CONFIG.leveling.coinCard;
+    if (Math.random() >= cc.chance) return list;
+    const card = {
+      kind: 'coins', name: cc.name, desc: cc.desc, element: 'none', level: 0, isNew: false,
+      apply: () => {
+        this.runCardCoins += cc.amount;
+        return cc.text;
+      },
+    };
+    if (list.length < CONFIG.weaponLevels.choices) return [...list, card];
+    const i = list.findLastIndex((c) => c.kind !== 'drink');
+    return list.map((c, j) => (j === i ? card : c));
   }
 
   // 候補をランダムに並べる。ピーベリーのときは、数のない武器のカードが前に来る割合を offRate 倍にする（仕様 017）
@@ -598,6 +618,7 @@ export class Game {
       { label: labels.time, detail: formatTime(this.time), value: Math.floor(this.time / 60) * c.perMinute },
       { label: labels.kills, detail: `${this.runKills.toLocaleString('ja-JP')} 体`, value: Math.floor(this.runKills / c.killsPerCoin) },
     ];
+    if (this.runCardCoins > 0) rows.push({ label: labels.cards, detail: `${this.runCardCoins / CONFIG.leveling.coinCard.amount} 回`, value: this.runCardCoins });
     if (cleared) rows.push(stage.id === 'extra' ? { label: labels.extraClear, value: c.extraClear } : { label: labels.clear, value: c.clear });
     const before = coins();
     addCoins(rows.reduce((sum, r) => sum + r.value, 0));
