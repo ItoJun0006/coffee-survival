@@ -592,6 +592,13 @@ export const CONFIG = {
       name: 'ねぶくろイモムシ', color: '#b5743a', xp: 5, radius: 26, speed: 35, hp: 16, appearSec: 360, weight: 1, contactCaffeine: 8, knockbackRate: 0.5,
       colors: { bag: '#b5743a', seam: '#8a5428', zipper: '#e8c070', face: '#9fd36a', eye: '#1e120c' },
     },
+    // ゆめのながれぼし（仕様 062）：プレイヤーを追いかける速さが、プレイヤーの今の動きの速さ × chaseRate と speed（止まっているときの速さ）の大きい方になる。
+    // knockbackRate：押し返しを受ける割合。tailLength は光の尾の長さ（半径の何倍か）。colors：星・顔・目・尾・きらめきの色
+    star: {
+      name: 'ゆめのながれぼし', color: '#b9c6ff', xp: 2, radius: 15, speed: 110, hp: 2, appearSec: 60, weight: 1, contactCaffeine: 5, knockbackRate: 0.3,
+      chaseRate: 1.1, tailLength: 3.2,
+      colors: { star: '#b9c6ff', face: '#e4e9ff', eye: '#4a4f80', tail: '170, 190, 255', sparkle: 'rgba(230, 235, 255, 0.9)' },
+    },
   },
   // 敵を倒したときのエフェクト
   effects: {
