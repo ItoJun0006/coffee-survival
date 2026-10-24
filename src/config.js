@@ -758,6 +758,30 @@ export const CONFIG = {
     pull: { strength: 110 },
     dream: { fakeRatio: 0.4 },
   },
+  // ドラゴンのボス「まどろみ宝竜」（仕様 063）。1 面のクリアのあと、まれに挑める。出る確率はキャラ係の characters.dragon.bossChance。
+  // 体に触れたときのダメージと属性の倍率は、ネムリーヌ（boss）と同じ
+  dragonBoss: {
+    name: 'まどろみ宝竜',
+    hp: 1200,
+    radius: 85,
+    speed: 45,
+    // 竜の宝：ドラゴン豆がもう仕入れられる（2 回目以降に倒した）ときに、もらえる豆コイン
+    treasureCoins: 500,
+    // ねむけの息：intervalSec ごとに warnSec 予告してから blowSec 吐く。range・angleDeg の扇形に当たるとカフェインが caffeine 減る
+    breath: { intervalSec: 4, warnSec: 1, blowSec: 0.6, range: 420, angleDeg: 55, caffeine: 20, warn: 'rgba(190, 170, 255, 0.18)', mist: 'rgba(200, 185, 255, 0.55)' },
+    // 豆コインの雨：intervalSec ごとに count 枚を、プレイヤーから spreadRadius 以内に fallSec かけて落とす。
+    // 落ちた瞬間に hitRadius 以内ならカフェインが caffeine 減る。外れたコインは lifeSec 落ちていて、pickRadius 以内で拾うと豆コインが coins 枚入る
+    coinRain: { intervalSec: 6, count: 6, spreadRadius: 260, fallSec: 1.1, fallHeight: 260, hitRadius: 26, caffeine: 12, lifeSec: 6, pickRadius: 24, coins: 1, size: 10 },
+    colors: { body: '#1f5a2a', bodyDark: '#163f1e', line: '#0e2a13', belly: '#f3e2b8', bellyLine: '#d8c495', horn: '#f3e2b8', eye: '#f4efe6', pupil: '#1e120c', shadow: 'rgba(0, 0, 0, 0.35)' },
+    texts: {
+      offerTitle: '宝の山で眠っていた竜が、物音で目を覚ました！',
+      offerText: '挑む：Space / Enter　　やめる：Esc',
+      win: 'まどろみ宝竜を倒した！',
+      lose: '竜は宝の山に戻って、また眠った…',
+      pickup: '拾った豆コイン：{n} 枚',
+      treasure: '竜の宝を手に入れた！　豆コイン +{n}',
+    },
+  },
   // 音。BGM はブラウザの中で組み立てるローファイ調の曲（音楽ファイルは使わない）
   // chords は 1 小節ごとの和音（音名＋オクターブ）。bass は各小節の根音
   audio: {
