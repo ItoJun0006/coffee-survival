@@ -758,7 +758,7 @@ export const CONFIG = {
     pull: { strength: 110 },
     dream: { fakeRatio: 0.4 },
   },
-  // ドラゴンのボス「まどろみ宝竜」（仕様 061）。1 面のクリアのあと、まれに挑める。出る確率はキャラ係の characters.dragon.bossChance。
+  // ドラゴンのボス「まどろみ宝竜」（仕様 063）。1 面のクリアのあと、まれに挑める。出る確率はキャラ係の characters.dragon.bossChance。
   // 体に触れたときのダメージと属性の倍率は、ネムリーヌ（boss）と同じ
   dragonBoss: {
     name: 'まどろみ宝竜',

@@ -67,5 +67,5 @@
 
 ## Assumptions
 
-- 体力・攻撃の数値・拾える豆コインの数は初期案（`specs/backlog/playtest.md` の PE02）。
+- 体力・攻撃の数値・拾える豆コインの数は初期案（`specs/backlog/playtest.md` の PE03。竜の宝の 500 枚は PE04）。
 - キャラ係の `characters.dragon.bossChance` が develop に入るまでは、確率は 0（`?dragon` のときだけ出る）。

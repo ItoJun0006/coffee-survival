@@ -117,7 +117,7 @@ export class Game {
     this.effects = [];
     this.boss = null;
     this.bossAppearedAt = 0;
-    // ドラゴンのボス（仕様 061）。{ offer：挑むか聞いている, fight：戦っている, won, picked }
+    // ドラゴンのボス（仕様 063）。{ offer：挑むか聞いている, fight：戦っている, won, picked }
     this.dragon = null;
     this.beanTimer = 0;
     this.enemyTimer = 0;
@@ -1119,7 +1119,7 @@ export class Game {
     sound.setMode('boss');
   }
 
-  // ---- ドラゴンのボス（仕様 061）。処理の中身は entities/dragon-boss.js ----
+  // ---- ドラゴンのボス（仕様 063）。処理の中身は entities/dragon-boss.js ----
 
   // クリアの画面の上の知らせ：Space / Enter で挑む、Esc でやめる
   #updateDragonOffer() {

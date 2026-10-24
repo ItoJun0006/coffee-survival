@@ -6,7 +6,7 @@ import { font } from '../font.js';
 
 const cfg = CONFIG.dragonBoss;
 
-// 確認用：?dragon を付けて開くと、1 面のクリアのたびに必ず竜が目を覚ます（仕様 061 FR-009）
+// 確認用：?dragon を付けて開くと、1 面のクリアのたびに必ず竜が目を覚ます（仕様 063 FR-009）
 const debugDragon = new URLSearchParams(location.search).has('dragon');
 
 // 1 面のクリアのあとに竜が目を覚ますかどうか。確率はキャラ係の characters.dragon.bossChance（まだなければ 0）
@@ -14,7 +14,7 @@ export function rollDragon() {
   return debugDragon || Math.random() < (CONFIG.characters.dragon?.bossChance ?? 0);
 }
 
-// 竜を倒したときの宝（仕様 061 FR-010）。ドラゴン豆がもう仕入れられる（2 回目以降に倒した）ときは豆コインを渡して、その枚数を返す。
+// 竜を倒したときの宝（仕様 063 FR-010）。ドラゴン豆がもう仕入れられる（2 回目以降に倒した）ときは豆コインを渡して、その枚数を返す。
 // 1 回目なら 0 を返す（そのときは、game.js がドラゴン豆の条件 dragonDefeat を調べる）
 export function takeDragonTreasure() {
   const group = CONDITIONS.find((c) => c.require.type === 'dragonDefeat')?.group;
@@ -23,7 +23,7 @@ export function takeDragonTreasure() {
   return cfg.treasureCoins;
 }
 
-// ドラゴンのボス「まどろみ宝竜」（仕様 061）。ネムリーヌ（Boss）と同じ枠（game.boss）に入れて戦うので、
+// ドラゴンのボス「まどろみ宝竜」（仕様 063）。ネムリーヌ（Boss）と同じ枠（game.boss）に入れて戦うので、
 // 体力のバー・攻撃の当たり方・体に触れたときのダメージは、ネムリーヌと同じ仕組みを使う。
 // 自分の攻撃（ねむけの息・豆コインの雨）は update の中で進め、プレイヤーに直接当てる
 export class DragonBoss {
