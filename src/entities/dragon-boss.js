@@ -1,6 +1,7 @@
 import { CONFIG } from '../config.js';
 import { drawCoin } from '../coin-ui.js';
-import { addCoins } from '../progress.js';
+import { addCoins, isUnlocked } from '../progress.js';
+import { CONDITIONS, readyId } from '../characters.js';
 import { font } from '../font.js';
 
 const cfg = CONFIG.dragonBoss;
@@ -11,6 +12,15 @@ const debugDragon = new URLSearchParams(location.search).has('dragon');
 // 1 面のクリアのあとに竜が目を覚ますかどうか。確率はキャラ係の characters.dragon.bossChance（まだなければ 0）
 export function rollDragon() {
   return debugDragon || Math.random() < (CONFIG.characters.dragon?.bossChance ?? 0);
+}
+
+// 竜を倒したときの宝（仕様 061 FR-010）。ドラゴン豆がもう仕入れられる（2 回目以降に倒した）ときは豆コインを渡して、その枚数を返す。
+// 1 回目なら 0 を返す（そのときは、game.js がドラゴン豆の条件 dragonDefeat を調べる）
+export function takeDragonTreasure() {
+  const group = CONDITIONS.find((c) => c.require.type === 'dragonDefeat')?.group;
+  if (!group || !isUnlocked(readyId(group))) return 0;
+  addCoins(cfg.treasureCoins);
+  return cfg.treasureCoins;
 }
 
 // ドラゴンのボス「まどろみ宝竜」（仕様 061）。ネムリーヌ（Boss）と同じ枠（game.boss）に入れて戦うので、
@@ -305,7 +315,7 @@ export function drawDragonPanel(ctx, dragon, viewW, viewH) {
   const t = cfg.texts;
   const lines = dragon.offer
     ? [t.offerTitle, t.offerText]
-    : [dragon.won ? t.win : t.lose, dragon.picked ? t.pickup.replace('{n}', dragon.picked) : ''];
+    : [dragon.won ? t.win : t.lose, [dragon.treasure ? t.treasure.replace('{n}', dragon.treasure) : '', dragon.picked ? t.pickup.replace('{n}', dragon.picked) : ''].filter(Boolean).join('　')];
   const w = Math.min(640, viewW - 40);
   const h = 92;
   const x = (viewW - w) / 2;

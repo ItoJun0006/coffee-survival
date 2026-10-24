@@ -765,6 +765,8 @@ export const CONFIG = {
     hp: 1200,
     radius: 85,
     speed: 45,
+    // 竜の宝：ドラゴン豆がもう仕入れられる（2 回目以降に倒した）ときに、もらえる豆コイン
+    treasureCoins: 500,
     // ねむけの息：intervalSec ごとに warnSec 予告してから blowSec 吐く。range・angleDeg の扇形に当たるとカフェインが caffeine 減る
     breath: { intervalSec: 4, warnSec: 1, blowSec: 0.6, range: 420, angleDeg: 55, caffeine: 20, warn: 'rgba(190, 170, 255, 0.18)', mist: 'rgba(200, 185, 255, 0.55)' },
     // 豆コインの雨：intervalSec ごとに count 枚を、プレイヤーから spreadRadius 以内に fallSec かけて落とす。
@@ -777,6 +779,7 @@ export const CONFIG = {
       win: 'まどろみ宝竜を倒した！',
       lose: '竜は宝の山に戻って、また眠った…',
       pickup: '拾った豆コイン：{n} 枚',
+      treasure: '竜の宝を手に入れた！　豆コイン +{n}',
     },
   },
   // 音。BGM はブラウザの中で組み立てるローファイ調の曲（音楽ファイルは使わない）

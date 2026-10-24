@@ -5,7 +5,7 @@ import { Bean } from './entities/bean.js';
 import { XpOrb } from './entities/xp-orb.js';
 import { Enemy } from './entities/enemy.js';
 import { Boss } from './entities/boss.js';
-import { DragonBoss, rollDragon, drawDragonPanel } from './entities/dragon-boss.js';
+import { DragonBoss, rollDragon, drawDragonPanel, takeDragonTreasure } from './entities/dragon-boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
@@ -1150,12 +1150,14 @@ export class Game {
     sound.play('bossAppear');
   }
 
-  // 勝っても負けても、1 面のクリアの画面に戻る（クリアの記録はそのまま）
+  // 勝っても負けても、1 面のクリアの画面に戻る（クリアの記録はそのまま）。倒したあとも、次のクリアでまた出会える
   #updateDragonFight() {
     const won = this.boss.dead;
     if (!won && this.player.alive) return;
-    if (won) this.#checkUnlocks('dragonDefeat', 1);
-    this.dragon = { won, picked: this.boss.picked };
+    // 1 回目はドラゴン豆が仕入れられるようになり、2 回目からは竜の宝（豆コイン）をもらう
+    const treasure = won ? takeDragonTreasure() : 0;
+    if (won && !treasure) this.#checkUnlocks('dragonDefeat', 1);
+    this.dragon = { won, treasure, picked: this.boss.picked };
     this.boss = null;
     this.state = 'clear';
     sound.stopMusic();
