@@ -64,7 +64,9 @@ export class Mill extends Weapon {
     const p = g.player;
     // Lv 8 になるまでは、回る速さを slowSpin.rate 倍に落とす
     const slow = this.level < c.slowSpin.untilLevel ? c.slowSpin.rate : 1;
-    this.angle += c.angularSpeed * s.spinRate * slow * dt;
+    // ピーベリー（刃 1 枚）は、減った刃の数だけ速く回す（本来 4 枚なら 4 倍。focusCount は本来の枚数）
+    const focus = this.focusCount ** c.focusSpinExp;
+    this.angle += c.angularSpeed * s.spinRate * slow * focus * dt;
     // ミルは発動しないので、攻撃の間隔の強化は同じ敵に当たる間隔に効く
     this.hits.cooldownSec = c.hitCooldownSec * s.hitCooldownRate * this.intervalRate;
     const blade = this.bladeRadius;
