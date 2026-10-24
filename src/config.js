@@ -100,10 +100,6 @@ export const CONFIG = {
         rates: { speed: 0.9, caffeine: 1.1, damage: 1.05, interval: 1.1 }, pattern: { kind: 'ring', color: '#f3dcb4', lightColor: '#604937' },
       },
       {
-        id: 'maragogipe', name: 'マラゴジッペ', origin: '「象の豆」とも呼ばれる、とても大粒の品種', trait: '巨大粒', price: 340, power: 'guard',
-        rates: { speed: 0.85, caffeine: 1.1, damage: 1.05, interval: 1.05 }, pattern: { kind: 'half', color: '#efdcbc', lightColor: '#5f4939' },
-      },
-      {
         id: 'yirgacheffe', name: 'イルガチェフェ', origin: 'エチオピアの産地。珈琲のふるさと', trait: '華やか', price: 360, power: 'xp',
         rates: { speed: 1.05, caffeine: 0.9, damage: 1, interval: 1 }, pattern: { kind: 'petals', color: '#fff4c2', lightColor: '#624e3a' },
       },
@@ -148,14 +144,21 @@ export const CONFIG = {
       drink: { name: 'エナジードリンク', desc: 'カフェインを\n上限まで回復する', healRate: 1, text: 'エナジードリンクで目が覚めた！' },
       colors: { band: '#2b2b33', cup: '#e04848', can: '#2fd06a', bolt: '#ffe14a', rim: '#c9d3d9' },
     },
-    // 新しいキャラを足すために外した品種（仕様 016 FR-022。カティモールはクリエイター豆のため、仕様 021）。前に買っていた人には、値段の豆コインを返す
-    removedVarieties: [{ id: 'kent', price: 220 }, { id: 'catimor', price: 300 }],
+    // ドラゴン豆（仕様 022）：レベルアップの画面で、1 回の画面につき 1 度、豆コイン price 枚で「もう 1 つ選ぶ」を買える（1 回のプレイで maxPerRun 回まで）。
+    // 仕入れの条件は、1 面のクリア後に bossChance の確率で現れるドラゴンのボスを倒すこと（ボスは敵係）。
+    // 見た目は角（horn）と濃い緑の翼としっぽ（wing）、吊り目（eyeCut：目の内側の上を豆の色でかくす割合）
+    dragon: {
+      price: 30, maxPerRun: 3, bossChance: 0.05,
+      colors: { horn: '#f3e3b0', wing: '#1f5a2a' }, eyeCut: 0.55,
+    },
+    // 新しいキャラを足すために外した品種（仕様 016 FR-022。カティモールはクリエイター豆、マラゴジッペはドラゴン豆のため、仕様 021・022）。前に買っていた人には、値段の豆コインを返す
+    removedVarieties: [{ id: 'kent', price: 220 }, { id: 'catimor', price: 300 }, { id: 'maragogipe', price: 340 }],
     // 特別なキャラ。require の条件を満たすと仕入れられるようになり、price の豆コインで買う（仕様 016 FR-018）。
     // roast は性能と色（品種 × 焙煎度のキャラと同じ形）、origin と desc は買うポップアップに出す
     // require.type：clearCaffeine＝カフェインが上限の ratio 以上のまま 1 面をクリア、maxClears＝Lv 8 の攻撃を持ったまま 1 面をクリアした品種（特別なキャラはそれぞれ 1 種類）の数が count 以上、extraClear＝エクストラステージをクリア、bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
     //   plays＝ゲームを count 回始める、playTime＝累計プレイ時間が seconds 秒以上（例：{ type: 'playTime', seconds: 3600, text: '…' }）、
     //   distance＝累計移動距離が pixels 以上（マップの端から端は 2000）、kills＝累計撃破数が count 以上、beans＝累計の拾った豆が count 以上、
-    //   maxLevel＝1 回のプレイで Lv level になる
+    //   maxLevel＝1 回のプレイで Lv level になる、dragonDefeat＝ドラゴンのボスを倒す（仕様 022）
     // drawScale は見た目の大きさの倍率（当たる範囲は変わらない）
     specials: [
       {
@@ -206,6 +209,13 @@ export const CONFIG = {
         origin: '徹夜で作り続ける、エナジードリンク好きの豆', desc: '豆は出ないが、Lv 10 から 1.15 倍ずつ強くなる',
         roast: { trait: '徹夜', color: '#7d5636', crease: '#3f2818', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
         require: { type: 'maxLevel', level: 30, text: '1 回のプレイで Lv 30 になる' },
+      },
+      {
+        // 豆コインでレベルアップの「もう 1 つ」を買える（仕様 022）。値は上の dragon を使う
+        id: 'dragon', name: 'ドラゴン豆', price: 500, dragon: true,
+        origin: '豆コインの山を抱えて眠る、竜の子どもの豆', desc: 'レベルアップのとき、豆コインでもう 1 つ選べる',
+        roast: { trait: '宝の山', color: '#7a5a2e', crease: '#3d2a12', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
+        require: { type: 'dragonDefeat', text: '1 面のクリア後にまれに現れる、ドラゴンのボスを倒す' },
       },
     ],
     // 選択画面に並べるマスの数（最終目標）。まだ中身のないマスは「？？？」として鍵付きで出す
@@ -336,6 +346,16 @@ export const CONFIG = {
     card: { bg: '#1f2a24', edge: '#6b4a2c', edgeWidth: 7, text: '#f3efe6', sub: 'rgba(243, 239, 230, 0.8)', muted: 'rgba(243, 239, 230, 0.25)' },
     // 種類ごとの色（カードの帯・選んでいるときの光）
     kindColors: { weapon: '#d9a066', item: '#8fc7a0', bonus: '#f0d58a', carry: '#b9a0e0' },
+    // ドラゴン豆の「もう 1 つ選ぶ」の 4 枚目のカード「竜の宝」（仕様 036）。値段と回数は characters.dragon
+    extraPick: {
+      title: '竜の宝',
+      name: 'もう 1 つ選ぶ',
+      leadTwo: '竜の宝で、2 つ選べる！ 1 つ目を選ぶ',
+      leadOne: 'もう 1 つ選ぶ',
+      notEnough: '豆コインが足りない',
+      usedUp: 'このプレイではもう使えない',
+      colors: { gold: '#e8c060', scaleBg: '#173d24', scale: 'rgba(120, 200, 140, 0.25)', text: '#f3efe6' },
+    },
     // エナジードリンク（仕様 033）：カードの代わりに描く缶。sizeRate はカードの高さに対する缶の高さ、widthRate は缶の高さに対する幅。
     // bobPx・bobSpeed は上下に揺れる幅（px）と速さ、tiltRad は傾きの最大（ラジアン）、bubbles は泡の数
     drink: {
