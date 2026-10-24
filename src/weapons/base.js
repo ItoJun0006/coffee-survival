@@ -207,6 +207,28 @@ export class Weapon {
     }
     ctx.restore();
   }
+
+  // 強化した直後の金色の輪（仕様 002 の FR-004）。段階の見た目と同じ目印の縁の外側に描き、upgradeFlash.sec 秒で消える
+  startUpgradeFlash() {
+    this.flashFrom = this.game.time;
+  }
+
+  drawUpgradeFlash(ctx, below) {
+    if (this.flashFrom === undefined || below !== this.levelFxBelow) return;
+    const { sec, ring } = CONFIG.upgradeFlash;
+    const k = 1 - (this.game.time - this.flashFrom) / sec;
+    // 時間が戻ったとき（エクストラステージへ持っていった武器など）は描かない
+    if (k <= 0 || k > 1) return;
+    ctx.save();
+    ctx.strokeStyle = ring.color;
+    ctx.lineWidth = ring.width;
+    for (const s of this.levelSpots()) {
+      ctx.globalAlpha = k * (s.k ?? 1);
+      circle(ctx, s.x, s.y, s.r + ring.gap + ring.width / 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
 }
 
 // 同じ相手には cooldownSec ごとに 1 回だけ当たる

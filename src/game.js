@@ -126,6 +126,7 @@ export class Game {
     this.coinTally = null;
     // そのプレイの記録と自己ベストとの比べ（仕様 001 の User Story 7）。1 面で終わったときだけ作る
     this.runRecord = null;
+    this.upgradeLabel = null;
     this.level = 1;
     this.xp = 0;
     // ボーナスで上がる攻撃力。キャラの攻撃力の倍率は characterDamageRate に分けて持つ
@@ -282,7 +283,12 @@ export class Game {
       isNew,
       apply: () => {
         if (isNew) this.weapons.push(weapon);
-        else weapon.level += 1;
+        else {
+          weapon.level += 1;
+          // 強化した直後に、その攻撃を金色に光らせ、頭の上に「アイコン Lv N ↑」を出す（仕様 002 の FR-004）
+          weapon.startUpgradeFlash();
+          this.upgradeLabel = { weaponId: weaponIdOf(weapon), level: weapon.level, from: this.time };
+        }
         return isNew ? `${weapon.name} を手に入れた！` : `${weapon.name} が Lv ${weapon.level} になった！`;
       },
     };
@@ -1168,6 +1174,7 @@ export class Game {
       for (const w of this.weapons) {
         w.drawBelow(lctx);
         w.drawLevelFx(lctx, true);
+        w.drawUpgradeFlash(lctx, true);
       }
     });
     for (const b of this.beans) b.draw(wctx);
@@ -1183,10 +1190,12 @@ export class Game {
       for (const w of this.weapons) {
         w.draw(lctx);
         w.drawLevelFx(lctx, false);
+        w.drawUpgradeFlash(lctx, false);
       }
     });
     wctx.restore();
     if (pixel) this.pixelLayer.end(ctx);
+    this.#drawUpgradeLabel();
 
     if (this.frozen) this.#drawFreezeCountdown();
     if (this.state === 'clear') this.#drawDawn();
@@ -1204,6 +1213,33 @@ export class Game {
     }
     this.#drawSoundIndicator();
     this.#drawToasts();
+  }
+
+  // 強化した直後に、プレイヤーの頭の上に「アイコン Lv N ↑」の札を出す。上がりながら、終わりの方で薄くなって消える（仕様 002 の FR-004）
+  #drawUpgradeLabel() {
+    const u = this.upgradeLabel;
+    if (!u) return;
+    const { sec, label: L } = CONFIG.upgradeFlash;
+    const t = (this.time - u.from) / sec;
+    if (t < 0 || t >= 1) return;
+    const { ctx } = this;
+    // プレイヤーはいつも画面の真ん中に描く
+    const cx = this.viewW / 2;
+    const y = this.viewH / 2 - L.offsetY - L.rise * t;
+    ctx.save();
+    ctx.globalAlpha = t < L.fadeFrom ? 1 : 1 - (t - L.fadeFrom) / (1 - L.fadeFrom);
+    ctx.fillStyle = L.panel;
+    ctx.fillRect(cx - L.w / 2, y - L.h / 2, L.w, L.h);
+    ctx.strokeStyle = L.color;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(cx - L.w / 2, y - L.h / 2, L.w, L.h);
+    drawWeaponIcon(ctx, u.weaponId, cx - L.w / 2 + 24, y, L.iconSize);
+    ctx.fillStyle = L.color;
+    ctx.font = font(18, true);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(L.text.replace('{level}', u.level), cx - L.w / 2 + 44, y);
+    ctx.restore();
   }
 
   // キャラの解放などの知らせ。最後の 0.5 秒で薄くなって消える
