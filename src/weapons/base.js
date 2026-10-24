@@ -196,7 +196,8 @@ export class Weapon {
     const v = CONFIG.weaponLevelVisual;
     const i = tier - 1;
     ctx.save();
-    ctx.strokeStyle = (v.colors[this.config.element] ?? v.colors.none)[i];
+    // levelColors を持つ武器は、属性の色の代わりにその色を使う
+    ctx.strokeStyle = (this.config.levelColors ?? v.colors[this.config.element] ?? v.colors.none)[i];
     for (const s of this.levelSpots()) {
       const w = Math.min(v.width[i], s.r);
       ctx.globalAlpha = v.alpha[i] * (s.k ?? 1);

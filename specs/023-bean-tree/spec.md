@@ -22,7 +22,7 @@
 - [NEEDS CLARIFICATION] 「眠気の減りが 0.6 倍」は、カフェインが時間で減る速さ（`caffeineDecayPerSec`）を 0.6 倍にする、で合っているか
 - [NEEDS CLARIFICATION] 動いている間に損をするか（例：動いている間は攻撃の間隔 1.2 倍）。遊んでから決めてもよい
 - [NEEDS CLARIFICATION] 止まっていることが分かる演出（根や葉が出るなど）。見た目なので 3 案から選ぶ
-- [NEEDS CLARIFICATION] 66 マスのどこに入れるか？ 今は 66 マスがすべてうまっている（016 FR-001）。マスを増やす（`plannedTotal`）か、品種を 1 つ外すか（016 FR-022 のケントと同じ）
+- [NEEDS CLARIFICATION] 空いたマスのどこに入れるか（外す品種はカティモール・マラゴジッペ・パカマラ・ビジャサルチと決まった。021 の Clarifications）
 - [NEEDS CLARIFICATION] 値段（豆コイン）と、仕入れられるようになる条件（016 FR-018）
 - [NEEDS CLARIFICATION] 見た目（キャラの絵）。3 案を作って選ぶ（憲法「開発の流れ」の 4）
 

@@ -2,7 +2,7 @@ import { CONFIG } from '../config.js';
 import { Weapon, HitTracker, dist } from './base.js';
 import { drawGlow, drawWisps, circle } from './max-fx.js';
 
-// 敵の頭上に熱い雫を降らせる
+// プレイヤーのまわりのランダムな所に熱い雫を降らせる（敵は狙わない）
 export class Drip extends Weapon {
   constructor(game) {
     super(game, CONFIG.weapons.drip);
@@ -13,7 +13,7 @@ export class Drip extends Weapon {
   }
 
   baseStats() {
-    return { drops: this.config.drops, radiusRate: 1, spreadTargets: false, linger: false, damageRate: 1 };
+    return { drops: this.config.drops, radiusRate: 1, rainRate: 1, linger: false, damageRate: 1 };
   }
 
   update(dt) {
@@ -21,13 +21,12 @@ export class Drip extends Weapon {
     const g = this.game;
     const s = this.stats;
     const radius = c.radius * s.radiusRate;
-    if (this.tick(dt)) {
-      const candidates = g.targets().filter((t) => dist(t, g.player) < c.range);
-      if (candidates.length > 0) {
-        this.timer = 0;
-        for (const pos of s.spreadTargets ? this.#spreadPositions(candidates, s.drops) : this.#randomPositions(candidates, s.drops)) {
-          this.drops.push({ ...pos, timer: c.delaySec, splash: 0, seed: Math.random() * 100 });
-        }
+    const rain = c.rainRadius * s.rainRate;
+    // 降らせる範囲に敵が 1 体でもいるときだけ降らせる
+    if (this.tick(dt) && g.targets().some((t) => dist(t, g.player) < rain + radius + t.radius)) {
+      this.timer = 0;
+      for (let i = 0; i < s.drops; i++) {
+        this.drops.push({ ...this.#randomPosition(rain), timer: c.delaySec, splash: 0, seed: Math.random() * 100 });
       }
     }
     for (const d of this.drops) {
@@ -52,29 +51,12 @@ export class Drip extends Weapon {
     this.mists = this.mists.filter((m) => m.life > 0);
   }
 
-  // 範囲内の敵からランダムに選ぶ（同じ敵に重なってよい）
-  #randomPositions(candidates, count) {
-    return Array.from({ length: count }, () => {
-      const t = candidates[Math.floor(Math.random() * candidates.length)];
-      return { x: t.x, y: t.y };
-    });
-  }
-
-  // 範囲内の敵をシャッフルして別々に狙い、余った雫はプレイヤーのまわりに落とす。
-  // ボスに直撃させるのは 1 回の発動で 1 つまで
-  #spreadPositions(candidates, count) {
+  // プレイヤーを中心とした半径 rain の円の中から、どこも同じ確率で 1 か所選ぶ
+  #randomPosition(rain) {
     const p = this.game.player;
-    const list = [...candidates];
-    for (let i = list.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [list[i], list[j]] = [list[j], list[i]];
-    }
-    return Array.from({ length: count }, (_, i) => {
-      if (i < list.length) return { x: list[i].x, y: list[i].y };
-      const a = Math.random() * Math.PI * 2;
-      const r = Math.sqrt(Math.random()) * this.config.scatterRadius;
-      return { x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r };
-    });
+    const a = Math.random() * Math.PI * 2;
+    const r = Math.sqrt(Math.random()) * rain;
+    return { x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r };
   }
 
   // 落ちてくる雫
@@ -132,7 +114,7 @@ export class Drip extends Weapon {
           this.#dropPath(ctx, d.x, y, c.dropSize);
           ctx.fill();
         } else {
-          // 狙った所の上に小さなドリッパーが現れ、そこから落ちる
+          // 落とす所の上に小さなドリッパーが現れ、そこから落ちる
           const top = d.y - c.fallHeight;
           ctx.save();
           ctx.globalAlpha = Math.min(1, (c.delaySec - d.timer) / v.dripperFadeSec, d.timer / v.dripperFadeSec);

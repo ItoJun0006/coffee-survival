@@ -20,7 +20,8 @@ export const levelLabel = (level) => (level >= stage.maxLevel ? 'Lv MAX' : `Lv $
 export class LevelUpMenu {
   // heading を渡すと、見出し（title）と説明（lead）をレベルアップ以外のものにする
   open(choices, level, heading = null) {
-    this.choices = choices;
+    // エナジードリンク（仕様 021・033）は、いちばん左に置く
+    this.choices = [...choices.filter((c) => c.kind === 'drink'), ...choices.filter((c) => c.kind !== 'drink')];
     this.level = level;
     this.heading = heading;
     this.index = 0;
@@ -109,7 +110,8 @@ export class LevelUpMenu {
     ctx.translate(cx, cy);
     ctx.scale(Math.max(0.02, Math.cos((1 - ease) * Math.PI / 2)) * k, k);
     ctx.translate(-cx, -cy);
-    this.#drawCard(ctx, card, selected);
+    if (card.choice.kind === 'drink') drawEnergyDrink(ctx, card, selected, t);
+    else this.#drawCard(ctx, card, selected);
     ctx.restore();
   }
 
@@ -293,5 +295,88 @@ function drawRareCardBack(ctx, card, kind, selected) {
       ctx.restore();
     }
   }
+  ctx.restore();
+}
+
+// エナジードリンク（仕様 033）：カードの代わりに、カードの 7 割ほどの大きさの緑の缶を描き、下に文を出す。
+// 缶は水に浮かんだように上下にぷかぷか揺れ、開いた口から炭酸の泡が立ちのぼる。選んでいるときは缶のまわりを光らせる
+function drawEnergyDrink(ctx, card, selected, t) {
+  const d = CONFIG.levelUpScreen.drink;
+  const h = CARD_H * d.sizeRate;
+  const w = h * d.widthRate;
+  const cx = card.x + card.w / 2;
+  const bottom = card.y + h + 6;
+  ctx.save();
+  // 番号
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.font = font(13, true);
+  ctx.fillStyle = 'rgba(243, 230, 216, 0.7)';
+  ctx.fillText(String(card.index + 1), card.x + 16, card.y + 14);
+
+  ctx.translate(cx, bottom);
+  ctx.translate(0, Math.sin(t * d.bobSpeed) * d.bobPx);
+  ctx.rotate(Math.sin(t * d.bobSpeed / 2) * d.tiltRad);
+  const c = d.colors;
+  const x = -w / 2;
+  const y = -h;
+  const rim = 8;
+  if (selected) {
+    ctx.shadowColor = c.glow;
+    ctx.shadowBlur = 22;
+  }
+  // 胴
+  ctx.fillStyle = c.body;
+  ctx.fillRect(x, y + rim, w, h - rim * 2);
+  ctx.shadowBlur = 0;
+  // 上と下のふち（銀）
+  ctx.fillStyle = c.rim;
+  ctx.fillRect(x + 4, y, w - 8, rim);
+  ctx.fillRect(x + 4, y + h - rim, w - 8, rim);
+  ctx.fillStyle = c.rimDark;
+  ctx.fillRect(x + 4, y + rim - 2, w - 8, 2);
+  ctx.fillRect(x + 4, y + h - rim, w - 8, 2);
+  // 光の筋
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+  ctx.fillRect(x + w * 0.16, y + rim + 4, w * 0.1, h - rim * 2 - 8);
+  // 稲妻
+  ctx.fillStyle = c.bolt;
+  const bx = 0;
+  const by = y + h * 0.5;
+  const s = h * 0.18;
+  ctx.beginPath();
+  ctx.moveTo(bx + s * 0.25, by - s * 1.2);
+  ctx.lineTo(bx - s * 0.55, by + s * 0.1);
+  ctx.lineTo(bx - s * 0.02, by + s * 0.1);
+  ctx.lineTo(bx - s * 0.3, by + s * 1.2);
+  ctx.lineTo(bx + s * 0.55, by - s * 0.15);
+  ctx.lineTo(bx + s * 0.02, by - s * 0.15);
+  ctx.closePath();
+  ctx.fill();
+  // 炭酸の泡：開いた口から立ちのぼり、上るほど薄くなる
+  ctx.fillStyle = c.tab;
+  ctx.fillRect(-w * 0.12, y - 3, w * 0.24, 4);
+  for (let i = 0; i < d.bubbles; i++) {
+    const p = (t * 0.8 + i / d.bubbles) % 1;
+    const r = 3 + (i % 3) * 1.5;
+    ctx.globalAlpha = 1 - p;
+    ctx.fillStyle = c.bubble;
+    ctx.beginPath();
+    ctx.arc(Math.sin(t * 3 + i * 2) * 10 + (i - (d.bubbles - 1) / 2) * 4, y - 8 - p * 40, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // 文
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = font(17, true);
+  ctx.fillStyle = selected ? d.colors.glow : d.colors.title;
+  ctx.fillText(d.title, cx, bottom + 26);
+  ctx.font = font(14, true);
+  ctx.fillStyle = CONFIG.colors.text;
+  ctx.fillText(d.text, cx, bottom + 50);
   ctx.restore();
 }

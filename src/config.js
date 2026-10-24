@@ -8,6 +8,22 @@ export const CONFIG = {
     background: '#0a0807',
     zoom: { amount: 0.025, periodSec: 12 },
   },
+  // 自分の記録（自己ベスト。仕様 001 の User Story 7。見せ方は C「3 枚のカード」）
+  //   result：結果画面のカード（今回の数を大きく、下に自己ベスト）。titleCard：タイトル画面の右上の小さなカード
+  records: {
+    labels: { time: '生存時間', kills: '倒した敵', level: '到達レベル' },
+    titleLabels: { time: '最長生存', kills: '最多撃破', level: '最高 Lv', clears: 'クリア' },
+    none: '自己ベスト　記録なし',
+    updated: '自己ベスト更新！',
+    best: 'ベスト',
+    result: { w: 150, h: 96, gap: 16, headingGap: 30, tallyGap: 18 },
+    titleCard: { w: 92, h: 54, gap: 8, top: 56, right: 16 },
+    colors: {
+      panel: 'rgba(20, 12, 8, 0.85)', edge: 'rgba(243, 230, 216, 0.35)', titleEdge: 'rgba(240, 213, 138, 0.6)',
+      label: 'rgba(243, 230, 216, 0.75)', best: 'rgba(243, 230, 216, 0.6)', value: '#f3e6d8', gold: '#f0d58a',
+      ribbon: '#c0392b', ribbonText: '#fff4e2',
+    },
+  },
   // プレイ中の絵（キャラ・敵・攻撃など）のドット絵化。size は 1 マスの大きさ（px）。
   // 縁取りは、濃さが solidAlpha 以上のマスの隣で、emptyAlpha 以下のマスに付ける。outline を null にすると縁取りなし
   pixelArt: { enabled: true, size: 3, outline: [20, 12, 8], solidAlpha: 0.7, emptyAlpha: 0.15 },
@@ -80,10 +96,6 @@ export const CONFIG = {
         rates: { speed: 0.95, caffeine: 0.95, damage: 1.1, interval: 1.05 }, pattern: { kind: 'spots', color: '#d9534f', lightColor: '#b0302a' },
       },
       {
-        id: 'catimor', name: 'カティモール', origin: '病気に強い掛け合わせの品種', trait: '丈夫', price: 300, power: 'guard',
-        rates: { speed: 1, caffeine: 1.1, damage: 0.9, interval: 1.05 }, pattern: { kind: 'cross', color: '#8fd16a', lightColor: '#4f9a3a' },
-      },
-      {
         id: 'pacamara', name: 'パカマラ', origin: 'パーカスとマラゴジッペを掛け合わせた大粒の品種', trait: '大粒', price: 320, power: 'beanHeal',
         rates: { speed: 0.9, caffeine: 1.1, damage: 1.05, interval: 1.1 }, pattern: { kind: 'ring', color: '#f3dcb4', lightColor: '#604937' },
       },
@@ -128,13 +140,22 @@ export const CONFIG = {
     // 見た目は、浅煎り・中煎り・深煎りの 3 粒を串に刺したもの（stick は串の色、tiltDeg は串の傾き）
     multi: { countRate: 3, damageRate: 0.2, sideDeg: 25, spreadDeg: 10, stick: '#c9a46a', stickDark: '#8a6a3a', tiltDeg: 15 },
     focus: { countKeys: ['count', 'drops', 'shots', 'directionsDeg'], damageExp: 0.65, intervalExp: 0.35, offWeapons: ['puddle', 'shockwave', 'ice'], offRate: 0.5 },
-    // 新しいキャラを足すために外した品種（仕様 016 FR-022）。前に買っていた人には、値段の豆コインを返す
-    removedVarieties: [{ id: 'kent', price: 220 }],
+    // クリエイター豆（仕様 021）：珈琲豆が出ず、レベルアップの 3 枚のうち 1 枚が必ずエナジードリンク（選ぶと上限の healRate 回復）。
+    // startLevel より上は、Lv が 1 上がるごとにダメージ・攻撃の速さ・移動の速さが rate 倍ずつ伸びる（maxRate 倍まで）。経験値は xpRate 倍。
+    // 見た目は赤いヘッドホンとエナジードリンクの缶（band はヘッドホンの輪、cup は耳あて、can は缶、bolt は缶の稲妻、rim は缶のふち）
+    creator: {
+      startLevel: 10, rate: 1.15, maxRate: 10, xpRate: 1.2,
+      drink: { name: 'エナジードリンク', desc: 'カフェインを\n上限まで回復する', healRate: 1, text: 'エナジードリンクで目が覚めた！' },
+      colors: { band: '#2b2b33', cup: '#e04848', can: '#2fd06a', bolt: '#ffe14a', rim: '#c9d3d9' },
+    },
+    // 新しいキャラを足すために外した品種（仕様 016 FR-022。カティモールはクリエイター豆のため、仕様 021）。前に買っていた人には、値段の豆コインを返す
+    removedVarieties: [{ id: 'kent', price: 220 }, { id: 'catimor', price: 300 }],
     // 特別なキャラ。require の条件を満たすと仕入れられるようになり、price の豆コインで買う（仕様 016 FR-018）。
     // roast は性能と色（品種 × 焙煎度のキャラと同じ形）、origin と desc は買うポップアップに出す
     // require.type：clearCaffeine＝カフェインが上限の ratio 以上のまま 1 面をクリア、maxClears＝Lv 8 の攻撃を持ったまま 1 面をクリアした品種（特別なキャラはそれぞれ 1 種類）の数が count 以上、extraClear＝エクストラステージをクリア、bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
     //   plays＝ゲームを count 回始める、playTime＝累計プレイ時間が seconds 秒以上（例：{ type: 'playTime', seconds: 3600, text: '…' }）、
-    //   distance＝累計移動距離が pixels 以上（マップの端から端は 2000）、kills＝累計撃破数が count 以上、beans＝累計の拾った豆が count 以上
+    //   distance＝累計移動距離が pixels 以上（マップの端から端は 2000）、kills＝累計撃破数が count 以上、beans＝累計の拾った豆が count 以上、
+    //   maxLevel＝1 回のプレイで Lv level になる
     // drawScale は見た目の大きさの倍率（当たる範囲は変わらない）
     specials: [
       {
@@ -178,6 +199,13 @@ export const CONFIG = {
         origin: '大きくて、ときどき固まってしまう豆', desc: '毎分 5 秒固まるが、解けた瞬間にためた弾をまとめて撃つ',
         roast: { trait: 'ため撃ち', color: '#6e4426', crease: '#38200f', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
         require: { type: 'clearCaffeine', ratio: 0.5, text: '眠気 50% 以下（カフェイン 50% 以上）のまま 1 面をクリアする' },
+      },
+      {
+        // 豆が出ず、エナジードリンクで眠気をしのぐ。Lv 10 から 1.15 倍ずつ伸びる（仕様 021）。値は上の creator を使う
+        id: 'creator', name: 'クリエイター豆', price: 800, creator: true,
+        origin: '徹夜で作り続ける、エナジードリンク好きの豆', desc: '豆は出ないが、Lv 10 から 1.15 倍ずつ強くなる',
+        roast: { trait: '徹夜', color: '#7d5636', crease: '#3f2818', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
+        require: { type: 'maxLevel', level: 30, text: '1 回のプレイで Lv 30 になる' },
       },
     ],
     // 選択画面に並べるマスの数（最終目標）。まだ中身のないマスは「？？？」として鍵付きで出す
@@ -239,9 +267,12 @@ export const CONFIG = {
   //   world：マップの広さ、enemySpeedRate：敵の速さの倍率（enemySpeedRates で種類ごとに上書き）、
   //   caffeineDecay：カフェインが時間で減るか、levelUpHealRate：レベルが 1 上がるごとに回復する量（上限に対する割合）、
   //   maxLevel：攻撃とアイテムの上限の Lv、overCapChance：Lv 8 から先（限界突破）の候補が、レベルアップのたびに出る確率
+  //   敵の出方（仕様 060。書いていなければ 1 面と同じ）：enemyTimeOffsetSec：出る数・種類・強さを「経過時間 + この秒数」で決める、
+  //   enemyMaxCount：同時に出ている敵の上限、bigWaveMaxCount：ビッグウェーブの間の上限、bigWaveIntervalSec：ビッグウェーブの間隔 [最短, 最長]
   stages: {
     main: { name: '1 面', world: { width: 2000, height: 2000 }, enemySpeedRate: 1, enemySpeedRates: {}, caffeineDecay: true, levelUpHealRate: 0, maxLevel: 8, overCapChance: 0 },
-    extra: { name: 'エクストラステージ', world: { width: 1414, height: 1414 }, enemySpeedRate: 0.85, enemySpeedRates: { ghost: 0.8 }, caffeineDecay: false, levelUpHealRate: 0.1, maxLevel: 16, overCapChance: 0.2 },
+    extra: { name: 'エクストラステージ', world: { width: 1414, height: 1414 }, enemySpeedRate: 1, enemySpeedRates: {}, caffeineDecay: false, levelUpHealRate: 0.1, maxLevel: 16, overCapChance: 0.2,
+      enemyTimeOffsetSec: 480, enemyMaxCount: 250, bigWaveMaxCount: 330, bigWaveIntervalSec: [60, 90] },
   },
   player: {
     radius: 18,
@@ -275,7 +306,8 @@ export const CONFIG = {
   // max は 1 面の上限。エクストラステージでは stages.extra.maxLevel まで上げられ（限界突破）、
   // アイテムの限界突破した段階は、1 段階の効果が overCapItemRate 倍になる
   // levelFloor：Lv の強化だけで縮む間隔の倍率の下限（限界突破で 0 以下にならないように）
-  weaponLevels: { choices: 3, max: 8, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.25, overCapItemRate: 0.5, levelFloor: 0.05 },
+  // startChoices は、1 面の始めに選ぶ最初の攻撃の候補の数。startGuardMs は、その画面を開いてからクリックを受け付けない時間（仕様 032）
+  weaponLevels: { choices: 3, startChoices: 3, startGuardMs: 400, max: 8, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.25, overCapItemRate: 0.5, levelFloor: 0.05 },
   // Lv 2・4・6 で上がる見た目の段階（仕様 014）：攻撃の縁（当たる範囲の内側）に光る線を描く。
   // tiers は段階が上がる Lv。MAX（Lv 8）は武器ごとの maxVisual で描く。配列の値は段階 1・2・3 の順。
   // colors は属性ごとの線の色、width は線の太さ（px）、alpha は濃さ
@@ -304,6 +336,27 @@ export const CONFIG = {
     card: { bg: '#1f2a24', edge: '#6b4a2c', edgeWidth: 7, text: '#f3efe6', sub: 'rgba(243, 239, 230, 0.8)', muted: 'rgba(243, 239, 230, 0.25)' },
     // 種類ごとの色（カードの帯・選んでいるときの光）
     kindColors: { weapon: '#d9a066', item: '#8fc7a0', bonus: '#f0d58a', carry: '#b9a0e0' },
+    // エナジードリンク（仕様 033）：カードの代わりに描く缶。sizeRate はカードの高さに対する缶の高さ、widthRate は缶の高さに対する幅。
+    // bobPx・bobSpeed は上下に揺れる幅（px）と速さ、tiltRad は傾きの最大（ラジアン）、bubbles は泡の数
+    drink: {
+      sizeRate: 0.7,
+      widthRate: 0.5,
+      bobPx: 5,
+      bobSpeed: 3,
+      tiltRad: 0.06,
+      bubbles: 6,
+      title: 'エナジードリンク！',
+      text: '眠気を全回復！',
+      colors: { body: '#2fb85e', glow: '#7dff9e', rim: '#c9d3d9', rimDark: '#8a959c', bolt: '#ffe14a', tab: '#c9d3d9', bubble: 'rgba(210, 255, 220, 0.8)', title: '#9be8a8' },
+    },
+  },
+  // 攻撃の見え方（仕様 035）：攻撃の絵をまとめて薄くする割合（%）。ポーズメニューで steps を順に切り替え、ブラウザに保存する。
+  // previewBackdrop はポーズメニューでこの段を選んでいる間の、後ろを暗くする濃さ（ふだんは 0.6）。後ろのゲーム画面で濃さを確かめられる
+  weaponAlpha: {
+    steps: [100, 75, 50, 25],
+    default: 100,
+    label: '攻撃の見え方',
+    previewBackdrop: 0.15,
   },
   // ステータス強化アイテム。perLevel は 1 段階（Lv）ごとの効果。最大 Lv は weaponLevels.max と同じ
   items: {
@@ -336,6 +389,8 @@ export const CONFIG = {
     // range は敵を探す距離、豆が飛ぶ距離は（強化前の）range × flightRate
     beanGun: {
       name: '豆マシンガン', desc: '近い敵に豆を\n連射する', element: 'none', intervalSec: 0.35, speed: 520, radius: 6, damage: 1, range: 450, flightRate: 1.5,
+      // Lv 2・4・6 の縁の色（仕様 014）。弾が小さく縁で塗りつぶされるので、経験値の粒（金色）と見分けやすい赤銅色にする
+      levelColors: ['#a07a58', '#c9733a', '#d0603a'],
       commonLevels: [3, 5, 7],
       upgrades: {
         2: { count: 2, spreadDeg: 10, desc: '豆が 2 つになる' },
@@ -350,6 +405,8 @@ export const CONFIG = {
     // 散弾ロブスタの最初の武器。豆マシンガンと同じ枠で、同じように強化できる。baseCount は最初の豆の数
     beanShotgun: {
       name: '豆ショットガン', desc: '近い敵に向けて\n豆を扇形にばらまく', element: 'none', intervalSec: 0.85, speed: 480, radius: 6, damage: 0.9, range: 300, flightRate: 1.1,
+      // Lv 2・4・6 の縁の色（仕様 014）。弾が小さく縁で塗りつぶされるので、経験値の粒（金色）と見分けやすい赤銅色にする
+      levelColors: ['#a07a58', '#c9733a', '#d0603a'],
       baseCount: 5, baseSpreadDeg: 14,
       commonLevels: [3, 5, 7],
       upgrades: {
@@ -409,21 +466,21 @@ export const CONFIG = {
       },
     },
     drip: {
-      name: 'ドリップの雨', desc: '敵の頭上に\n熱い雫を降らせる', element: 'hot', intervalSec: 1.2, drops: 3, radius: 40, delaySec: 0.6, damage: 3, range: 500,
+      // rainRadius：雫を落とすプレイヤーのまわりの範囲（px）。この中のランダムな場所に落とし、敵は狙わない（2026-10-23 に変更）
+      areaKeys: ['rainRadius'],
+      name: 'ドリップの雨', desc: 'まわりのランダムな所に\n熱い雫を降らせる', element: 'hot', intervalSec: 1.2, drops: 3, radius: 40, delaySec: 0.6, damage: 3, rainRadius: 220,
       // 雫が落ち始める高さと、着弾の輪が消えるまでの時間。dropSize は落ちてくる雫の大きさ
       fallHeight: 220, splashSec: 0.3, dropSize: 6,
-      // 狙う敵が足りないとき、余った雫を落とすプレイヤーのまわりの範囲
-      scatterRadius: 180,
       // MAX の、着弾点に残る湯気
       linger: { durationSec: 1, tickSec: 0.5, damageRate: 0.35 },
       upgrades: {
         2: { drops: 4, desc: '雫が 4 つになる' },
         4: { radiusRate: 1.25, desc: '雫の範囲が広がる' },
-        6: { drops: 5, spreadTargets: true, desc: '雫が 5 つになり、\n別々の敵を狙う' },
+        6: { drops: 5, rainRate: 1.25, desc: '雫が 5 つになり、\n降らせる範囲が広がる' },
         8: { drops: 8, linger: true, damageRate: 0.75, desc: '雫が 8 つになり、\n着弾点に湯気が残る' },
       },
       commonDesc: 'ダメージが上がり、\n降らせる間隔が縮む',
-      // Lv 8（MAX）の見た目：狙った所の上に小さなドリッパーが現れて落とす・珈琲色の湯気の範囲。mist は着弾点に残る湯気の範囲、crown は着弾で跳ねる雫の数
+      // Lv 8（MAX）の見た目：落とす所の上に小さなドリッパーが現れて落とす・珈琲色の湯気の範囲。mist は着弾点に残る湯気の範囲、crown は着弾で跳ねる雫の数
       maxVisual: {
         dripper: '#b8733a', dripperRim: '#e0a36a', dripperSize: 11, dripperFadeSec: 0.12,
         drop: '#6b3e22', glow: '#ff9a3c', glowRadius: 14, glowAlpha: 0.45,
@@ -543,6 +600,13 @@ export const CONFIG = {
       name: 'ねぶくろイモムシ', color: '#b5743a', xp: 5, radius: 26, speed: 35, hp: 16, appearSec: 360, weight: 1, contactCaffeine: 8, knockbackRate: 0.5,
       colors: { bag: '#b5743a', seam: '#8a5428', zipper: '#e8c070', face: '#9fd36a', eye: '#1e120c' },
     },
+    // ゆめのながれぼし（仕様 062）：プレイヤーを追いかける速さが、プレイヤーの今の動きの速さ × chaseRate と speed（止まっているときの速さ）の大きい方になる。
+    // knockbackRate：押し返しを受ける割合。tailLength は光の尾の長さ（半径の何倍か）。colors：星・顔・目・尾・きらめきの色
+    star: {
+      name: 'ゆめのながれぼし', color: '#b9c6ff', xp: 2, radius: 15, speed: 110, hp: 2, appearSec: 60, weight: 1, contactCaffeine: 5, knockbackRate: 0.3,
+      chaseRate: 1.1, tailLength: 3.2,
+      colors: { star: '#b9c6ff', face: '#e4e9ff', eye: '#4a4f80', tail: '170, 190, 255', sparkle: 'rgba(230, 235, 255, 0.9)' },
+    },
   },
   // 敵を倒したときのエフェクト
   effects: {
@@ -550,7 +614,9 @@ export const CONFIG = {
   },
   // 時間とともに敵が強くなる。出現した時点の生存時間（分）× 倍率ぶん、標準より強くなる
   // 例：hpPerMin 0.35 なら、10:00 に出た敵の体力は 1 + 0.35 × 10 = 4.5 倍
-  enemyScaling: { hpPerMin: 0.35, speedPerMin: 0.04, damagePerMin: 0.06 },
+  // 手下全体の体力の倍率（仕様 061）：時間による倍率とは別にかける。出た時点の時間で hpRateStart から hpRateEnd へ
+  // hpRateRampSec かけて直線で上がり、そのあとは hpRateEnd。ボスにはかけない
+  enemyScaling: { hpPerMin: 0.35, speedPerMin: 0.04, damagePerMin: 0.06, hpRateStart: 1, hpRateEnd: 3, hpRateRampSec: 180 },
   // 敵の出現。rampSec かけて、出現の間隔が start → min に縮み、1 回に出る数が startGroup → endGroup に増える
   spawn: {
     startIntervalSec: 0.9,
@@ -558,7 +624,7 @@ export const CONFIG = {
     rampSec: 480,
     startGroup: 1,
     endGroup: 3,
-    maxCount: 150,
+    maxCount: 200,
     // 現れる場所（001 の FR-030）。画面の端から viewPad 外側より遠く、プレイヤーが角から cornerRadius 以内にいるときはその角から cornerRadius 以上離す。
     // 探し方：画面の外の円周上（半径を ringSteps 倍ずつ）を ringTries 回ずつ、だめならマップ全体を anywhereTries 回
     viewPad: 40,
@@ -576,7 +642,7 @@ export const CONFIG = {
     durationSec: 5,
     spawnRate: 3,
     // ビッグウェーブの間だけ、同時に出ている敵の上限をこの数に上げる
-    maxCount: 230,
+    maxCount: 280,
     stopBeforeBossSec: 30,
     title: 'ビッグウェーブ！',
     text: '眠気が押し寄せてくる…',

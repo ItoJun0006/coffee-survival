@@ -19,6 +19,7 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   const sy = 1 - bob * 0.06;
   ctx.save();
   ctx.scale(sx, sy);
+  if (character.creator) drawHeadphoneBand(ctx, r);
 
   ctx.fillStyle = color;
   ctx.beginPath();
@@ -49,6 +50,7 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   ctx.arc(0, r * 0.38, r * 0.16, 0.15 * Math.PI, 0.85 * Math.PI);
   ctx.stroke();
   if (skin) drawCamelliaSkin(ctx, r);
+  if (character.creator) drawCreatorGear(ctx, r);
 
   if (slowed) {
     ctx.globalAlpha = 0.45;
@@ -156,6 +158,46 @@ function drawOneEye(ctx, r, look, dot) {
   ctx.beginPath();
   ctx.arc(px - p * 0.45, ey + py - p * 0.45, Math.max(p * 0.35, dot * 0.6), 0, Math.PI * 2);
   ctx.fill();
+}
+
+// クリエイター豆（仕様 021）：赤いヘッドホンと、手に持ったエナジードリンクの缶。輪は豆の後ろ、耳あてと缶は前に描く
+function drawHeadphoneBand(ctx, r) {
+  ctx.strokeStyle = CONFIG.characters.creator.colors.band;
+  ctx.lineWidth = r * 0.16;
+  ctx.beginPath();
+  ctx.arc(0, -r * 0.1, r * 0.95, Math.PI * 1.08, Math.PI * 1.92);
+  ctx.stroke();
+}
+
+function drawCreatorGear(ctx, r) {
+  const { cup, can, bolt, rim } = CONFIG.characters.creator.colors;
+  ctx.fillStyle = cup;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(side * r * 0.86, -r * 0.15, r * 0.2, r * 0.32, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // 缶（大きさ s）。稲妻は、上の右から左下へ折れ曲がる形
+  const s = r * 0.55;
+  ctx.save();
+  ctx.translate(r * 1.05, r * 0.45);
+  ctx.rotate(0.25);
+  ctx.fillStyle = can;
+  ctx.fillRect(-s * 0.35, -s * 0.6, s * 0.7, s * 1.2);
+  ctx.fillStyle = rim;
+  ctx.fillRect(-s * 0.35, -s * 0.68, s * 0.7, s * 0.14);
+  ctx.fillRect(-s * 0.35, s * 0.56, s * 0.7, s * 0.1);
+  ctx.fillStyle = bolt;
+  ctx.beginPath();
+  ctx.moveTo(s * 0.08, -s * 0.4);
+  ctx.lineTo(-s * 0.14, s * 0.05);
+  ctx.lineTo(s * 0.02, s * 0.05);
+  ctx.lineTo(-s * 0.08, s * 0.42);
+  ctx.lineTo(s * 0.16, -s * 0.05);
+  ctx.lineTo(0, -s * 0.05);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 // スキン「椿」（頭に大きな椿の髪飾り）。椿の花の絵は、大きさ 80 を基準にしたアイコンの絵（item-icons.js）を使う
