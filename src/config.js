@@ -242,7 +242,7 @@ export const CONFIG = {
     // 結果画面の数え上げ。rowSec：行が出る間隔、countSec：1 行を数え上げる時間、totalSec：合計に足す時間（秒）
     tally: {
       rowSec: 0.45, countSec: 0.6, totalSec: 0.6,
-      labels: { time: '生き延びた時間', kills: '倒した敵', clear: 'ボスを倒した', extraClear: 'エクストラステージをクリア' },
+      labels: { time: '生き延びた時間', kills: '倒した敵', cards: 'レベルアップのカード', clear: 'ボスを倒した', extraClear: 'エクストラステージをクリア' },
       skipHint: '（Space / Enter / クリックで飛ばす）',
       panel: 'rgba(24, 14, 9, 0.88)', border: '#d9a066', text: '#f3e6d8', sub: 'rgba(243, 230, 216, 0.7)', total: '#f0d58a',
     },
@@ -292,9 +292,13 @@ export const CONFIG = {
     maxCount: 40,
   },
   // 敵が落とす経験値の粒を拾うと経験値が入り、レベルアップごとに攻撃が 1 つ増える
+  // 次のレベルに必要な経験値は baseXp + xpGrowth ×（Lv − 1）+ xpGrowthSq ×（Lv − 1）²（仕様 036。後半ほど上がりにくい）。
+  // coinCard：レベルアップの候補に、chance の確率で「豆コイン ＋amount 枚」のカードを 1 枚まぜる（仕様 036）
   leveling: {
     baseXp: 5,
     xpGrowth: 4,
+    xpGrowthSq: 1.2,
+    coinCard: { chance: 0.5, amount: 5, name: '豆コイン ＋5 枚', desc: '豆コインを 5 枚もらう\n（プレイが終わると\n手に入る）', text: '豆コインを 5 枚もらった！' },
     enemyDropChance: 0.4,
     maxDroppedBeans: 60,
     // 全攻撃を手に入れた後のレベルアップで上がる攻撃力
@@ -335,7 +339,7 @@ export const CONFIG = {
     // カード（黒板のメニュー）。edge は木の枠、text は名前、sub は説明、muted は番号やまだの ● の色
     card: { bg: '#1f2a24', edge: '#6b4a2c', edgeWidth: 7, text: '#f3efe6', sub: 'rgba(243, 239, 230, 0.8)', muted: 'rgba(243, 239, 230, 0.25)' },
     // 種類ごとの色（カードの帯・選んでいるときの光）
-    kindColors: { weapon: '#d9a066', item: '#8fc7a0', bonus: '#f0d58a', carry: '#b9a0e0' },
+    kindColors: { weapon: '#d9a066', item: '#8fc7a0', bonus: '#f0d58a', carry: '#b9a0e0', coins: '#f2c94c' },
     // エナジードリンク（仕様 033）：カードの代わりに描く缶。sizeRate はカードの高さに対する缶の高さ、widthRate は缶の高さに対する幅。
     // bobPx・bobSpeed は上下に揺れる幅（px）と速さ、tiltRad は傾きの最大（ラジアン）、bubbles は泡の数
     drink: {

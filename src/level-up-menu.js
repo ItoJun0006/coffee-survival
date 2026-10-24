@@ -1,6 +1,7 @@
 import { CONFIG } from './config.js';
 import { drawItemIcon } from './item-icons.js';
 import { drawWeaponIcon } from './weapon-icons.js';
+import { drawCoin } from './coin-ui.js';
 import { font } from './font.js';
 import { stage } from './stage.js';
 
@@ -11,7 +12,7 @@ const CARD_H = 240;
 const GAP = 24;
 const ELEMENT_LABEL = { none: '', hot: '熱い', ice: '冷たい' };
 
-const KIND_LABEL = { weapon: '攻撃', item: '強化アイテム', bonus: 'ボーナス', rare: 'レア強化', carry: '持っていく攻撃' };
+const KIND_LABEL = { weapon: '攻撃', item: '強化アイテム', bonus: 'ボーナス', rare: 'レア強化', carry: '持っていく攻撃', coins: '豆コイン' };
 
 // 攻撃とアイテムの Lv の表示。今のステージの最大 Lv は「MAX」と出す
 export const levelLabel = (level) => (level >= stage.maxLevel ? 'Lv MAX' : `Lv ${level}`);
@@ -167,7 +168,7 @@ export class LevelUpMenu {
     } else if (kind === 'carry') {
       ctx.fillStyle = theme.text;
       ctx.fillText(`Lv ${level}`, cx, card.y + 42);
-    } else if (kind !== 'bonus') {
+    } else if (kind !== 'bonus' && kind !== 'coins') {
       // Lv 8 から先は限界突破（エクストラステージ）
       const next = level + 1 >= stage.maxLevel ? 'MAX' : level + 1;
       ctx.fillStyle = isNew ? s.elementColors.hot : toMax || overCap ? s.maxEdge : theme.text;
@@ -175,11 +176,12 @@ export class LevelUpMenu {
     }
 
     // アイコンがあるカードは、アイコンの下に名前と説明を置く
-    const hasIcon = Boolean(iconId || weaponId);
+    const hasIcon = Boolean(iconId || weaponId || kind === 'coins');
     const elementLabel = ELEMENT_LABEL[element];
     const nameY = card.y + (hasIcon ? 128 : 70);
     const descY = card.y + (hasIcon ? (elementLabel ? 168 : 154) : 122);
-    if (iconId) drawItemIcon(ctx, iconId, cx, card.y + 84, 56);
+    if (kind === 'coins') drawCoin(ctx, cx, card.y + 84, 24);
+    else if (iconId) drawItemIcon(ctx, iconId, cx, card.y + 84, 56);
     else if (weaponId) drawWeaponIcon(ctx, weaponId, cx, card.y + 84, 56);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -195,7 +197,7 @@ export class LevelUpMenu {
     ctx.fillStyle = theme.sub;
     ctx.font = font(12);
     this.#wrap(ctx, desc, card.w - 28).forEach((line, i) => ctx.fillText(line, cx, descY + i * 17));
-    if (kind === 'bonus' || kind === 'rare') return;
+    if (kind === 'bonus' || kind === 'rare' || kind === 'coins') return;
 
     // 強化の段階を ● で見せる。限界突破は Lv 9〜16 を金色の ● で見せる
     const max = CONFIG.weaponLevels.max;
