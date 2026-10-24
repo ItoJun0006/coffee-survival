@@ -62,7 +62,9 @@ export class Mill extends Weapon {
     const g = this.game;
     const s = this.stats;
     const p = g.player;
-    this.angle += c.angularSpeed * s.spinRate * dt;
+    // Lv 8 になるまでは、回る速さを slowSpin.rate 倍に落とす
+    const slow = this.level < c.slowSpin.untilLevel ? c.slowSpin.rate : 1;
+    this.angle += c.angularSpeed * s.spinRate * slow * dt;
     // ミルは発動しないので、攻撃の間隔の強化は同じ敵に当たる間隔に効く
     this.hits.cooldownSec = c.hitCooldownSec * s.hitCooldownRate * this.intervalRate;
     const blade = this.bladeRadius;

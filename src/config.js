@@ -276,7 +276,8 @@ export const CONFIG = {
   },
   player: {
     radius: 18,
-    speed: 220,
+    // 歩く速さのもとの値（2026-10-24 に 220 から 0.7 倍の 154 にした）
+    speed: 154,
     maxCaffeine: 100,
     caffeineDecayPerSec: 2.5,
     invincibleSec: 0.6,
@@ -429,6 +430,8 @@ export const CONFIG = {
       //   あふれた割合が perBlade たまるごとに刃を 1 枚足す（maxExtra 枚まで）。ピーベリーは数が 1 のままなので足さない
       name: 'ミル・トルネード', desc: '2 枚の刃が\nまわりを回り続け、\n敵を押し返す', element: 'none', count: 2, orbitRadius: 70, bladeRadius: 12, angularSpeed: 3, damage: 1, hitCooldownSec: 0.5, knockback: 200,
       overflow: { perBlade: 0.2, maxExtra: 6 },
+      // slowSpin：Lv untilLevel になるまでは、回る速さを rate 倍にする（2026-10-24）
+      slowSpin: { untilLevel: 8, rate: 0.5 },
       // limitBreak：限界突破（Lv 9 から）では、everyLevels Lv ごとに刃を 1 枚足し、刃の大きさを shrinkRate 倍にする。
       // fitRate：どの Lv でも、刃どうしが重ならないよう、刃の半径を「隣の刃との距離の半分 × fitRate」までに抑える
       limitBreak: { everyLevels: 2, shrinkRate: 0.9, desc: '刃が 1 枚増え、\n少し小さくなる' },
