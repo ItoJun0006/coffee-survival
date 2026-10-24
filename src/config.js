@@ -350,6 +350,14 @@ export const CONFIG = {
       colors: { body: '#2fb85e', glow: '#7dff9e', rim: '#c9d3d9', rimDark: '#8a959c', bolt: '#ffe14a', tab: '#c9d3d9', bubble: 'rgba(210, 255, 220, 0.8)', title: '#9be8a8' },
     },
   },
+  // 攻撃の見え方（仕様 035）：攻撃の絵をまとめて薄くする割合（%）。ポーズメニューで steps を順に切り替え、ブラウザに保存する。
+  // previewBackdrop はポーズメニューでこの段を選んでいる間の、後ろを暗くする濃さ（ふだんは 0.6）。後ろのゲーム画面で濃さを確かめられる
+  weaponAlpha: {
+    steps: [100, 75, 50, 25],
+    default: 100,
+    label: '攻撃の見え方',
+    previewBackdrop: 0.15,
+  },
   // ステータス強化アイテム。perLevel は 1 段階（Lv）ごとの効果。最大 Lv は weaponLevels.max と同じ
   items: {
     area: { name: '範囲アップ', desc: 'すべての弾と範囲が\n大きくなる', perLevel: 0.1 },
@@ -592,6 +600,13 @@ export const CONFIG = {
       name: 'ねぶくろイモムシ', color: '#b5743a', xp: 5, radius: 26, speed: 35, hp: 16, appearSec: 360, weight: 1, contactCaffeine: 8, knockbackRate: 0.5,
       colors: { bag: '#b5743a', seam: '#8a5428', zipper: '#e8c070', face: '#9fd36a', eye: '#1e120c' },
     },
+    // ゆめのながれぼし（仕様 062）：プレイヤーを追いかける速さが、プレイヤーの今の動きの速さ × chaseRate と speed（止まっているときの速さ）の大きい方になる。
+    // knockbackRate：押し返しを受ける割合。tailLength は光の尾の長さ（半径の何倍か）。colors：星・顔・目・尾・きらめきの色
+    star: {
+      name: 'ゆめのながれぼし', color: '#b9c6ff', xp: 2, radius: 15, speed: 110, hp: 2, appearSec: 60, weight: 1, contactCaffeine: 5, knockbackRate: 0.3,
+      chaseRate: 1.1, tailLength: 3.2,
+      colors: { star: '#b9c6ff', face: '#e4e9ff', eye: '#4a4f80', tail: '170, 190, 255', sparkle: 'rgba(230, 235, 255, 0.9)' },
+    },
   },
   // 敵を倒したときのエフェクト
   effects: {
@@ -599,7 +614,9 @@ export const CONFIG = {
   },
   // 時間とともに敵が強くなる。出現した時点の生存時間（分）× 倍率ぶん、標準より強くなる
   // 例：hpPerMin 0.35 なら、10:00 に出た敵の体力は 1 + 0.35 × 10 = 4.5 倍
-  enemyScaling: { hpPerMin: 0.35, speedPerMin: 0.04, damagePerMin: 0.06 },
+  // 手下全体の体力の倍率（仕様 061）：時間による倍率とは別にかける。出た時点の時間で hpRateStart から hpRateEnd へ
+  // hpRateRampSec かけて直線で上がり、そのあとは hpRateEnd。ボスにはかけない
+  enemyScaling: { hpPerMin: 0.35, speedPerMin: 0.04, damagePerMin: 0.06, hpRateStart: 1, hpRateEnd: 3, hpRateRampSec: 180 },
   // 敵の出現。rampSec かけて、出現の間隔が start → min に縮み、1 回に出る数が startGroup → endGroup に増える
   spawn: {
     startIntervalSec: 0.9,
