@@ -408,6 +408,9 @@ export const CONFIG = {
       commonDesc: 'ダメージが上がり、\n連射が速くなる',
       // Lv 8（MAX）の見た目。trail は残像の数と間隔（秒）、flash は撃った瞬間の光
       maxVisual: { glow: '#ffb347', core: '#ffe08a', glowScale: 2.4, trail: 4, trailGapSec: 0.018, flashSec: 0.12, flashRadius: 26 },
+      // 2 色の豆（仕様 014 の FR-007）。body は豆の色、front は進む側の半分の明るい色。max〜 は Lv 8（MAX）のときの色
+      // frontY は明るい部分の中心を進む側へずらす量、frontW・frontH はその大きさ（どれも豆の大きさ radius に対する割合）
+      twoTone: { body: '#5a321b', front: '#e8c79a', maxBody: '#8a3f1c', maxFront: '#ffe08a', frontY: 0.3, frontW: 0.58, frontH: 0.6 },
     },
     // 散弾ロブスタの最初の武器。豆マシンガンと同じ枠で、同じように強化できる。baseCount は最初の豆の数
     beanShotgun: {
@@ -673,7 +676,8 @@ export const CONFIG = {
     size: 3,
     periodDots: 192,
     planks: { width: 8, length: 32 },
-    colors: { base: [54, 35, 24], tone: 0.18, gap: [30, 19, 13], grain: 0.08, knot: 0.2 },
+    // woods は板の色の種類（濃い茶・少し赤みの茶・少し灰色がかった茶）。板ごとに 1 つ選ぶ（2026-10-24 の朝のデザイン案の A）
+    colors: { woods: [[54, 35, 24], [62, 35, 25], [50, 40, 32]], tone: 0.1, gap: [30, 19, 13], grain: 0.08, knot: 0.2 },
   },
   night: { maxDarkness: 0.55 },
   // プレイ中の背景：夜の珈琲店の店内（background.js）。配置は seed から毎回同じに決まる（当たり判定はない）
