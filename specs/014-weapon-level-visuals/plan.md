@@ -34,7 +34,7 @@
 - `Weapon.levelSpots()`：武器ごとに上書きする。`{ x, y, r, k }` の一覧（`r` ははっきりした部分の半径、`k` は消えかけの濃さ 0〜1）。
 - `Weapon.levelFxBelow`：true の武器（こぼれ珈琲）は、段階の見た目を敵より下に描く。
 - `Weapon.drawLevelFx(ctx, below)`：`src/game.js` の描画で、`drawBelow` と `draw` のあとにそれぞれ呼ぶ。段階 0 なら何もしない。
-- 色は属性（`config.element`）ごとに 3 段階の色を持つ。線の太さは目印の半径を超えない。
+- 色は属性（`config.element`）ごとに 3 段階の色を持つ。武器の設定に `levelColors` があれば、属性の色の代わりにそれを使う（豆マシンガン・豆ショットガン）。線の太さは目印の半径を超えない。
 
 ## Project Structure
 

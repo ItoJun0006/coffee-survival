@@ -350,6 +350,14 @@ export const CONFIG = {
       colors: { body: '#2fb85e', glow: '#7dff9e', rim: '#c9d3d9', rimDark: '#8a959c', bolt: '#ffe14a', tab: '#c9d3d9', bubble: 'rgba(210, 255, 220, 0.8)', title: '#9be8a8' },
     },
   },
+  // 攻撃の見え方（仕様 035）：攻撃の絵をまとめて薄くする割合（%）。ポーズメニューで steps を順に切り替え、ブラウザに保存する。
+  // previewBackdrop はポーズメニューでこの段を選んでいる間の、後ろを暗くする濃さ（ふだんは 0.6）。後ろのゲーム画面で濃さを確かめられる
+  weaponAlpha: {
+    steps: [100, 75, 50, 25],
+    default: 100,
+    label: '攻撃の見え方',
+    previewBackdrop: 0.15,
+  },
   // ステータス強化アイテム。perLevel は 1 段階（Lv）ごとの効果。最大 Lv は weaponLevels.max と同じ
   items: {
     area: { name: '範囲アップ', desc: 'すべての弾と範囲が\n大きくなる', perLevel: 0.1 },
@@ -381,6 +389,8 @@ export const CONFIG = {
     // range は敵を探す距離、豆が飛ぶ距離は（強化前の）range × flightRate
     beanGun: {
       name: '豆マシンガン', desc: '近い敵に豆を\n連射する', element: 'none', intervalSec: 0.35, speed: 520, radius: 6, damage: 1, range: 450, flightRate: 1.5,
+      // Lv 2・4・6 の縁の色（仕様 014）。弾が小さく縁で塗りつぶされるので、経験値の粒（金色）と見分けやすい赤銅色にする
+      levelColors: ['#a07a58', '#c9733a', '#d0603a'],
       commonLevels: [3, 5, 7],
       upgrades: {
         2: { count: 2, spreadDeg: 10, desc: '豆が 2 つになる' },
@@ -391,10 +401,15 @@ export const CONFIG = {
       commonDesc: 'ダメージが上がり、\n連射が速くなる',
       // Lv 8（MAX）の見た目。trail は残像の数と間隔（秒）、flash は撃った瞬間の光
       maxVisual: { glow: '#ffb347', core: '#ffe08a', glowScale: 2.4, trail: 4, trailGapSec: 0.018, flashSec: 0.12, flashRadius: 26 },
+      // 2 色の豆（仕様 014 の FR-007）。body は豆の色、front は進む側の半分の明るい色。max〜 は Lv 8（MAX）のときの色
+      // frontY は明るい部分の中心を進む側へずらす量、frontW・frontH はその大きさ（どれも豆の大きさ radius に対する割合）
+      twoTone: { body: '#5a321b', front: '#e8c79a', maxBody: '#8a3f1c', maxFront: '#ffe08a', frontY: 0.3, frontW: 0.58, frontH: 0.6 },
     },
     // 散弾ロブスタの最初の武器。豆マシンガンと同じ枠で、同じように強化できる。baseCount は最初の豆の数
     beanShotgun: {
       name: '豆ショットガン', desc: '近い敵に向けて\n豆を扇形にばらまく', element: 'none', intervalSec: 0.85, speed: 480, radius: 6, damage: 0.9, range: 300, flightRate: 1.1,
+      // Lv 2・4・6 の縁の色（仕様 014）。弾が小さく縁で塗りつぶされるので、経験値の粒（金色）と見分けやすい赤銅色にする
+      levelColors: ['#a07a58', '#c9733a', '#d0603a'],
       baseCount: 5, baseSpreadDeg: 14,
       commonLevels: [3, 5, 7],
       upgrades: {
@@ -588,6 +603,13 @@ export const CONFIG = {
       name: 'ねぶくろイモムシ', color: '#b5743a', xp: 5, radius: 26, speed: 35, hp: 16, appearSec: 360, weight: 1, contactCaffeine: 8, knockbackRate: 0.5,
       colors: { bag: '#b5743a', seam: '#8a5428', zipper: '#e8c070', face: '#9fd36a', eye: '#1e120c' },
     },
+    // ゆめのながれぼし（仕様 062）：プレイヤーを追いかける速さが、プレイヤーの今の動きの速さ × chaseRate と speed（止まっているときの速さ）の大きい方になる。
+    // knockbackRate：押し返しを受ける割合。tailLength は光の尾の長さ（半径の何倍か）。colors：星・顔・目・尾・きらめきの色
+    star: {
+      name: 'ゆめのながれぼし', color: '#b9c6ff', xp: 2, radius: 15, speed: 110, hp: 2, appearSec: 60, weight: 1, contactCaffeine: 5, knockbackRate: 0.3,
+      chaseRate: 1.1, tailLength: 3.2,
+      colors: { star: '#b9c6ff', face: '#e4e9ff', eye: '#4a4f80', tail: '170, 190, 255', sparkle: 'rgba(230, 235, 255, 0.9)' },
+    },
   },
   // 敵を倒したときのエフェクト
   effects: {
@@ -595,7 +617,9 @@ export const CONFIG = {
   },
   // 時間とともに敵が強くなる。出現した時点の生存時間（分）× 倍率ぶん、標準より強くなる
   // 例：hpPerMin 0.35 なら、10:00 に出た敵の体力は 1 + 0.35 × 10 = 4.5 倍
-  enemyScaling: { hpPerMin: 0.35, speedPerMin: 0.04, damagePerMin: 0.06 },
+  // 手下全体の体力の倍率（仕様 061）：時間による倍率とは別にかける。出た時点の時間で hpRateStart から hpRateEnd へ
+  // hpRateRampSec かけて直線で上がり、そのあとは hpRateEnd。ボスにはかけない
+  enemyScaling: { hpPerMin: 0.35, speedPerMin: 0.04, damagePerMin: 0.06, hpRateStart: 1, hpRateEnd: 3, hpRateRampSec: 180 },
   // 敵の出現。rampSec かけて、出現の間隔が start → min に縮み、1 回に出る数が startGroup → endGroup に増える
   spawn: {
     startIntervalSec: 0.9,
@@ -645,7 +669,8 @@ export const CONFIG = {
     size: 3,
     periodDots: 192,
     planks: { width: 8, length: 32 },
-    colors: { base: [54, 35, 24], tone: 0.18, gap: [30, 19, 13], grain: 0.08, knot: 0.2 },
+    // woods は板の色の種類（濃い茶・少し赤みの茶・少し灰色がかった茶）。板ごとに 1 つ選ぶ（2026-10-24 の朝のデザイン案の A）
+    colors: { woods: [[54, 35, 24], [62, 35, 25], [50, 40, 32]], tone: 0.1, gap: [30, 19, 13], grain: 0.08, knot: 0.2 },
   },
   night: { maxDarkness: 0.55 },
   // プレイ中の背景：夜の珈琲店の店内（background.js）。配置は seed から毎回同じに決まる（当たり判定はない）

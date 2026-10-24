@@ -22,6 +22,9 @@ export class Enemy {
     this.slowRate = 1;
     this.kx = 0;
     this.ky = 0;
+    // 進んでいる向き（ゆめのながれぼしの光の尾を、進む向きの反対に描くため）
+    this.dirX = 1;
+    this.dirY = 0;
   }
 
   get dead() {
@@ -71,9 +74,11 @@ export class Enemy {
     } else {
       this.freezeGuardTimer = Math.max(0, this.freezeGuardTimer - dt);
       const d = Math.hypot(target.x - this.x, target.y - this.y) || 1;
-      const speed = this.speed * (this.slowTimer > 0 ? this.slowRate : 1);
-      this.x += ((target.x - this.x) / d) * speed * dt;
-      this.y += ((target.y - this.y) / d) * speed * dt;
+      const speed = this.#chaseSpeed(dt, target) * (this.slowTimer > 0 ? this.slowRate : 1);
+      this.dirX = (target.x - this.x) / d;
+      this.dirY = (target.y - this.y) / d;
+      this.x += this.dirX * speed * dt;
+      this.y += this.dirY * speed * dt;
       this.wobble += dt * 4;
     }
     this.x += this.kx * dt;
@@ -83,10 +88,19 @@ export class Enemy {
     this.ky *= decay;
   }
 
+  // 追いかける速さ。chaseRate を持つ敵（ゆめのながれぼし。仕様 062）は、プレイヤーがそのフレームに動いた速さの chaseRate 倍と、
+  // 止まっているときの速さの大きい方。ほかの敵はいつも同じ速さ
+  #chaseSpeed(dt, target) {
+    const rate = this.config.chaseRate;
+    if (!rate || dt <= 0) return this.speed;
+    return Math.max(this.speed, ((target.moved ?? 0) / dt) * rate);
+  }
+
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y);
-    if (this.type === 'sheep') this.#drawSheep(ctx);
+    if (this.type === 'star') this.#drawStar(ctx);
+    else if (this.type === 'sheep') this.#drawSheep(ctx);
     else if (this.type === 'slime') this.#drawSlime(ctx);
     else if (this.type === 'caterpillar') this.#drawCaterpillar(ctx);
     else this.#drawGhost(ctx);
@@ -96,6 +110,47 @@ export class Enemy {
       ctx.arc(0, 0, this.radius * 1.15, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.restore();
+  }
+
+  // ゆめのながれぼし（仕様 062）：うす青の星に眠そうな顔。進む向きの反対に光の尾を引く
+  #drawStar(ctx) {
+    const r = this.radius;
+    const c = this.config.colors;
+    const len = r * this.config.tailLength;
+    ctx.save();
+    ctx.rotate(Math.atan2(this.dirY, this.dirX));
+    const g = ctx.createLinearGradient(-len, 0, 0, 0);
+    g.addColorStop(0, `rgba(${c.tail}, 0)`);
+    g.addColorStop(1, `rgba(${c.tail}, 0.75)`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.55);
+    ctx.lineTo(-len, -r * 0.1);
+    ctx.lineTo(-len, r * 0.1);
+    ctx.lineTo(0, r * 0.55);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = c.sparkle;
+    for (const [x, y] of [[-r * 1.6, -r * 0.6], [-r * 2.3, r * 0.5]]) ctx.fillRect(x, y, 3, 3);
+    ctx.restore();
+    // 星の顔は、進む向きにかかわらず上を向けたまま少し揺らす
+    ctx.save();
+    ctx.rotate(Math.sin(this.wobble * 1.5) * 0.15);
+    ctx.fillStyle = c.star;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI) / 5;
+      const rr = i % 2 ? r * 0.5 : r * 1.05;
+      ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = c.face;
+    ctx.beginPath();
+    ctx.arc(0, r * 0.05, r * 0.42, 0, Math.PI * 2);
+    ctx.fill();
+    this.#drawSleepyEyes(ctx, r * 0.18, 0, c.eye);
     ctx.restore();
   }
 
