@@ -242,7 +242,7 @@ export const CONFIG = {
     // 結果画面の数え上げ。rowSec：行が出る間隔、countSec：1 行を数え上げる時間、totalSec：合計に足す時間（秒）
     tally: {
       rowSec: 0.45, countSec: 0.6, totalSec: 0.6,
-      labels: { time: '生き延びた時間', kills: '倒した敵', clear: 'ボスを倒した', extraClear: 'エクストラステージをクリア' },
+      labels: { time: '生き延びた時間', kills: '倒した敵', cards: 'レベルアップのカード', clear: 'ボスを倒した', extraClear: 'エクストラステージをクリア' },
       skipHint: '（Space / Enter / クリックで飛ばす）',
       panel: 'rgba(24, 14, 9, 0.88)', border: '#d9a066', text: '#f3e6d8', sub: 'rgba(243, 230, 216, 0.7)', total: '#f0d58a',
     },
@@ -292,9 +292,13 @@ export const CONFIG = {
     maxCount: 40,
   },
   // 敵が落とす経験値の粒を拾うと経験値が入り、レベルアップごとに攻撃が 1 つ増える
+  // 次のレベルに必要な経験値は baseXp + xpGrowth ×（Lv − 1）+ xpGrowthSq ×（Lv − 1）²（仕様 036。後半ほど上がりにくい）。
+  // coinCard：レベルアップの候補に、chance の確率で「豆コイン ＋amount 枚」のカードを 1 枚まぜる（仕様 036）
   leveling: {
     baseXp: 5,
     xpGrowth: 4,
+    xpGrowthSq: 1.2,
+    coinCard: { chance: 0.5, amount: 5, name: '豆コイン ＋5 枚', desc: '豆コインを 5 枚もらう\n（プレイが終わると\n手に入る）', text: '豆コインを 5 枚もらった！' },
     enemyDropChance: 0.4,
     maxDroppedBeans: 60,
     // 全攻撃を手に入れた後のレベルアップで上がる攻撃力
@@ -335,7 +339,7 @@ export const CONFIG = {
     // カード（黒板のメニュー）。edge は木の枠、text は名前、sub は説明、muted は番号やまだの ● の色
     card: { bg: '#1f2a24', edge: '#6b4a2c', edgeWidth: 7, text: '#f3efe6', sub: 'rgba(243, 239, 230, 0.8)', muted: 'rgba(243, 239, 230, 0.25)' },
     // 種類ごとの色（カードの帯・選んでいるときの光）
-    kindColors: { weapon: '#d9a066', item: '#8fc7a0', bonus: '#f0d58a', carry: '#b9a0e0' },
+    kindColors: { weapon: '#d9a066', item: '#8fc7a0', bonus: '#f0d58a', carry: '#b9a0e0', coins: '#f2c94c' },
     // エナジードリンク（仕様 033）：カードの代わりに描く缶。sizeRate はカードの高さに対する缶の高さ、widthRate は缶の高さに対する幅。
     // bobPx・bobSpeed は上下に揺れる幅（px）と速さ、tiltRad は傾きの最大（ラジアン）、bubbles は泡の数
     drink: {
@@ -401,6 +405,9 @@ export const CONFIG = {
       commonDesc: 'ダメージが上がり、\n連射が速くなる',
       // Lv 8（MAX）の見た目。trail は残像の数と間隔（秒）、flash は撃った瞬間の光
       maxVisual: { glow: '#ffb347', core: '#ffe08a', glowScale: 2.4, trail: 4, trailGapSec: 0.018, flashSec: 0.12, flashRadius: 26 },
+      // 2 色の豆（仕様 014 の FR-007）。body は豆の色、front は進む側の半分の明るい色。max〜 は Lv 8（MAX）のときの色
+      // frontY は明るい部分の中心を進む側へずらす量、frontW・frontH はその大きさ（どれも豆の大きさ radius に対する割合）
+      twoTone: { body: '#5a321b', front: '#e8c79a', maxBody: '#8a3f1c', maxFront: '#ffe08a', frontY: 0.3, frontW: 0.58, frontH: 0.6 },
     },
     // 散弾ロブスタの最初の武器。豆マシンガンと同じ枠で、同じように強化できる。baseCount は最初の豆の数
     beanShotgun: {
@@ -616,7 +623,8 @@ export const CONFIG = {
   // 例：hpPerMin 0.35 なら、10:00 に出た敵の体力は 1 + 0.35 × 10 = 4.5 倍
   // 手下全体の体力の倍率（仕様 061）：時間による倍率とは別にかける。出た時点の時間で hpRateStart から hpRateEnd へ
   // hpRateRampSec かけて直線で上がり、そのあとは hpRateEnd。ボスにはかけない
-  enemyScaling: { hpPerMin: 0.35, speedPerMin: 0.04, damagePerMin: 0.06, hpRateStart: 1, hpRateEnd: 3, hpRateRampSec: 180 },
+  // damageRate：手下全体の攻撃力（触れたときに減るカフェイン・吸い取り）の倍率（仕様 063）。時間による倍率とは別にかける。ボスにはかけない
+  enemyScaling: { hpPerMin: 0.35, speedPerMin: 0.04, damagePerMin: 0.06, hpRateStart: 1, hpRateEnd: 3, hpRateRampSec: 180, damageRate: 2 },
   // 敵の出現。rampSec かけて、出現の間隔が start → min に縮み、1 回に出る数が startGroup → endGroup に増える
   spawn: {
     startIntervalSec: 0.9,
@@ -666,7 +674,8 @@ export const CONFIG = {
     size: 3,
     periodDots: 192,
     planks: { width: 8, length: 32 },
-    colors: { base: [54, 35, 24], tone: 0.18, gap: [30, 19, 13], grain: 0.08, knot: 0.2 },
+    // woods は板の色の種類（濃い茶・少し赤みの茶・少し灰色がかった茶）。板ごとに 1 つ選ぶ（2026-10-24 の朝のデザイン案の A）
+    colors: { woods: [[54, 35, 24], [62, 35, 25], [50, 40, 32]], tone: 0.1, gap: [30, 19, 13], grain: 0.08, knot: 0.2 },
   },
   night: { maxDarkness: 0.55 },
   // プレイ中の背景：夜の珈琲店の店内（background.js）。配置は seed から毎回同じに決まる（当たり判定はない）
