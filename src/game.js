@@ -57,8 +57,8 @@ function toggleCafeAuLait() {
 // 描くときだけ色を変えたキャラの写しを返す。性能（速さ・カフェインなど）は元のまま
 function cafeAuLaitLook(character) {
   if (!cafeAuLaitOn) return character;
-  const look = CONFIG.secrets.cafeAuLait.looks[CONFIG.secrets.cafeAuLait.style];
-  return { ...character, roast: { ...character.roast, color: look.color, crease: look.crease }, variety: look.pattern ? { ...character.variety, pattern: look.pattern } : character.variety };
+  const { color, crease } = CONFIG.secrets.cafeAuLait.look;
+  return { ...character, roast: { ...character.roast, color, crease } };
 }
 
 function shuffle(list) {

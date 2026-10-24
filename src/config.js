@@ -364,12 +364,8 @@ export const CONFIG = {
       word: 'COFFEE',
       onText: '隠しコマンド！ 豆がカフェオレ色になった',
       offText: 'カフェオレ色をやめた',
-      style: 'A',
-      looks: {
-        A: { color: '#c49a6c', crease: '#7a5232' },
-        B: { color: '#a8784c', crease: '#5e3c22', pattern: { kind: 'waves', color: '#f3e6d0' } },
-        C: { color: '#7a4f2e', crease: '#3f2614', pattern: { kind: 'peak', color: '#f6ead6' } },
-      },
+      // カフェオレ色（3 案から A）。color は豆の色、crease は割れ目の色
+      look: { color: '#c49a6c', crease: '#7a5232' },
     },
   },
   // ステータス強化アイテム。perLevel は 1 段階（Lv）ごとの効果。最大 Lv は weaponLevels.max と同じ
