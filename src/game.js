@@ -5,6 +5,7 @@ import { Bean } from './entities/bean.js';
 import { XpOrb } from './entities/xp-orb.js';
 import { Enemy } from './entities/enemy.js';
 import { Boss } from './entities/boss.js';
+import { DragonBoss, rollDragon, drawDragonPanel } from './entities/dragon-boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
 import { WEAPON_ORDER } from './weapons/index.js';
@@ -116,6 +117,8 @@ export class Game {
     this.effects = [];
     this.boss = null;
     this.bossAppearedAt = 0;
+    // ドラゴンのボス（仕様 061）。{ offer：挑むか聞いている, fight：戦っている, won, picked }
+    this.dragon = null;
     this.beanTimer = 0;
     this.enemyTimer = 0;
     this.moveDir = { x: 0, y: 0 };
@@ -520,6 +523,10 @@ export class Game {
       this.state = 'playing';
       return;
     }
+    if (this.dragon?.offer) {
+      this.#updateDragonOffer();
+      return;
+    }
     // 1 面をクリアしたら、E キーでエクストラステージへ
     if (this.state === 'clear' && stage.id === 'main' && this.input.wasPressed('KeyE')) {
       this.#openCarryMenu();
@@ -558,8 +565,12 @@ export class Game {
     this.#collectBeans();
     this.#collectXpOrbs(dt);
 
-    if (!this.player.alive) this.#finish('gameover');
-    else if (this.boss?.dead) this.#finish('clear');
+    if (this.dragon?.fight) this.#updateDragonFight();
+    else if (!this.player.alive) this.#finish('gameover');
+    else if (this.boss?.dead) {
+      this.#finish('clear');
+      if (stage.id === 'main' && rollDragon()) this.dragon = { offer: true };
+    }
 
     // 背景は画面の点（表示倍率 125% などでは 1px より細かい）単位でなめらかに動かす
     // （3px ごとにそろえると、動きが 3・3・6px と不ぞろいになって画面が揺れる）
@@ -1108,6 +1119,49 @@ export class Game {
     sound.setMode('boss');
   }
 
+  // ---- ドラゴンのボス（仕様 061）。処理の中身は entities/dragon-boss.js ----
+
+  // クリアの画面の上の知らせ：Space / Enter で挑む、Esc でやめる
+  #updateDragonOffer() {
+    if (this.input.wasPressed('Escape')) {
+      this.dragon = null;
+      this.input.consumeClick();
+    } else if (this.input.consumeClick()) {
+      this.#startDragonFight();
+    }
+  }
+
+  // カフェインを満タンにし、残りの手下とあくびの輪を消して、画面の端に竜を出す
+  #startDragonFight() {
+    const a = Math.random() * Math.PI * 2;
+    const d = Math.min(this.viewW, this.viewH) / 2 + CONFIG.dragonBoss.radius;
+    this.dragon = { fight: true };
+    this.enemies = [];
+    this.waves = [];
+    this.player.caffeine = this.player.maxCaffeine;
+    this.boss = new DragonBoss(
+      clamp(this.player.x + Math.cos(a) * d, 0, stage.world.width),
+      clamp(this.player.y + Math.sin(a) * d, 0, stage.world.height),
+    );
+    this.bossAppearedAt = this.time;
+    this.state = 'playing';
+    sound.startMusic();
+    sound.setMode('boss');
+    sound.play('bossAppear');
+  }
+
+  // 勝っても負けても、1 面のクリアの画面に戻る（クリアの記録はそのまま）
+  #updateDragonFight() {
+    const won = this.boss.dead;
+    if (!won && this.player.alive) return;
+    if (won) this.#checkUnlocks('dragonDefeat', 1);
+    this.dragon = { won, picked: this.boss.picked };
+    this.boss = null;
+    this.state = 'clear';
+    sound.stopMusic();
+    sound.play(won ? 'clear' : 'gameover');
+  }
+
   #updateBoss(dt) {
     const boss = this.boss;
     const cfg = CONFIG.boss;
@@ -1201,6 +1255,7 @@ export class Game {
       if (this.state === 'paused') this.#drawPauseMenu();
       if (this.state === 'levelup' || this.state === 'carry' || this.state === 'start') this.levelUpMenu.draw(ctx, this.viewW, this.viewH);
       this.#drawOverlay();
+      if (this.dragon && this.state === 'clear') drawDragonPanel(ctx, this.dragon, this.viewW, this.viewH);
     }
     this.#drawSoundIndicator();
     this.#drawToasts();
@@ -1383,7 +1438,7 @@ export class Game {
     ctx.font = font(13);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';
-    ctx.fillText(`${CONFIG.boss.name}${this.boss.eyeOpen ? '  ― 目が開いた！' : ''}`, x, y - 4);
+    ctx.fillText(`${this.boss.name}${this.boss.eyeOpen ? '  ― 目が開いた！' : ''}`, x, y - 4);
     ctx.fillStyle = c.hudBg;
     ctx.fillRect(x, y, w, 12);
     ctx.fillStyle = c.bossBar;
@@ -1393,7 +1448,7 @@ export class Game {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font = font(20, true);
-      ctx.fillText(`${CONFIG.boss.name} が現れた`, this.viewW / 2, this.viewH * 0.3);
+      ctx.fillText(`${this.boss.name} が現れた`, this.viewW / 2, this.viewH * 0.3);
     }
   }
 

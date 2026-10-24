@@ -14,6 +14,11 @@ export class Boss {
     this.puffAngle = 0;
   }
 
+  // ボスの体力のバーに出す名前（まどろみ宝竜と同じ枠で使う。仕様 061）
+  get name() {
+    return cfg.name;
+  }
+
   get dead() {
     return this.hp <= 0;
   }
