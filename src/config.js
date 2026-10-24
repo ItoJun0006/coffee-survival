@@ -100,10 +100,6 @@ export const CONFIG = {
         rates: { speed: 0.9, caffeine: 1.1, damage: 1.05, interval: 1.1 }, pattern: { kind: 'ring', color: '#f3dcb4', lightColor: '#604937' },
       },
       {
-        id: 'maragogipe', name: 'マラゴジッペ', origin: '「象の豆」とも呼ばれる、とても大粒の品種', trait: '巨大粒', price: 340, power: 'guard',
-        rates: { speed: 0.85, caffeine: 1.1, damage: 1.05, interval: 1.05 }, pattern: { kind: 'half', color: '#efdcbc', lightColor: '#5f4939' },
-      },
-      {
         id: 'yirgacheffe', name: 'イルガチェフェ', origin: 'エチオピアの産地。珈琲のふるさと', trait: '華やか', price: 360, power: 'xp',
         rates: { speed: 1.05, caffeine: 0.9, damage: 1, interval: 1 }, pattern: { kind: 'petals', color: '#fff4c2', lightColor: '#624e3a' },
       },
@@ -148,14 +144,21 @@ export const CONFIG = {
       drink: { name: 'エナジードリンク', desc: 'カフェインを\n上限まで回復する', healRate: 1, text: 'エナジードリンクで目が覚めた！' },
       colors: { band: '#2b2b33', cup: '#e04848', can: '#2fd06a', bolt: '#ffe14a', rim: '#c9d3d9' },
     },
-    // 新しいキャラを足すために外した品種（仕様 016 FR-022。カティモールはクリエイター豆のため、仕様 021）。前に買っていた人には、値段の豆コインを返す
-    removedVarieties: [{ id: 'kent', price: 220 }, { id: 'catimor', price: 300 }],
+    // ドラゴン豆（仕様 022）：レベルアップの画面で、1 回の画面につき 1 度、豆コイン price 枚で「もう 1 つ選ぶ」を買える（1 回のプレイで maxPerRun 回まで）。
+    // 仕入れの条件は、1 面のクリア後に bossChance の確率で現れるドラゴンのボスを倒すこと（ボスは敵係）。
+    // 見た目は角（horn）と濃い緑の翼としっぽ（wing）、吊り目（eyeCut：目の内側の上を豆の色でかくす割合）
+    dragon: {
+      price: 30, maxPerRun: 3, bossChance: 0.05,
+      colors: { horn: '#f3e3b0', wing: '#1f5a2a' }, eyeCut: 0.55,
+    },
+    // 新しいキャラを足すために外した品種（仕様 016 FR-022。カティモールはクリエイター豆、マラゴジッペはドラゴン豆のため、仕様 021・022）。前に買っていた人には、値段の豆コインを返す
+    removedVarieties: [{ id: 'kent', price: 220 }, { id: 'catimor', price: 300 }, { id: 'maragogipe', price: 340 }],
     // 特別なキャラ。require の条件を満たすと仕入れられるようになり、price の豆コインで買う（仕様 016 FR-018）。
     // roast は性能と色（品種 × 焙煎度のキャラと同じ形）、origin と desc は買うポップアップに出す
     // require.type：clearCaffeine＝カフェインが上限の ratio 以上のまま 1 面をクリア、maxClears＝Lv 8 の攻撃を持ったまま 1 面をクリアした品種（特別なキャラはそれぞれ 1 種類）の数が count 以上、extraClear＝エクストラステージをクリア、bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
     //   plays＝ゲームを count 回始める、playTime＝累計プレイ時間が seconds 秒以上（例：{ type: 'playTime', seconds: 3600, text: '…' }）、
     //   distance＝累計移動距離が pixels 以上（マップの端から端は 2000）、kills＝累計撃破数が count 以上、beans＝累計の拾った豆が count 以上、
-    //   maxLevel＝1 回のプレイで Lv level になる
+    //   maxLevel＝1 回のプレイで Lv level になる、dragonDefeat＝ドラゴンのボスを倒す（仕様 022）
     // drawScale は見た目の大きさの倍率（当たる範囲は変わらない）
     specials: [
       {
@@ -207,6 +210,13 @@ export const CONFIG = {
         roast: { trait: '徹夜', color: '#7d5636', crease: '#3f2818', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
         require: { type: 'maxLevel', level: 30, text: '1 回のプレイで Lv 30 になる' },
       },
+      {
+        // 豆コインでレベルアップの「もう 1 つ」を買える（仕様 022）。値は上の dragon を使う
+        id: 'dragon', name: 'ドラゴン豆', price: 500, dragon: true,
+        origin: '豆コインの山を抱えて眠る、竜の子どもの豆', desc: 'レベルアップのとき、豆コインでもう 1 つ選べる',
+        roast: { trait: '宝の山', color: '#7a5a2e', crease: '#3d2a12', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
+        require: { type: 'dragonDefeat', text: '1 面のクリア後にまれに現れる、ドラゴンのボスを倒す' },
+      },
     ],
     // 選択画面に並べるマスの数（最終目標）。まだ中身のないマスは「？？？」として鍵付きで出す
     plannedTotal: 66,
@@ -256,6 +266,15 @@ export const CONFIG = {
     },
     // 値段が足りている鍵の色
     affordableLock: '#f0d58a',
+    // 豆の証（仕様 081）：1 面の手下を倒すと dropChance の確率で落ちる（1 回のクリアで約 3,400 体倒すので、10 回のクリアで約 1 個）。
+    // 拾った証は、そのプレイをクリアしたときだけ自分のものになり、ずっと持ち続ける（max 個まで）。持っている 1 個につき、
+    // 結果画面でもらう豆コインが ratePer ずつ増える（足し算。10 個で 2 倍）。max 個持っているときに拾った分は overflowCoins 枚になる。
+    // 見た目は青い盾に金のふちと豆（shield・rim・bean・crease）。落ちている証は radius の大きさで、glow の光の輪を付ける
+    badge: {
+      name: '豆の証', max: 10, ratePer: 0.1, dropChance: 1 / 34000, overflowCoins: 50, radius: 10,
+      colors: { shield: '#3d5a8f', rim: '#f2c94c', bean: '#6b3f1f', crease: '#2e1808', glow: 'rgba(255, 230, 140, 0.35)' },
+      texts: { picked: '豆の証を拾った！（クリアすると自分のものになる）', row: '豆の証 ×{n}（+{p}%）', overflow: '豆の証（{max} 個をこえた分）×{n}' },
+    },
     texts: {
       unlocked: '新しい品種『{name}』が解放された！（浅煎り・中煎り・深煎り）',
       unlockedOne: '新しいキャラ『{name}』が解放された！',
