@@ -750,8 +750,13 @@ export const CONFIG = {
       cracks: 30,
       crackColor: 'rgba(15, 10, 7, 0.55)',
     },
-    // 外周のレンガの壁。thickness はマップの外側に描く厚さ
-    wall: { thickness: 70, brickW: 46, brickH: 20, brick: '#4a2c22', brickAlt: '#43271e', mortar: '#24170f', top: '#5c3a2c', shadow: 'rgba(0, 0, 0, 0.45)' },
+    // 外周の石積みの壁（仕様 005 の FR-004）。thickness はマップの外側に描く厚さ
+    // stoneH は石 1 段の高さ、stoneLens は石の長さの候補、stones は石の色の候補、mortar は石の間の色、gap は石の間の幅
+    // highlight・highlightH は石の上側の明るい筋の色と太さ
+    wall: {
+      thickness: 70, stoneH: 24, stoneLens: [30, 40, 50, 60], stones: ['#423a32', '#4a4036', '#3a332d'], mortar: '#1f1914', gap: 2,
+      highlight: 'rgba(255, 255, 255, 0.06)', highlightH: 3, top: '#5c3a2c', shadow: 'rgba(0, 0, 0, 0.45)',
+    },
     // 小物。weight は出やすさ、minGap は小物どうしの最小の間隔、clearRadius はスタート地点のまわりの空ける範囲
     props: {
       count: 30,
