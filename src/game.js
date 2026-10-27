@@ -22,6 +22,7 @@ import { drawItemIcon } from './item-icons.js';
 import { PixelLayer } from './pixel-layer.js';
 import { Floor } from './floor.js';
 import { sound } from './sound.js';
+import { RecordShelf, applySavedTrack, stepTrack, currentTrackName } from './record-shelf.js';
 import { font } from './font.js';
 import { Background } from './background.js';
 import { stage, setStage } from './stage.js';
@@ -111,6 +112,8 @@ export class Game {
     this.titleImage = new Image();
     this.titleImage.src = CONFIG.title.image;
     sound.init();
+    applySavedTrack();
+    this.recordShelf = new RecordShelf((text) => this.#toast(text));
     // 画面の上に数秒出す知らせ（キャラの解放など）。ゲームの時間ではなく実際の時間で消える
     this.toasts = [];
     this.#checkUnlocks('launches', recordLaunch());
@@ -573,10 +576,22 @@ export class Game {
     }
     if (this.state === 'title') {
       this.#checkSecretCommand();
+      // レコード棚（仕様 039）：R キーか、右下のボタンのクリックで入る
+      const pos = this.input.clickPos;
+      if (this.input.wasPressed('KeyR') || (pos && this.input.clicked && inRect(pos, this.#shelfButton()))) {
+        this.input.consumeClick();
+        this.recordShelf.open();
+        this.state = 'records';
+        return;
+      }
       if (this.input.consumeClick()) {
         this.characterSelect.open(this.character);
         this.state = 'select';
       }
+      return;
+    }
+    if (this.state === 'records') {
+      if (this.recordShelf.update(this.input, this.viewW, this.viewH) === 'back') this.state = 'title';
       return;
     }
     if (this.state === 'select') {
@@ -883,9 +898,11 @@ export class Game {
     return [
       { label: '再開', x, y, w, h, action: () => { this.state = 'playing'; } },
       { label: `音楽の音量  ◀ ${sound.musicVolume}% ▶`, x, y: y + gap, w, h, adjust: (d) => sound.changeMusicVolume(d) },
+      // 買った曲の中から切り替える（仕様 039）
+      { label: `曲  ◀ ${currentTrackName()} ▶`, x, y: y + gap * 2, w, h, adjust: (d) => stepTrack(d) },
       // 攻撃の見え方（仕様 035）。→ で薄く、← で濃く
-      { label: `${CONFIG.weaponAlpha.label}  ◀ ${weaponAlpha.value}% ▶`, x, y: y + gap * 2, w, h, adjust: (d) => weaponAlpha.change(d), weaponAlpha: true },
-      { label: 'タイトルへ戻る', x, y: y + gap * 3, w, h, action: () => { saveProgress(); this.reset(); this.state = 'title'; } },
+      { label: `${CONFIG.weaponAlpha.label}  ◀ ${weaponAlpha.value}% ▶`, x, y: y + gap * 3, w, h, adjust: (d) => weaponAlpha.change(d), weaponAlpha: true },
+      { label: 'タイトルへ戻る', x, y: y + gap * 4, w, h, action: () => { saveProgress(); this.reset(); this.state = 'title'; } },
     ];
   }
 
@@ -1365,6 +1382,8 @@ export class Game {
 
     if (this.state === 'title') {
       this.#drawTitle();
+    } else if (this.state === 'records') {
+      this.recordShelf.draw(this.ctx, this.viewW, this.viewH);
     } else if (this.state === 'select') {
       this.characterSelect.draw(ctx, this.viewW, this.viewH);
     } else {
@@ -1604,6 +1623,31 @@ export class Game {
     else this.#drawTitleText();
     this.#drawPointCard();
     drawTitleRecords(this.ctx, this.viewW, records());
+    this.#drawShelfButton();
+  }
+
+  // タイトルの右下の「レコード棚」のボタン（仕様 039）
+  #shelfButton() {
+    const w = 200;
+    const h = 36;
+    return { x: this.viewW - w - 16, y: this.viewH - h - 14, w, h };
+  }
+
+  #drawShelfButton() {
+    const { ctx } = this;
+    const b = this.#shelfButton();
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.strokeStyle = CONFIG.recordShelf.colors.accent;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(b.x, b.y, b.w, b.h);
+    ctx.fillStyle = CONFIG.recordShelf.colors.accent;
+    ctx.font = font(14, true);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(CONFIG.recordShelf.button, b.x + b.w / 2, b.y + b.h / 2);
+    ctx.restore();
   }
 
   // タイトル画面の左下に、ポイントカード（プレイ回数・累計プレイ時間）を出す

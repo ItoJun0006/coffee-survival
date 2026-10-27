@@ -399,6 +399,24 @@ export const CONFIG = {
     label: '攻撃の見え方',
     previewBackdrop: 0.15,
   },
+  // レコード棚（仕様 039）：タイトルから入り、豆コインで BGM を買って選ぶ。price は 1 曲の値段（最初の曲は買わなくてよい）。
+  // style は見た目の案（3 案から選ぶ）。jackets は曲ごとのジャケットの色
+  recordShelf: {
+    style: 'A',
+    price: 150,
+    title: 'レコード棚',
+    button: '♪ レコード棚（R キー）',
+    jackets: { normal: '#7a4f2e', morningBlend: '#e0a238', midnightDrip: '#2e3f6e', cafeBossa: '#3f7a4f' },
+    texts: {
+      playing: '♪ この曲を流している',
+      owned: 'Enter / クリックでこの曲にする',
+      buy: 'Enter / クリックで買う（豆コイン {price}）',
+      notEnough: '豆コインが足りない',
+      bought: '「{name}」を買った！',
+      help: '←→ で選ぶ　Enter / クリックで決定　Esc / R で戻る',
+    },
+    colors: { bg: '#1b1310', title: '#f0d58a', sub: 'rgba(243, 230, 216, 0.75)', accent: '#f0d58a', warn: '#e88a6a', wood: '#5a3a24' },
+  },
   // 隠し要素。cafeAuLait：タイトルで word を打つと、豆がカフェオレ色になる（もう一度打つと戻る。仕様 037）
   secrets: {
     cafeAuLait: {
