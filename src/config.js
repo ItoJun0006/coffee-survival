@@ -252,7 +252,7 @@ export const CONFIG = {
     // 結果画面の数え上げ。rowSec：行が出る間隔、countSec：1 行を数え上げる時間、totalSec：合計に足す時間（秒）
     tally: {
       rowSec: 0.45, countSec: 0.6, totalSec: 0.6,
-      labels: { time: '生き延びた時間', kills: '倒した敵', clear: 'ボスを倒した', extraClear: 'エクストラステージをクリア' },
+      labels: { time: '生き延びた時間', kills: '倒した敵', cards: 'レベルアップのカード', clear: 'ボスを倒した', extraClear: 'エクストラステージをクリア' },
       skipHint: '（Space / Enter / クリックで飛ばす）',
       panel: 'rgba(24, 14, 9, 0.88)', border: '#d9a066', text: '#f3e6d8', sub: 'rgba(243, 230, 216, 0.7)', total: '#f0d58a',
     },
@@ -290,7 +290,7 @@ export const CONFIG = {
   //   enemyMaxCount：同時に出ている敵の上限、bigWaveMaxCount：ビッグウェーブの間の上限、bigWaveIntervalSec：ビッグウェーブの間隔 [最短, 最長]
   stages: {
     main: { name: '1 面', world: { width: 2000, height: 2000 }, enemySpeedRate: 1, enemySpeedRates: {}, caffeineDecay: true, levelUpHealRate: 0, maxLevel: 8, overCapChance: 0 },
-    extra: { name: 'エクストラステージ', world: { width: 1414, height: 1414 }, enemySpeedRate: 1, enemySpeedRates: {}, caffeineDecay: false, levelUpHealRate: 0.1, maxLevel: 16, overCapChance: 0.2,
+    extra: { name: 'エクストラステージ', world: { width: 1414, height: 1414 }, enemySpeedRate: 1.2, enemySpeedRates: {}, caffeineDecay: false, levelUpHealRate: 0.1, maxLevel: 16, overCapChance: 0.2,
       enemyTimeOffsetSec: 480, enemyMaxCount: 250, bigWaveMaxCount: 330, bigWaveIntervalSec: [60, 90] },
   },
   player: {
@@ -311,9 +311,13 @@ export const CONFIG = {
     maxCount: 40,
   },
   // 敵が落とす経験値の粒を拾うと経験値が入り、レベルアップごとに攻撃が 1 つ増える
+  // 次のレベルに必要な経験値は baseXp + xpGrowth ×（Lv − 1）+ xpGrowthSq ×（Lv − 1）²（仕様 036。後半ほど上がりにくい）。
+  // coinCard：レベルアップの候補に、chance の確率で「豆コイン ＋amount 枚」のカードを 1 枚まぜる（仕様 036）
   leveling: {
     baseXp: 5,
     xpGrowth: 4,
+    xpGrowthSq: 1.2,
+    coinCard: { chance: 0.5, amount: 5, name: '豆コイン ＋5 枚', desc: '豆コインを 5 枚もらう\n（プレイが終わると\n手に入る）', text: '豆コインを 5 枚もらった！' },
     enemyDropChance: 0.4,
     maxDroppedBeans: 60,
     // 全攻撃を手に入れた後のレベルアップで上がる攻撃力
@@ -340,6 +344,13 @@ export const CONFIG = {
     width: [3, 3, 6],
     alpha: [0.75, 0.9, 1],
   },
+  // 攻撃を強化した直後の見た目（仕様 002 の FR-004。C「金色」）。sec 秒で消える。
+  //   ring：攻撃の絵の縁の外側に付ける金色の輪（gap は縁からのすき間）。label：プレイヤーの頭の上に出る「アイコン Lv N ↑」の札
+  upgradeFlash: {
+    sec: 1.2,
+    ring: { color: '#f0d58a', width: 3, gap: 2 },
+    label: { offsetY: 96, rise: 24, fadeFrom: 0.6, iconSize: 26, w: 124, h: 36, panel: 'rgba(20, 12, 8, 0.85)', color: '#f0d58a', text: 'Lv {level} ↑' },
+  },
   // 持てる数。weapons は最初の豆マシンガンを含む
   slots: { weapons: 3, items: 2 },
   // レベルアップの画面（仕様 015）。カードは黒板のメニュー、出るときは 1 枚ずつめくって表に返す
@@ -354,7 +365,7 @@ export const CONFIG = {
     // カード（黒板のメニュー）。edge は木の枠、text は名前、sub は説明、muted は番号やまだの ● の色
     card: { bg: '#1f2a24', edge: '#6b4a2c', edgeWidth: 7, text: '#f3efe6', sub: 'rgba(243, 239, 230, 0.8)', muted: 'rgba(243, 239, 230, 0.25)' },
     // 種類ごとの色（カードの帯・選んでいるときの光）
-    kindColors: { weapon: '#d9a066', item: '#8fc7a0', bonus: '#f0d58a', carry: '#b9a0e0' },
+    kindColors: { weapon: '#d9a066', item: '#8fc7a0', bonus: '#f0d58a', carry: '#b9a0e0', coins: '#f2c94c' },
     // エナジードリンク（仕様 033）：カードの代わりに描く缶。sizeRate はカードの高さに対する缶の高さ、widthRate は缶の高さに対する幅。
     // bobPx・bobSpeed は上下に揺れる幅（px）と速さ、tiltRad は傾きの最大（ラジアン）、bubbles は泡の数
     drink: {
@@ -638,7 +649,8 @@ export const CONFIG = {
   // 例：hpPerMin 0.35 なら、10:00 に出た敵の体力は 1 + 0.35 × 10 = 4.5 倍
   // 手下全体の体力の倍率（仕様 061）：時間による倍率とは別にかける。出た時点の時間で hpRateStart から hpRateEnd へ
   // hpRateRampSec かけて直線で上がり、そのあとは hpRateEnd。ボスにはかけない
-  enemyScaling: { hpPerMin: 0.35, speedPerMin: 0.04, damagePerMin: 0.06, hpRateStart: 1, hpRateEnd: 3, hpRateRampSec: 180 },
+  // damageRate：手下全体の攻撃力（触れたときに減るカフェイン・吸い取り）の倍率（仕様 063）。時間による倍率とは別にかける。ボスにはかけない
+  enemyScaling: { hpPerMin: 0.35, speedPerMin: 0.04, damagePerMin: 0.06, hpRateStart: 1, hpRateEnd: 3, hpRateRampSec: 180, damageRate: 2 },
   // 敵の出現。rampSec かけて、出現の間隔が start → min に縮み、1 回に出る数が startGroup → endGroup に増える
   spawn: {
     startIntervalSec: 0.9,
