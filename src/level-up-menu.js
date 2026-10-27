@@ -4,6 +4,7 @@ import { drawWeaponIcon } from './weapon-icons.js';
 import { drawCoin } from './coin-ui.js';
 import { font } from './font.js';
 import { stage } from './stage.js';
+import { drawCoin } from './coin-ui.js';
 
 const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 
@@ -112,6 +113,7 @@ export class LevelUpMenu {
     ctx.scale(Math.max(0.02, Math.cos((1 - ease) * Math.PI / 2)) * k, k);
     ctx.translate(-cx, -cy);
     if (card.choice.kind === 'drink') drawEnergyDrink(ctx, card, selected, t);
+    else if (card.choice.kind === 'extra') drawExtraPickCard(ctx, card, selected, t);
     else this.#drawCard(ctx, card, selected);
     ctx.restore();
   }
@@ -381,4 +383,74 @@ function drawEnergyDrink(ctx, card, selected, t) {
   ctx.fillStyle = CONFIG.colors.text;
   ctx.fillText(d.text, cx, bottom + 50);
   ctx.restore();
+}
+
+// ドラゴン豆の「もう 1 つ選ぶ」（仕様 038）：4 枚目の「竜の宝」のカード。深い緑のうろこ模様と金の枠に、揺れる豆コインの山。
+// choice.info は { price, left, enough, ok }。買えないとき（豆コインが足りない・回数を使い切った）は暗くして理由を出す
+function drawExtraPickCard(ctx, card, selected, t) {
+  const d = CONFIG.levelUpScreen.extraPick;
+  const { price, left, ok, enough } = card.choice.info;
+  const { x, y, w, h } = card;
+  const cx = x + w / 2;
+  const c = d.colors;
+  ctx.save();
+  if (selected) {
+    ctx.shadowColor = c.gold;
+    ctx.shadowBlur = 18;
+  }
+  ctx.fillStyle = c.gold;
+  ctx.fillRect(x, y, w, h);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = c.scaleBg;
+  ctx.fillRect(x + 6, y + 6, w - 12, h - 12);
+  // うろこ：半円を互い違いに並べる
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x + 6, y + 6, w - 12, h - 12);
+  ctx.clip();
+  ctx.strokeStyle = c.scale;
+  ctx.lineWidth = 2;
+  for (let row = 0; row < Math.ceil(h / 18) + 1; row++) {
+    for (let col = 0; col < Math.ceil(w / 22) + 1; col++) {
+      ctx.beginPath();
+      ctx.arc(x + col * 22 + (row % 2) * 11, y + row * 18, 11, 0, Math.PI);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = c.gold;
+  ctx.font = font(12, true);
+  ctx.textAlign = 'left';
+  ctx.fillText(String(card.index + 1), x + 16, y + 20);
+  ctx.textAlign = 'center';
+  ctx.font = font(18, true);
+  ctx.fillText(d.title, cx, y + 26);
+  // 豆コインの山：下に 3 枚、その上に 2 枚、てっぺんに 1 枚
+  const pile = [[-30, 0], [0, 0], [30, 0], [-15, -16], [15, -16], [0, -32]];
+  for (const [dx, dy] of pile) drawCoin(ctx, cx + dx, y + 104 + dy + Math.sin(t * 3 + dx) * 1.5, 14);
+  ctx.fillStyle = c.text;
+  ctx.font = font(17, true);
+  ctx.fillText(d.name, cx, y + 148);
+  ctx.font = font(13);
+  ctx.fillText(`豆コイン ${price} 枚`, cx, y + 174);
+  ctx.fillStyle = c.gold;
+  ctx.font = font(12);
+  ctx.fillText(`このプレイで あと ${left} 回`, cx, y + h - 22);
+  if (!ok) dimCard(ctx, card, enough ? d.usedUp : d.notEnough);
+  ctx.restore();
+}
+
+function dimCard(ctx, card, reason) {
+  const { x, y, w, h } = card;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.fillRect(x, y, w, h);
+  // 理由は、下の文字と重ならないよう帯の上に出す
+  ctx.fillStyle = 'rgba(20, 14, 10, 0.92)';
+  ctx.fillRect(x, y + h / 2 - 18, w, 36);
+  ctx.fillStyle = '#f3e6d8';
+  ctx.font = font(14, true);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(reason, x + w / 2, y + h / 2);
 }

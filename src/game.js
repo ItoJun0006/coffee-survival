@@ -10,8 +10,8 @@ import { DefeatEffect } from './entities/defeat-effect.js';
 import { BadgeField } from './entities/bean-badge.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
-import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin, noBeans, creatorGrowth, creatorXpRate, withEnergyDrink } from './characters.js';
-import { addMaxClear, refundRemovedVarieties, unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard, addCoins, coins } from './progress.js';
+import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin, noBeans, creatorGrowth, creatorXpRate, withEnergyDrink, dragonExtraPick } from './characters.js';
+import { addMaxClear, refundRemovedVarieties, unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard, addCoins, coins, spendCoins } from './progress.js';
 import { coinText, drawCoin, drawCoinTally, tallyDone } from './coin-ui.js';
 import { recordResult, records } from './records.js';
 import { drawResultRecords, drawTitleRecords } from './records-ui.js';
@@ -176,6 +176,9 @@ export class Game {
     this.notice = null;
     // 受け取った椿の花の種類
     this.camellias = [];
+    // ドラゴン豆が「もう 1 つ選ぶ」を買った回数と、今の画面であと何回選べるか（仕様 038）
+    this.extraPicksUsed = 0;
+    this.picksLeft = 1;
     // ダイスケ豆が固まっているか（仕様 019）
     this.frozen = false;
     this.frozenSec = 0;
@@ -394,7 +397,9 @@ export class Game {
     // クリエイター豆は、最後の 1 枚がエナジードリンクになる（仕様 021）
     const choices = withEnergyDrink(this.character, this.player, shuffle([...(pick ? [pick] : []), ...rest].slice(0, CONFIG.weaponLevels.choices)));
     const base = this.#withCoinCard(choices.length ? choices : this.#bonusChoices());
-    this.levelUpMenu.open([...base, ...this.#rareChoices()], this.level);
+    const extra = this.#extraPickChoice();
+    this.picksLeft = 1;
+    this.levelUpMenu.open([...base, ...this.#rareChoices(), ...(extra ? [extra] : [])], this.level);
     this.state = 'levelup';
   }
 
@@ -412,6 +417,29 @@ export class Game {
     if (list.length < CONFIG.weaponLevels.choices) return [...list, card];
     const i = list.findLastIndex((c) => c.kind !== 'drink');
     return list.map((c, j) => (j === i ? card : c));
+  }
+
+  // ドラゴン豆の「もう 1 つ選ぶ」のカード（仕様 038）。買えないときも、理由を見せるために出す
+  #extraPickChoice() {
+    const info = dragonExtraPick(this.character, this.extraPicksUsed);
+    if (!info) return null;
+    return { kind: 'extra', name: CONFIG.levelUpScreen.extraPick.title, desc: '', element: 'none', level: 0, isNew: false, info };
+  }
+
+  // 「もう 1 つ選ぶ」を買う：豆コインを払い、同じ画面で 2 つ選べるようにする（1 回の画面につき 1 度）
+  #buyExtraPick(choice) {
+    if (!choice.info.ok || !spendCoins(choice.info.price)) return;
+    this.extraPicksUsed += 1;
+    this.picksLeft = 2;
+    const rest = this.levelUpMenu.choices.filter((c) => c !== choice);
+    this.levelUpMenu.open(rest, this.level, { lead: CONFIG.levelUpScreen.extraPick.leadTwo });
+  }
+
+  // 2 つ選べるときの 2 つ目：選んだカードを除き、まだ選べるものだけを残して開き直す
+  #reopenForSecondPick(picked) {
+    const valid = new Set(this.#levelUpChoices().map((c) => c.name));
+    const rest = this.levelUpMenu.choices.filter((c) => c !== picked && c.kind !== 'extra' && (['rare', 'drink', 'bonus', 'coins'].includes(c.kind) || valid.has(c.name)));
+    this.levelUpMenu.open(rest.length ? rest : this.#bonusChoices(), this.level, { lead: CONFIG.levelUpScreen.extraPick.leadOne });
   }
 
   // 候補をランダムに並べる。ピーベリーのときは、数のない武器のカードが前に来る割合を offRate 倍にする（仕様 017）
@@ -432,8 +460,17 @@ export class Game {
   #updateLevelUp() {
     const choice = this.levelUpMenu.update(this.input, this.viewW, this.viewH);
     if (!choice) return;
+    if (choice.kind === 'extra') {
+      this.#buyExtraPick(choice);
+      return;
+    }
     this.#applyChoice(choice);
     this.#checkUnlocks('allWeaponsMax');
+    this.picksLeft -= 1;
+    if (this.picksLeft > 0) {
+      this.#reopenForSecondPick(choice);
+      return;
+    }
     this.pendingLevelUps -= 1;
     this.state = 'playing';
     // 一度にいくつも上がったときは、続けて選ぶ
