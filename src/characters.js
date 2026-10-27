@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { isUnlocked } from './progress.js';
+import { coins, isUnlocked } from './progress.js';
 
 const STORAGE_KEY = 'coffee-survival.character';
 
@@ -136,6 +136,7 @@ export function describeStats(character) {
   }
   const lines = [`移動 ×${r.speedRate}　カフェイン上限 ${r.maxCaffeine}`, `攻撃力 ×${r.damageRate}　攻撃間隔 ×${r.attackIntervalRate}`];
   if (character.startWeapon) lines.push(`最初の武器：${CONFIG.weapons[character.startWeapon].name}`);
+  if (character.dragon) lines.push(`レベルアップで、豆コイン ${cfg.dragon.price} 枚でもう 1 つ選べる`, `（1 回のプレイで ${cfg.dragon.maxPerRun} 回まで）`);
   if (character.creator) lines.push('珈琲豆は出ない。レベルアップで必ずエナジードリンク', `Lv ${cfg.creator.startLevel} から ${cfg.creator.rate} 倍ずつ伸びる（${cfg.creator.maxRate} 倍まで）`);
   return lines;
 }
@@ -165,4 +166,16 @@ export function withEnergyDrink(c, player, choices) {
     },
   };
   return [...choices.slice(0, CONFIG.weaponLevels.choices - 1), drink];
+}
+
+// ---- ドラゴン豆（仕様 022） ----
+// レベルアップの画面で、豆コインを払って「もう 1 つ選ぶ」を買える。画面（ボタンかカード）はメインが作り、この関数で判定する
+
+// used：このプレイで買った回数。ドラゴン豆でないときは null を返す
+export function dragonExtraPick(c, used) {
+  if (!c.dragon) return null;
+  const { price, maxPerRun } = cfg.dragon;
+  const left = Math.max(0, maxPerRun - used);
+  const enough = coins() >= price;
+  return { price, left, enough, ok: left > 0 && enough };
 }
