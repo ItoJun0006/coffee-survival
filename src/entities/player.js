@@ -14,6 +14,10 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
     drawBrothers(ctx, character, r, { look, bob, slowed, dot });
     return;
   }
+  if (character.twin) {
+    drawTwins(ctx, r, { look, bob, slowed });
+    return;
+  }
   const { color, crease } = character.roast;
   const sx = 1 + bob * 0.06;
   const sy = 1 - bob * 0.06;
@@ -110,6 +114,28 @@ function drawDotEyes(ctx, r, look, dot, sx, sy) {
 }
 
 // こーひー3兄弟（仕様 018）：浅煎り・中煎り・深煎りの 3 粒を、上から順に串に刺した形で描く。
+// 双子豆（仕様 080）：2 粒が並んで手をつなぐ。2 粒とも、ふつうの豆（drawCharacter）を小さくして描く
+function drawTwins(ctx, r, opts) {
+  const t = CONFIG.characters.twin;
+  const roasts = t.roastIds.map((id) => CONFIG.characters.roasts.find((x) => x.id === id));
+  roasts.forEach((roast, i) => {
+    const side = i === 0 ? -1 : 1;
+    ctx.save();
+    ctx.translate(side * t.gap * r, 0);
+    // 2 粒とも、まん中（相手）のほうを見る。小さな豆にドット絵用の目を付けると目だけになるので、ふつうの目で描く
+    drawCharacter(ctx, { roast }, r * t.size, { ...opts, look: { x: -side * 0.5, y: 0 }, dot: 0 });
+    ctx.restore();
+  });
+  // つないだ手
+  ctx.strokeStyle = t.hand;
+  ctx.lineWidth = r * 0.1;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.12, r * 0.25);
+  ctx.lineTo(r * 0.12, r * 0.25);
+  ctx.stroke();
+}
+
 // 3 粒とも、ふつうの豆（drawCharacter）を小さくして描く
 function drawBrothers(ctx, character, r, opts) {
   const m = CONFIG.characters.multi;
