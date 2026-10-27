@@ -1,6 +1,7 @@
 // 豆コインの絵と表示（仕様 016）：豆コインの絵、品種を買うメニュー風のポップアップ、結果画面の数え上げ
 import { CONFIG } from './config.js';
 import { drawCharacter } from './entities/player.js';
+import { drawBadgeIcon } from './entities/bean-badge.js';
 import { font } from './font.js';
 
 const cfg = CONFIG.coins;
@@ -138,7 +139,9 @@ export function drawCoinTally(ctx, cx, top, tally, now) {
     const k = ease((elapsed - i * t.rowSec) / t.countSec);
     if (elapsed < i * t.rowSec) return;
     const y = top + 20 + i * rowH;
-    text(ctx, `${row.label}${row.detail ? ` ${row.detail}` : ''}`, x + 16, y, { size: 13, color: t.text, align: 'left' });
+    // 豆の証の行（仕様 081）は、盾の絵を付けて金色で書く
+    if (row.badge) drawBadgeIcon(ctx, x + 22, y, 7);
+    text(ctx, `${row.label}${row.detail ? ` ${row.detail}` : ''}`, x + (row.badge ? 34 : 16), y, { size: 13, color: row.badge ? CONFIG.coins.affordableLock : t.text, align: 'left' });
     text(ctx, `＋${fmt(row.value * k)}`, x + w - 16, y, { size: 14, bold: true, color: t.text, align: 'right' });
   });
   const lineY = top + 20 + tally.rows.length * rowH - 6;
