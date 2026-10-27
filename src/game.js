@@ -5,12 +5,14 @@ import { Bean } from './entities/bean.js';
 import { XpOrb } from './entities/xp-orb.js';
 import { Enemy } from './entities/enemy.js';
 import { Boss } from './entities/boss.js';
+import { DragonBoss, rollDragon, drawDragonPanel, takeDragonTreasure } from './entities/dragon-boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
+import { BadgeField } from './entities/bean-badge.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
-import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin, noBeans, creatorGrowth, creatorXpRate, withEnergyDrink } from './characters.js';
-import { addMaxClear, refundRemovedVarieties, unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard, addCoins, coins } from './progress.js';
+import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin, noBeans, creatorGrowth, creatorXpRate, withEnergyDrink, dragonExtraPick } from './characters.js';
+import { addMaxClear, refundRemovedVarieties, unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard, addCoins, coins, spendCoins } from './progress.js';
 import { coinText, drawCoin, drawCoinTally, tallyDone } from './coin-ui.js';
 import { recordResult, records } from './records.js';
 import { drawResultRecords, drawTitleRecords } from './records-ui.js';
@@ -35,6 +37,32 @@ const formatTime = (sec) => {
 };
 
 // 並びをランダムに入れ替えた配列を返す（元の配列も入れ替わる）
+// 隠しコマンド「COFFEE」（仕様 037）：オンのときは、どのキャラもカフェオレ色の豆で描く（性能は変えない）
+const CAFE_AU_LAIT_KEY = 'coffee-survival.cafeAuLait';
+let cafeAuLaitOn = false;
+try {
+  cafeAuLaitOn = localStorage.getItem(CAFE_AU_LAIT_KEY) === '1';
+} catch {
+  // 保存できない環境では、そのプレイの間だけ覚える
+}
+
+function toggleCafeAuLait() {
+  cafeAuLaitOn = !cafeAuLaitOn;
+  try {
+    localStorage.setItem(CAFE_AU_LAIT_KEY, cafeAuLaitOn ? '1' : '');
+  } catch {
+    // 保存できなくても、切り替えだけは効かせる
+  }
+  return cafeAuLaitOn;
+}
+
+// 描くときだけ色を変えたキャラの写しを返す。性能（速さ・カフェインなど）は元のまま
+function cafeAuLaitLook(character) {
+  if (!cafeAuLaitOn) return character;
+  const { color, crease } = CONFIG.secrets.cafeAuLait.look;
+  return { ...character, roast: { ...character.roast, color, crease } };
+}
+
 function shuffle(list) {
   for (let i = list.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -107,15 +135,18 @@ export class Game {
   reset() {
     sound.setMode('normal');
     sound.startMusic();
-    this.player = new Player(stage.world.width / 2, stage.world.height / 2, this.character);
+    this.player = new Player(stage.world.width / 2, stage.world.height / 2, cafeAuLaitLook(this.character));
     this.player.skin = wearsSkin(this.character);
     this.beans = [];
     this.xpOrbs = [];
+    this.badgeField = new BadgeField(); // 豆の証（仕様 081）
     this.enemies = [];
     this.waves = [];
     this.effects = [];
     this.boss = null;
     this.bossAppearedAt = 0;
+    // ドラゴンのボス（仕様 064）。{ offer：挑むか聞いている, fight：戦っている, won, picked }
+    this.dragon = null;
     this.beanTimer = 0;
     this.enemyTimer = 0;
     this.moveDir = { x: 0, y: 0 };
@@ -148,6 +179,9 @@ export class Game {
     this.notice = null;
     // 受け取った椿の花の種類
     this.camellias = [];
+    // ドラゴン豆が「もう 1 つ選ぶ」を買った回数と、今の画面であと何回選べるか（仕様 038）
+    this.extraPicksUsed = 0;
+    this.picksLeft = 1;
     // ダイスケ豆が固まっているか（仕様 019）
     this.frozen = false;
     this.frozenSec = 0;
@@ -366,7 +400,9 @@ export class Game {
     // クリエイター豆は、最後の 1 枚がエナジードリンクになる（仕様 021）
     const choices = withEnergyDrink(this.character, this.player, shuffle([...(pick ? [pick] : []), ...rest].slice(0, CONFIG.weaponLevels.choices)));
     const base = this.#withCoinCard(choices.length ? choices : this.#bonusChoices());
-    this.levelUpMenu.open([...base, ...this.#rareChoices()], this.level);
+    const extra = this.#extraPickChoice();
+    this.picksLeft = 1;
+    this.levelUpMenu.open([...base, ...this.#rareChoices(), ...(extra ? [extra] : [])], this.level);
     this.state = 'levelup';
   }
 
@@ -384,6 +420,29 @@ export class Game {
     if (list.length < CONFIG.weaponLevels.choices) return [...list, card];
     const i = list.findLastIndex((c) => c.kind !== 'drink');
     return list.map((c, j) => (j === i ? card : c));
+  }
+
+  // ドラゴン豆の「もう 1 つ選ぶ」のカード（仕様 038）。買えないときも、理由を見せるために出す
+  #extraPickChoice() {
+    const info = dragonExtraPick(this.character, this.extraPicksUsed);
+    if (!info) return null;
+    return { kind: 'extra', name: CONFIG.levelUpScreen.extraPick.title, desc: '', element: 'none', level: 0, isNew: false, info };
+  }
+
+  // 「もう 1 つ選ぶ」を買う：豆コインを払い、同じ画面で 2 つ選べるようにする（1 回の画面につき 1 度）
+  #buyExtraPick(choice) {
+    if (!choice.info.ok || !spendCoins(choice.info.price)) return;
+    this.extraPicksUsed += 1;
+    this.picksLeft = 2;
+    const rest = this.levelUpMenu.choices.filter((c) => c !== choice);
+    this.levelUpMenu.open(rest, this.level, { lead: CONFIG.levelUpScreen.extraPick.leadTwo });
+  }
+
+  // 2 つ選べるときの 2 つ目：選んだカードを除き、まだ選べるものだけを残して開き直す
+  #reopenForSecondPick(picked) {
+    const valid = new Set(this.#levelUpChoices().map((c) => c.name));
+    const rest = this.levelUpMenu.choices.filter((c) => c !== picked && c.kind !== 'extra' && (['rare', 'drink', 'bonus', 'coins'].includes(c.kind) || valid.has(c.name)));
+    this.levelUpMenu.open(rest.length ? rest : this.#bonusChoices(), this.level, { lead: CONFIG.levelUpScreen.extraPick.leadOne });
   }
 
   // 候補をランダムに並べる。ピーベリーのときは、数のない武器のカードが前に来る割合を offRate 倍にする（仕様 017）
@@ -404,8 +463,17 @@ export class Game {
   #updateLevelUp() {
     const choice = this.levelUpMenu.update(this.input, this.viewW, this.viewH);
     if (!choice) return;
+    if (choice.kind === 'extra') {
+      this.#buyExtraPick(choice);
+      return;
+    }
     this.#applyChoice(choice);
     this.#checkUnlocks('allWeaponsMax');
+    this.picksLeft -= 1;
+    if (this.picksLeft > 0) {
+      this.#reopenForSecondPick(choice);
+      return;
+    }
     this.pendingLevelUps -= 1;
     this.state = 'playing';
     // 一度にいくつも上がったときは、続けて選ぶ
@@ -504,6 +572,7 @@ export class Game {
       for (const t of this.toasts) t.until += dt * 1000;
     }
     if (this.state === 'title') {
+      this.#checkSecretCommand();
       if (this.input.consumeClick()) {
         this.characterSelect.open(this.character);
         this.state = 'select';
@@ -546,6 +615,10 @@ export class Game {
       this.state = 'playing';
       return;
     }
+    if (this.dragon?.offer) {
+      this.#updateDragonOffer();
+      return;
+    }
     // 1 面をクリアしたら、E キーでエクストラステージへ
     if (this.state === 'clear' && stage.id === 'main' && this.input.wasPressed('KeyE')) {
       this.#openCarryMenu();
@@ -583,9 +656,14 @@ export class Game {
     this.effects = this.effects.filter((fx) => fx.alive);
     this.#collectBeans();
     this.#collectXpOrbs(dt);
+    if (this.badgeField.update(dt, this.player)) this.#toast(CONFIG.coins.badge.texts.picked); // 豆の証（仕様 081）
 
-    if (!this.player.alive) this.#finish('gameover');
-    else if (this.boss?.dead) this.#finish('clear');
+    if (this.dragon?.fight) this.#updateDragonFight();
+    else if (!this.player.alive) this.#finish('gameover');
+    else if (this.boss?.dead) {
+      this.#finish('clear');
+      if (stage.id === 'main' && rollDragon()) this.dragon = { offer: true };
+    }
 
     // 背景は画面の点（表示倍率 125% などでは 1px より細かい）単位でなめらかに動かす
     // （3px ごとにそろえると、動きが 3・3・6px と不ぞろいになって画面が揺れる）
@@ -626,6 +704,8 @@ export class Game {
     ];
     if (this.runCardCoins > 0) rows.push({ label: labels.cards, detail: `${this.runCardCoins / CONFIG.leveling.coinCard.amount} 回`, value: this.runCardCoins });
     if (cleared) rows.push(stage.id === 'extra' ? { label: labels.extraClear, value: c.extraClear } : { label: labels.clear, value: c.clear });
+    // 持っている豆の証の分（クリアなら、このプレイで拾った証を先に自分のものにする。仕様 081）
+    rows.push(...this.badgeField.settle(cleared, rows));
     const before = coins();
     addCoins(rows.reduce((sum, r) => sum + r.value, 0));
     this.coinTally = { rows, before, startedAt: performance.now(), skipped: false };
@@ -634,6 +714,18 @@ export class Game {
   // ---- ポイントカード ----
 
   // ゲームを始める（キャラ選択から、またはゲームオーバー・クリアからのやり直し）。プレイ回数を 1 増やす
+  // タイトルで打った文字を覚えておき、隠しコマンド（仕様 037）と一致したら切り替える
+  #checkSecretCommand() {
+    const { word, onText, offText } = CONFIG.secrets.cafeAuLait;
+    for (const ch of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+      if (!this.input.wasPressed(`Key${ch}`)) continue;
+      this.typed = ((this.typed ?? '') + ch).slice(-word.length);
+      if (this.typed !== word) continue;
+      this.typed = '';
+      this.#toast(toggleCafeAuLait() ? onText : offText);
+    }
+  }
+
   #startRun() {
     setStage('main');
     this.reset();
@@ -732,6 +824,7 @@ export class Game {
         kills: () => value >= r.count,
         beans: () => value >= r.count,
         maxLevel: () => value >= r.level,
+        dragonDefeat: () => true,
         allWeaponsMax: () => this.weapons.length >= CONFIG.slots.weapons && this.weapons.every((w) => w.isMax),
       }[type]();
       if (met && unlock(readyId(c.group))) this.#toast(CONFIG.coins.texts.ready.replace('{name}', c.name).replace('{price}', coinText(c.price)));
@@ -1136,6 +1229,51 @@ export class Game {
     sound.setMode('boss');
   }
 
+  // ---- ドラゴンのボス（仕様 064）。処理の中身は entities/dragon-boss.js ----
+
+  // クリアの画面の上の知らせ：Space / Enter で挑む、Esc でやめる
+  #updateDragonOffer() {
+    if (this.input.wasPressed('Escape')) {
+      this.dragon = null;
+      this.input.consumeClick();
+    } else if (this.input.consumeClick()) {
+      this.#startDragonFight();
+    }
+  }
+
+  // カフェインを満タンにし、残りの手下とあくびの輪を消して、画面の端に竜を出す
+  #startDragonFight() {
+    const a = Math.random() * Math.PI * 2;
+    const d = Math.min(this.viewW, this.viewH) / 2 + CONFIG.dragonBoss.radius;
+    this.dragon = { fight: true };
+    this.enemies = [];
+    this.waves = [];
+    this.player.caffeine = this.player.maxCaffeine;
+    this.boss = new DragonBoss(
+      clamp(this.player.x + Math.cos(a) * d, 0, stage.world.width),
+      clamp(this.player.y + Math.sin(a) * d, 0, stage.world.height),
+    );
+    this.bossAppearedAt = this.time;
+    this.state = 'playing';
+    sound.startMusic();
+    sound.setMode('boss');
+    sound.play('bossAppear');
+  }
+
+  // 勝っても負けても、1 面のクリアの画面に戻る（クリアの記録はそのまま）。倒したあとも、次のクリアでまた出会える
+  #updateDragonFight() {
+    const won = this.boss.dead;
+    if (!won && this.player.alive) return;
+    // 1 回目はドラゴン豆が仕入れられるようになり、2 回目からは竜の宝（豆コイン）をもらう
+    const treasure = won ? takeDragonTreasure() : 0;
+    if (won && !treasure) this.#checkUnlocks('dragonDefeat', 1);
+    this.dragon = { won, treasure, picked: this.boss.picked };
+    this.boss = null;
+    this.state = 'clear';
+    sound.stopMusic();
+    sound.play(won ? 'clear' : 'gameover');
+  }
+
   #updateBoss(dt) {
     const boss = this.boss;
     const cfg = CONFIG.boss;
@@ -1166,6 +1304,7 @@ export class Game {
       sound.play('defeat');
       this.effects.push(new DefeatEffect(e.x, e.y, e.config.color, e.radius));
       this.#dropXp(e.x, e.y, e.config.xp);
+      this.badgeField.drop(e); // 豆の証（仕様 081）
       if (!noBeans(this.character) && Math.random() < enemyDropChance && this.beans.length < CONFIG.bean.maxCount + maxDroppedBeans) {
         this.beans.push(new Bean(e.x, e.y));
       }
@@ -1200,6 +1339,7 @@ export class Game {
       }
     });
     for (const b of this.beans) b.draw(wctx);
+    this.badgeField.draw(wctx); // 豆の証（仕様 081）
     for (const o of this.xpOrbs) o.draw(wctx);
     for (const w of this.waves) w.draw(wctx);
     for (const e of this.enemies) e.draw(wctx);
@@ -1232,6 +1372,7 @@ export class Game {
       if (this.state === 'paused') this.#drawPauseMenu();
       if (this.state === 'levelup' || this.state === 'carry' || this.state === 'start') this.levelUpMenu.draw(ctx, this.viewW, this.viewH);
       this.#drawOverlay();
+      if (this.dragon && this.state === 'clear') drawDragonPanel(ctx, this.dragon, this.viewW, this.viewH);
     }
     this.#drawSoundIndicator();
     this.#drawToasts();
@@ -1441,7 +1582,7 @@ export class Game {
     ctx.font = font(13);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';
-    ctx.fillText(`${CONFIG.boss.name}${this.boss.eyeOpen ? '  ― 目が開いた！' : ''}`, x, y - 4);
+    ctx.fillText(`${this.boss.name}${this.boss.eyeOpen ? '  ― 目が開いた！' : ''}`, x, y - 4);
     ctx.fillStyle = c.hudBg;
     ctx.fillRect(x, y, w, 12);
     ctx.fillStyle = c.bossBar;
@@ -1451,7 +1592,7 @@ export class Game {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font = font(20, true);
-      ctx.fillText(`${CONFIG.boss.name} が現れた`, this.viewW / 2, this.viewH * 0.3);
+      ctx.fillText(`${this.boss.name} が現れた`, this.viewW / 2, this.viewH * 0.3);
     }
   }
 

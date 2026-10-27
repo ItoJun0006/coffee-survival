@@ -100,10 +100,6 @@ export const CONFIG = {
         rates: { speed: 0.9, caffeine: 1.1, damage: 1.05, interval: 1.1 }, pattern: { kind: 'ring', color: '#f3dcb4', lightColor: '#604937' },
       },
       {
-        id: 'maragogipe', name: 'マラゴジッペ', origin: '「象の豆」とも呼ばれる、とても大粒の品種', trait: '巨大粒', price: 340, power: 'guard',
-        rates: { speed: 0.85, caffeine: 1.1, damage: 1.05, interval: 1.05 }, pattern: { kind: 'half', color: '#efdcbc', lightColor: '#5f4939' },
-      },
-      {
         id: 'yirgacheffe', name: 'イルガチェフェ', origin: 'エチオピアの産地。珈琲のふるさと', trait: '華やか', price: 360, power: 'xp',
         rates: { speed: 1.05, caffeine: 0.9, damage: 1, interval: 1 }, pattern: { kind: 'petals', color: '#fff4c2', lightColor: '#624e3a' },
       },
@@ -148,14 +144,21 @@ export const CONFIG = {
       drink: { name: 'エナジードリンク', desc: 'カフェインを\n上限まで回復する', healRate: 1, text: 'エナジードリンクで目が覚めた！' },
       colors: { band: '#2b2b33', cup: '#e04848', can: '#2fd06a', bolt: '#ffe14a', rim: '#c9d3d9' },
     },
-    // 新しいキャラを足すために外した品種（仕様 016 FR-022。カティモールはクリエイター豆のため、仕様 021）。前に買っていた人には、値段の豆コインを返す
-    removedVarieties: [{ id: 'kent', price: 220 }, { id: 'catimor', price: 300 }],
+    // ドラゴン豆（仕様 022）：レベルアップの画面で、1 回の画面につき 1 度、豆コイン price 枚で「もう 1 つ選ぶ」を買える（1 回のプレイで maxPerRun 回まで）。
+    // 仕入れの条件は、1 面のクリア後に bossChance の確率で現れるドラゴンのボスを倒すこと（ボスは敵係）。
+    // 見た目は角（horn）と濃い緑の翼としっぽ（wing）、吊り目（eyeCut：目の内側の上を豆の色でかくす割合）
+    dragon: {
+      price: 30, maxPerRun: 3, bossChance: 0.05,
+      colors: { horn: '#f3e3b0', wing: '#1f5a2a' }, eyeCut: 0.55,
+    },
+    // 新しいキャラを足すために外した品種（仕様 016 FR-022。カティモールはクリエイター豆、マラゴジッペはドラゴン豆のため、仕様 021・022）。前に買っていた人には、値段の豆コインを返す
+    removedVarieties: [{ id: 'kent', price: 220 }, { id: 'catimor', price: 300 }, { id: 'maragogipe', price: 340 }],
     // 特別なキャラ。require の条件を満たすと仕入れられるようになり、price の豆コインで買う（仕様 016 FR-018）。
     // roast は性能と色（品種 × 焙煎度のキャラと同じ形）、origin と desc は買うポップアップに出す
     // require.type：clearCaffeine＝カフェインが上限の ratio 以上のまま 1 面をクリア、maxClears＝Lv 8 の攻撃を持ったまま 1 面をクリアした品種（特別なキャラはそれぞれ 1 種類）の数が count 以上、extraClear＝エクストラステージをクリア、bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
     //   plays＝ゲームを count 回始める、playTime＝累計プレイ時間が seconds 秒以上（例：{ type: 'playTime', seconds: 3600, text: '…' }）、
     //   distance＝累計移動距離が pixels 以上（マップの端から端は 2000）、kills＝累計撃破数が count 以上、beans＝累計の拾った豆が count 以上、
-    //   maxLevel＝1 回のプレイで Lv level になる
+    //   maxLevel＝1 回のプレイで Lv level になる、dragonDefeat＝ドラゴンのボスを倒す（仕様 022）
     // drawScale は見た目の大きさの倍率（当たる範囲は変わらない）
     specials: [
       {
@@ -207,6 +210,13 @@ export const CONFIG = {
         roast: { trait: '徹夜', color: '#7d5636', crease: '#3f2818', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
         require: { type: 'maxLevel', level: 30, text: '1 回のプレイで Lv 30 になる' },
       },
+      {
+        // 豆コインでレベルアップの「もう 1 つ」を買える（仕様 022）。値は上の dragon を使う
+        id: 'dragon', name: 'ドラゴン豆', price: 500, dragon: true,
+        origin: '豆コインの山を抱えて眠る、竜の子どもの豆', desc: 'レベルアップのとき、豆コインでもう 1 つ選べる',
+        roast: { trait: '宝の山', color: '#7a5a2e', crease: '#3d2a12', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
+        require: { type: 'dragonDefeat', text: '1 面のクリア後にまれに現れる、ドラゴンのボスを倒す' },
+      },
     ],
     // 選択画面に並べるマスの数（最終目標）。まだ中身のないマスは「？？？」として鍵付きで出す
     plannedTotal: 66,
@@ -256,6 +266,15 @@ export const CONFIG = {
     },
     // 値段が足りている鍵の色
     affordableLock: '#f0d58a',
+    // 豆の証（仕様 081）：1 面の手下を倒すと dropChance の確率で落ちる（1 回のクリアで約 3,400 体倒すので、10 回のクリアで約 1 個）。
+    // 拾った証は、そのプレイをクリアしたときだけ自分のものになり、ずっと持ち続ける（max 個まで）。持っている 1 個につき、
+    // 結果画面でもらう豆コインが ratePer ずつ増える（足し算。10 個で 2 倍）。max 個持っているときに拾った分は overflowCoins 枚になる。
+    // 見た目は青い盾に金のふちと豆（shield・rim・bean・crease）。落ちている証は radius の大きさで、glow の光の輪を付ける
+    badge: {
+      name: '豆の証', max: 10, ratePer: 0.1, dropChance: 1 / 34000, overflowCoins: 50, radius: 10,
+      colors: { shield: '#3d5a8f', rim: '#f2c94c', bean: '#6b3f1f', crease: '#2e1808', glow: 'rgba(255, 230, 140, 0.35)' },
+      texts: { picked: '豆の証を拾った！（クリアすると自分のものになる）', row: '豆の証 ×{n}（+{p}%）', overflow: '豆の証（{max} 個をこえた分）×{n}' },
+    },
     texts: {
       unlocked: '新しい品種『{name}』が解放された！（浅煎り・中煎り・深煎り）',
       unlockedOne: '新しいキャラ『{name}』が解放された！',
@@ -276,7 +295,8 @@ export const CONFIG = {
   },
   player: {
     radius: 18,
-    speed: 220,
+    // 歩く速さのもとの値（2026-10-24 に 220 から 0.7 倍の 154 にした）
+    speed: 154,
     maxCaffeine: 100,
     caffeineDecayPerSec: 2.5,
     invincibleSec: 0.6,
@@ -347,6 +367,16 @@ export const CONFIG = {
     card: { bg: '#1f2a24', edge: '#6b4a2c', edgeWidth: 7, text: '#f3efe6', sub: 'rgba(243, 239, 230, 0.8)', muted: 'rgba(243, 239, 230, 0.25)' },
     // 種類ごとの色（カードの帯・選んでいるときの光）
     kindColors: { weapon: '#d9a066', item: '#8fc7a0', bonus: '#f0d58a', carry: '#b9a0e0', coins: '#f2c94c' },
+    // ドラゴン豆の「もう 1 つ選ぶ」の 4 枚目のカード「竜の宝」（仕様 038）。値段と回数は characters.dragon
+    extraPick: {
+      title: '竜の宝',
+      name: 'もう 1 つ選ぶ',
+      leadTwo: '竜の宝で、2 つ選べる！ 1 つ目を選ぶ',
+      leadOne: 'もう 1 つ選ぶ',
+      notEnough: '豆コインが足りない',
+      usedUp: 'このプレイではもう使えない',
+      colors: { gold: '#e8c060', scaleBg: '#173d24', scale: 'rgba(120, 200, 140, 0.25)', text: '#f3efe6' },
+    },
     // エナジードリンク（仕様 033）：カードの代わりに描く缶。sizeRate はカードの高さに対する缶の高さ、widthRate は缶の高さに対する幅。
     // bobPx・bobSpeed は上下に揺れる幅（px）と速さ、tiltRad は傾きの最大（ラジアン）、bubbles は泡の数
     drink: {
@@ -368,6 +398,16 @@ export const CONFIG = {
     default: 100,
     label: '攻撃の見え方',
     previewBackdrop: 0.15,
+  },
+  // 隠し要素。cafeAuLait：タイトルで word を打つと、豆がカフェオレ色になる（もう一度打つと戻る。仕様 037）
+  secrets: {
+    cafeAuLait: {
+      word: 'COFFEE',
+      onText: '隠しコマンド！ 豆がカフェオレ色になった',
+      offText: 'カフェオレ色をやめた',
+      // カフェオレ色（3 案から A）。color は豆の色、crease は割れ目の色
+      look: { color: '#c49a6c', crease: '#7a5232' },
+    },
   },
   // ステータス強化アイテム。perLevel は 1 段階（Lv）ごとの効果。最大 Lv は weaponLevels.max と同じ
   items: {
@@ -440,6 +480,10 @@ export const CONFIG = {
       //   あふれた割合が perBlade たまるごとに刃を 1 枚足す（maxExtra 枚まで）。ピーベリーは数が 1 のままなので足さない
       name: 'ミル・トルネード', desc: '2 枚の刃が\nまわりを回り続け、\n敵を押し返す', element: 'none', count: 2, orbitRadius: 70, bladeRadius: 12, angularSpeed: 3, damage: 1, hitCooldownSec: 0.5, knockback: 200,
       overflow: { perBlade: 0.2, maxExtra: 6 },
+      // slowSpin：Lv untilLevel になるまでは、回る速さを rate 倍にする（2026-10-24）
+      slowSpin: { untilLevel: 8, rate: 0.5 },
+      // focusSpinExp：ピーベリーは刃が 1 枚になる代わりに、回る速さを「本来の刃の数 ^ focusSpinExp」倍にする（1 なら枚数と同じ倍率。2026-10-24）
+      focusSpinExp: 1,
       // limitBreak：限界突破（Lv 9 から）では、everyLevels Lv ごとに刃を 1 枚足し、刃の大きさを shrinkRate 倍にする。
       // fitRate：どの Lv でも、刃どうしが重ならないよう、刃の半径を「隣の刃との距離の半分 × fitRate」までに抑える
       limitBreak: { everyLevels: 2, shrinkRate: 0.9, desc: '刃が 1 枚増え、\n少し小さくなる' },
@@ -769,6 +813,30 @@ export const CONFIG = {
     lullaby: { lagSec: 0.35 },
     pull: { strength: 110 },
     dream: { fakeRatio: 0.4 },
+  },
+  // ドラゴンのボス「まどろみ宝竜」（仕様 064）。1 面のクリアのあと、まれに挑める。出る確率はキャラ係の characters.dragon.bossChance。
+  // 体に触れたときのダメージと属性の倍率は、ネムリーヌ（boss）と同じ
+  dragonBoss: {
+    name: 'まどろみ宝竜',
+    hp: 1200,
+    radius: 85,
+    speed: 45,
+    // 竜の宝：ドラゴン豆がもう仕入れられる（2 回目以降に倒した）ときに、もらえる豆コイン
+    treasureCoins: 500,
+    // ねむけの息：intervalSec ごとに warnSec 予告してから blowSec 吐く。range・angleDeg の扇形に当たるとカフェインが caffeine 減る
+    breath: { intervalSec: 4, warnSec: 1, blowSec: 0.6, range: 420, angleDeg: 55, caffeine: 20, warn: 'rgba(190, 170, 255, 0.18)', mist: 'rgba(200, 185, 255, 0.55)' },
+    // 豆コインの雨：intervalSec ごとに count 枚を、プレイヤーから spreadRadius 以内に fallSec かけて落とす。
+    // 落ちた瞬間に hitRadius 以内ならカフェインが caffeine 減る。外れたコインは lifeSec 落ちていて、pickRadius 以内で拾うと豆コインが coins 枚入る
+    coinRain: { intervalSec: 6, count: 6, spreadRadius: 260, fallSec: 1.1, fallHeight: 260, hitRadius: 26, caffeine: 12, lifeSec: 6, pickRadius: 24, coins: 1, size: 10 },
+    colors: { body: '#1f5a2a', bodyDark: '#163f1e', line: '#0e2a13', belly: '#f3e2b8', bellyLine: '#d8c495', horn: '#f3e2b8', eye: '#f4efe6', pupil: '#1e120c', shadow: 'rgba(0, 0, 0, 0.35)' },
+    texts: {
+      offerTitle: '宝の山で眠っていた竜が、物音で目を覚ました！',
+      offerText: '挑む：Space / Enter　　やめる：Esc',
+      win: 'まどろみ宝竜を倒した！',
+      lose: '竜は宝の山に戻って、また眠った…',
+      pickup: '拾った豆コイン：{n} 枚',
+      treasure: '竜の宝を手に入れた！　豆コイン +{n}',
+    },
   },
   // 音。BGM はブラウザの中で組み立てるローファイ調の曲（音楽ファイルは使わない）
   // chords は 1 小節ごとの和音（音名＋オクターブ）。bass は各小節の根音

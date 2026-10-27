@@ -1,6 +1,7 @@
 import { CONFIG } from './config.js';
 import { CHARACTERS, canBuy, canWearSkin, describeStats, groupMembers, isAvailable, statBars, toggleSkin, wearsSkin } from './characters.js';
-import { buyVariety, coins } from './progress.js';
+import { badges, buyVariety, coins } from './progress.js';
+import { drawBadgeIcon } from './entities/bean-badge.js';
 import { MENU_SIZE, coinText, drawCoin, drawMenuPopup } from './coin-ui.js';
 import { drawCharacter } from './entities/player.js';
 import { font } from './font.js';
@@ -171,6 +172,38 @@ export class CharacterSelect {
     ctx.fillText(unit, left + 44 + nameW + numW, top + 30);
     ctx.font = font(28, true);
     ctx.fillText(num, left + 40 + nameW, top + 32);
+    ctx.restore();
+    this.#drawBadges(ctx, viewW, top + h + 8);
+  }
+
+  // 豆コインの下に、持っている豆の証の数と、豆コインが増える割合を出す（仕様 081）。1 個もないときは出さない
+  #drawBadges(ctx, viewW, top) {
+    const n = badges();
+    if (!n) return;
+    const b = CONFIG.coins.badge;
+    const tail = `/ ${b.max} 個　コイン +${Math.round(n * b.ratePer * 100)}%`;
+    const h = 40;
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = font(13);
+    const nameW = ctx.measureText(b.name).width;
+    const tailW = ctx.measureText(tail).width;
+    ctx.font = font(24, true);
+    const numW = ctx.measureText(String(n)).width;
+    const w = nameW + numW + tailW + 66;
+    const left = viewW - 16 - w;
+    ctx.fillStyle = 'rgba(20, 12, 8, 0.85)';
+    ctx.fillRect(left, top, w, h);
+    ctx.strokeStyle = CONFIG.colors.xpBar;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(left, top, w, h);
+    drawBadgeIcon(ctx, left + 22, top + h / 2, 9);
+    ctx.fillStyle = CONFIG.coins.affordableLock;
+    ctx.fillText(String(n), left + 44 + nameW, top + 29);
+    ctx.font = font(13);
+    ctx.fillText(b.name, left + 38, top + 26);
+    ctx.fillText(tail, left + 50 + nameW + numW, top + 26);
     ctx.restore();
   }
 
