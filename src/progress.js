@@ -1,31 +1,33 @@
 // 遊んだ記録（ポイントカード）と、解放したキャラ。遊んでいるブラウザに保存する
 //   unlocked：解放したキャラの id、launches：起動した回数、plays：プレイ回数、playSec：累計プレイ時間（秒）、
 //   distance：累計移動距離（ピクセル）、kills：累計撃破数、beans：累計の拾った豆（偽物は除く）。
-//   distance・kills・beans は画面には出さず、解放条件に使う。coins：今持っている豆コイン（仕様 016）
+//   distance・kills・beans は画面には出さず、解放条件に使う。coins：今持っている豆コイン（仕様 016）、badges：持っている豆の証（仕様 081）
 const STORAGE_KEY = 'coffee-survival.unlocks';
 
 // 動作確認用（仕様 016）：?unlockAll を付けて開くと、すべてのキャラを解放済みとして扱う。
-// ?coins=N を付けて開くと、豆コインを N 枚持った状態で始まる。どちらのときも、記録は保存しない
+// ?coins=N を付けて開くと、豆コインを N 枚持った状態で始まる。?badges=N なら豆の証を N 個（仕様 081）。どのときも、記録は保存しない
 const params = new URLSearchParams(location.search);
 const debugUnlockAll = params.has('unlockAll');
 const debugCoins = params.has('coins') ? Math.max(0, Math.floor(Number(params.get('coins')) || 0)) : null;
-const noSave = debugUnlockAll || debugCoins !== null;
+const debugBadges = params.has('badges') ? Math.max(0, Math.floor(Number(params.get('badges')) || 0)) : null;
+const noSave = debugUnlockAll || debugCoins !== null || debugBadges !== null;
 
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (d && Array.isArray(d.unlocked)) {
       const n = (v) => Number(v) || 0;
-      return { unlocked: d.unlocked, launches: n(d.launches), plays: n(d.plays), playSec: n(d.playSec), distance: n(d.distance), kills: n(d.kills), beans: n(d.beans), coins: n(d.coins), maxClears: Array.isArray(d.maxClears) ? d.maxClears : [] };
+      return { unlocked: d.unlocked, launches: n(d.launches), plays: n(d.plays), playSec: n(d.playSec), distance: n(d.distance), kills: n(d.kills), beans: n(d.beans), coins: n(d.coins), badges: n(d.badges), maxClears: Array.isArray(d.maxClears) ? d.maxClears : [] };
     }
   } catch {
     // 保存領域が使えない・壊れているときは、何もない状態から始める
   }
-  return { unlocked: [], launches: 0, plays: 0, playSec: 0, distance: 0, kills: 0, beans: 0, coins: 0, maxClears: [] };
+  return { unlocked: [], launches: 0, plays: 0, playSec: 0, distance: 0, kills: 0, beans: 0, coins: 0, badges: 0, maxClears: [] };
 }
 
 const data = load();
 if (debugCoins !== null) data.coins = debugCoins;
+if (debugBadges !== null) data.badges = debugBadges;
 
 export function saveProgress() {
   if (noSave) return;
@@ -118,6 +120,18 @@ export function spendCoins(n) {
   data.coins -= n;
   saveProgress();
   return true;
+}
+
+// ---- 豆の証（仕様 081） ----
+
+export const badges = () => data.badges;
+
+// 証を n 個足す（max 個まで）。max をこえた個数を返す
+export function addBadges(n, max) {
+  const room = Math.max(0, max - data.badges);
+  data.badges += Math.min(n, room);
+  saveProgress();
+  return Math.max(0, n - room);
 }
 
 // 品種を買う：値段が足りていれば、その品種のキャラ（ids）をまとめて解放し、true を返す
