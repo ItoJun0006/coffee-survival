@@ -60,6 +60,12 @@ export class RecordShelf {
   constructor(toast) {
     this.toast = toast;
     this.index = 0;
+    // 曲ごとのジャケットの絵。読み込めるまでは、装丁の色で代わりに塗る
+    this.jackets = {};
+    for (const [id, src] of Object.entries(cfg().jacket.images)) {
+      this.jackets[id] = new Image();
+      this.jackets[id].src = src;
+    }
   }
 
   open() {
@@ -105,7 +111,7 @@ export class RecordShelf {
   #items(viewW, viewH) {
     const { spine } = cfg();
     const n = tracks().length;
-    const left = (viewW - (n * spine.w + (n - 1) * spine.gap)) / 2;
+    const left = this.#shelfCx(viewW) - (n * spine.w + (n - 1) * spine.gap) / 2;
     const top = Math.max(200, viewH / 2 - spine.h / 2 + 10);
     return tracks().map((id, index) => ({ id, index, x: left + index * (spine.w + spine.gap), y: top, w: spine.w, h: spine.h }));
   }
@@ -121,7 +127,7 @@ export class RecordShelf {
     ctx.fillStyle = s.colors.title;
     ctx.font = font(30, true);
     // 上の端は知らせと音の表示が出るので、見出しは少し下げる
-    ctx.fillText(s.title, viewW / 2, 104);
+    ctx.fillText(s.title, this.#shelfCx(viewW), 104);
     // 持っている豆コイン（右上。音の表示の下）
     const have = `${CONFIG.coins.name} ${coinText(coins())}`;
     ctx.font = font(15);
@@ -132,6 +138,7 @@ export class RecordShelf {
 
     const items = this.#items(viewW, viewH);
     this.#drawShelf(ctx, items, t);
+    this.#drawFramed(ctx, viewW, viewH, items);
 
     // 選んでいる曲の説明
     const id = tracks()[this.index];
@@ -139,16 +146,16 @@ export class RecordShelf {
     ctx.textAlign = 'center';
     ctx.fillStyle = CONFIG.colors.text;
     ctx.font = font(18, true);
-    ctx.fillText(trackName(id), viewW / 2, bottom + 52);
+    ctx.fillText(trackName(id), this.#shelfCx(viewW), bottom + 52);
     ctx.font = font(14);
     ctx.fillStyle = s.colors.sub;
-    ctx.fillText(CONFIG.audio.music[id].mood, viewW / 2, bottom + 78);
+    ctx.fillText(CONFIG.audio.music[id].mood, this.#shelfCx(viewW), bottom + 78);
     ctx.font = font(15, true);
     ctx.fillStyle = s.colors.accent;
-    ctx.fillText(this.#statusText(id), viewW / 2, bottom + 106);
+    ctx.fillText(this.#statusText(id), this.#shelfCx(viewW), bottom + 106);
     if (this.message && performance.now() - this.message.at < 2000) {
       ctx.fillStyle = s.colors.warn;
-      ctx.fillText(this.message.text, viewW / 2, bottom + 130);
+      ctx.fillText(this.message.text, this.#shelfCx(viewW), bottom + 130);
     }
     ctx.font = font(13);
     ctx.fillStyle = s.colors.sub;
@@ -388,6 +395,59 @@ export class RecordShelf {
     ctx.textBaseline = 'middle';
     const top = y + h / 2 - ((name.length - 1) * size) / 2;
     [...name].forEach((ch, i) => ctx.fillText(ch, x + w / 2, top + i * size));
+  }
+
+  // 棚のまん中の x。右にジャケットの額を飾るので、棚を左に寄せる
+  #shelfCx(viewW) {
+    return viewW * cfg().jacket.shelfX;
+  }
+
+  // ジャケット 1 枚。まだ買っていない曲は暗くする
+  #drawJacket(ctx, id, x, y, size) {
+    const img = this.jackets[id];
+    if (img?.complete && img.naturalWidth) {
+      ctx.drawImage(img, x, y, size, size);
+    } else {
+      ctx.fillStyle = cfg().covers[id].main;
+      ctx.fillRect(x, y, size, size);
+    }
+    if (!ownsTrack(id)) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.fillRect(x, y, size, size);
+    }
+  }
+
+  // 棚の右の壁に、選んでいる曲のジャケットを木と真鍮の額に入れて飾る
+  #drawFramed(ctx, viewW, viewH, items) {
+    const w = cfg().wood;
+    const first = items[0];
+    const last = items[items.length - 1];
+    const shelfRight = last.x + last.w + 80;
+    const size = Math.min(cfg().jacket.size, viewH * 0.45, viewW - shelfRight - 100);
+    // 画面がせまくて額が入らないときは、飾らない
+    if (size < 80) return;
+    const x = (shelfRight + viewW) / 2 - size / 2;
+    const y = first.y + first.h / 2 - size / 2 - 10;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.fillRect(x - 8, y - 4, size + 28, size + 28);
+    ctx.fillStyle = w.top;
+    ctx.fillRect(x - 16, y - 16, size + 32, size + 32);
+    ctx.strokeStyle = w.dark;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - 10, y - 10, size + 20, size + 20);
+    ctx.fillStyle = w.brass;
+    ctx.fillRect(x - 4, y - 4, size + 8, size + 8);
+    this.#drawJacket(ctx, tracks()[this.index], x, y, size);
+    // 額を吊る紐と金具
+    ctx.strokeStyle = w.brass;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + size * 0.2, y - 16);
+    ctx.lineTo(x + size / 2, y - 60);
+    ctx.lineTo(x + size * 0.8, y - 16);
+    ctx.stroke();
+    ctx.fillStyle = w.brass;
+    ctx.fillRect(x + size / 2 - 5, y - 66, 10, 10);
   }
 
   #idOf(cover) {
