@@ -13,7 +13,7 @@ export class Mug extends Weapon {
   }
 
   baseStats() {
-    return { count: 1, spreadDeg: 0, sizeRate: 1, rangeRate: 1, speedRate: 1 };
+    return { count: 2, spreadDeg: 0, sizeRate: 1, rangeRate: 0.5, speedRate: 0.6 };
   }
 
   update(dt) {

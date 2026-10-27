@@ -14,7 +14,7 @@ export class Shockwave extends Weapon {
   }
 
   baseStats() {
-    return { minCaffeineRatio: this.config.minCaffeineRatio, radiusRate: 1, knockbackRate: 1, waves: 1, waveGapSec: 0, caffeineCost: 0 };
+    return { minCaffeineRatio: this.config.minCaffeineRatio, radiusRate: 0.3, knockbackRate: 1, waves: 1, waveGapSec: 0, caffeineCost: 0 };
   }
 
   update(dt) {

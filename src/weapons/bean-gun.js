@@ -11,7 +11,7 @@ export class BeanGun extends Weapon {
 
   baseStats() {
     const c = this.config;
-    return { count: c.baseCount ?? 1, spreadDeg: c.baseSpreadDeg ?? 0, flightRate: c.flightRate, rangeRate: 1, pierce: 1, damageRate: 1 };
+    return { count: c.baseCount ?? 1, spreadDeg: c.baseSpreadDeg ?? 0, flightRate: c.flightRate, rangeRate: 1, pierce: 1, damageRate: 0.3 };
   }
 
   // pierce は 1 つの豆が当たれる敵の数。true なら何体でも

@@ -13,7 +13,7 @@ export class Drip extends Weapon {
   }
 
   baseStats() {
-    return { drops: this.config.drops, radiusRate: 1, rainRate: 1, linger: false, damageRate: 1 };
+    return { drops: this.config.drops, radiusRate: 0.5, rainRate: 0.5, linger: false, damageRate: 1 };
   }
 
   update(dt) {
