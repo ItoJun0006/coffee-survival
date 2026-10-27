@@ -154,6 +154,19 @@ export const CONFIG = {
       copyDamageRate: 0.7, copyGlow: '#9fe3ff',
       roastIds: ['medium', 'dark'], size: 0.62, gap: 0.55, hand: '#e9c79a',
     },
+    // 豆の形（shape）。ふつうの豆は楕円で、shape のあるキャラだけこの形で描く。値は r に対する割合。
+    // drop（しずく形。リベリカ大粒。2026-10-27 の朝のデザイン案から A に決めた）：start から、3 次ベジェ曲線（制御点 2 つと終点）を順につなぐ
+    shapes: {
+      drop: {
+        start: [0, -1.08],
+        curves: [
+          [0.55, -0.95, 0.92, -0.2, 0.86, 0.35],
+          [0.8, 0.85, 0.4, 1.05, 0, 1.05],
+          [-0.4, 1.05, -0.8, 0.85, -0.86, 0.35],
+          [-0.92, -0.2, -0.55, -0.95, 0, -1.08],
+        ],
+      },
+    },
     // 新しいキャラを足すために外した品種（仕様 016 FR-022。カティモールはクリエイター豆、マラゴジッペはドラゴン豆、パカマラは双子豆のため、仕様 021・022・080）。前に買っていた人には、値段の豆コインを返す
     removedVarieties: [{ id: 'kent', price: 220 }, { id: 'catimor', price: 300 }, { id: 'maragogipe', price: 340 }, { id: 'pacamara', price: 320 }],
     // 特別なキャラ。require の条件を満たすと仕入れられるようになり、price の豆コインで買う（仕様 016 FR-018）。
@@ -165,7 +178,7 @@ export const CONFIG = {
     // drawScale は見た目の大きさの倍率（当たる範囲は変わらない）
     specials: [
       {
-        id: 'liberica-large', name: 'リベリカ大粒', drawScale: 1.15, price: 150,
+        id: 'liberica-large', name: 'リベリカ大粒', drawScale: 1.15, price: 150, shape: 'drop',
         origin: '大きくて硬いリベリカ種の豆', desc: 'カフェインの上限がとても多い',
         roast: { trait: '体力', color: '#7b5434', crease: '#3f2614', speedRate: 0.85, maxCaffeine: 180, damageRate: 1, attackIntervalRate: 1.05 },
         require: { type: 'bossDefeat', text: 'ボスを倒してクリアする' },

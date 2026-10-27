@@ -1,6 +1,6 @@
 // 豆コインの絵と表示（仕様 016）：豆コインの絵、品種を買うメニュー風のポップアップ、結果画面の数え上げ
 import { CONFIG } from './config.js';
-import { drawCharacter } from './entities/player.js';
+import { beanBodyPath, drawCharacter } from './entities/player.js';
 import { drawBadgeIcon } from './entities/bean-badge.js';
 import { font } from './font.js';
 
@@ -72,8 +72,7 @@ export function drawMenuPopup(ctx, cx, cy, offer, have, choice) {
     } else {
       ctx.globalAlpha = m.shadowAlpha;
       ctx.fillStyle = ch.roast.color;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 22 * 0.82, 22 * 1.05, 0, 0, Math.PI * 2);
+      beanBodyPath(ctx, ch, 22 * (ch.drawScale ?? 1));
       ctx.fill();
     }
     ctx.restore();
