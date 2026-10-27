@@ -13,7 +13,7 @@ export class Steam extends Weapon {
   }
 
   baseStats() {
-    return { angleDeg: this.config.angleDeg, rangeRate: 1, directionsDeg: [0], knockbackRate: 1, damageRate: 1 };
+    return { angleDeg: this.config.angleDeg, rangeRate: 0.4, directionsDeg: [0], knockbackRate: 1, damageRate: 1 };
   }
 
   update(dt) {

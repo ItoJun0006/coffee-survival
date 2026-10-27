@@ -9,4 +9,4 @@ import { Espresso } from './espresso.js';
 import { Shockwave } from './shockwave.js';
 
 // レベル順に手に入る攻撃。先頭は最初から持っている
-export const WEAPON_ORDER = [BeanGun, Mill, Mug, Drip, Steam, Puddle, Ice, Espresso, Shockwave];
+export const WEAPON_ORDER = [BeanGun, Mill, Mug, Drip, Steam, Puddle, Ice, Shockwave]; //Espresso, 

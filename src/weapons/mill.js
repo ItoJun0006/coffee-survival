@@ -11,7 +11,7 @@ export class Mill extends Weapon {
   }
 
   baseStats() {
-    return { count: this.config.count, bladeRate: 1, spinRate: 1, knockbackRate: 1, hitCooldownRate: 1 };
+    return { count: this.config.count, bladeRate: 1, spinRate: 0.6, knockbackRate: 1, hitCooldownRate: 1 };
   }
 
   get orbitRadius() {
