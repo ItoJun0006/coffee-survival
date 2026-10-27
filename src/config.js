@@ -402,11 +402,21 @@ export const CONFIG = {
   // レコード棚（仕様 039）：タイトルから入り、豆コインで BGM を買って選ぶ。price は 1 曲の値段（最初の曲は買わなくてよい）。
   // style は見た目の案（3 案から選ぶ）。jackets は曲ごとのジャケットの色
   recordShelf: {
-    style: 'A',
     price: 150,
     title: 'レコード棚',
     button: '♪ レコード棚（R キー）',
-    jackets: { normal: '#7a4f2e', morningBlend: '#e0a238', midnightDrip: '#2e3f6e', cafeBossa: '#3f7a4f' },
+    // 背表紙。style は装丁の案（3 案から選ぶ）、w・h・gap は 1 冊の幅・高さ・すき間（px）
+    spine: { style: 'A', w: 92, h: 270, gap: 16 },
+    // 曲ごとの装丁の色。シック（いつもの一杯・真夜中のハンドドリップ）とポップ（モーニングブレンド・ボサノバ）を 2 冊ずつ。
+    // main は地、sub は布や紙の色、accent はマーブルの差し色、foil は金箔・銀箔、paper はラベルの紙、ink はラベルの字
+    covers: {
+      normal: { main: '#4a2c1c', sub: '#6b4630', accent: '#a0784c', foil: '#d8b46a', paper: '#efe2c4', ink: '#3b2418' },
+      midnightDrip: { main: '#1d2747', sub: '#2f3d66', accent: '#7f8fb8', foil: '#c9ced8', paper: '#e6e4dc', ink: '#1d2747' },
+      morningBlend: { main: '#e8a33a', sub: '#f3c45e', accent: '#d9583a', foil: '#7a2e1c', paper: '#fff4d6', ink: '#a8381e' },
+      cafeBossa: { main: '#2f9a8a', sub: '#5cc0a8', accent: '#f08a6a', foil: '#fff1c8', paper: '#fff4e2', ink: '#1f6a5e' },
+    },
+    // 本棚の木と真鍮の色
+    wood: { back: '#2a1a12', side: '#5a3a24', top: '#7a5234', dark: '#3a2416', grain: 'rgba(0, 0, 0, 0.22)', brass: '#c9a25a' },
     texts: {
       playing: '♪ この曲を流している',
       owned: 'Enter / クリックでこの曲にする',
@@ -415,7 +425,7 @@ export const CONFIG = {
       bought: '「{name}」を買った！',
       help: '←→ で選ぶ　Enter / クリックで決定　Esc / R で戻る',
     },
-    colors: { bg: '#1b1310', title: '#f0d58a', sub: 'rgba(243, 230, 216, 0.75)', accent: '#f0d58a', warn: '#e88a6a', wood: '#5a3a24' },
+    colors: { bg: '#1b1310', title: '#f0d58a', sub: 'rgba(243, 230, 216, 0.75)', accent: '#f0d58a', warn: '#e88a6a' },
   },
   // 隠し要素。cafeAuLait：タイトルで word を打つと、豆がカフェオレ色になる（もう一度打つと戻る。仕様 037）
   secrets: {

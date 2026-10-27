@@ -101,20 +101,13 @@ export class RecordShelf {
     this.toast(texts.bought.replace('{name}', trackName(id)));
   }
 
+  // 背表紙の並び。棚の飾りの分だけ、上下に余白をとる
   #items(viewW, viewH) {
-    const s = cfg();
+    const { spine } = cfg();
     const n = tracks().length;
-    if (s.style === 'C') {
-      const w = Math.min(520, viewW - 64);
-      const h = 64;
-      const top = viewH / 2 - 40;
-      return tracks().map((id, index) => ({ id, index, x: (viewW - w) / 2, y: top + index * (h + 10), w, h }));
-    }
-    const size = s.style === 'B' ? { w: 70, h: 240 } : { w: 170, h: 170 };
-    const gap = s.style === 'B' ? 14 : 28;
-    const left = (viewW - (n * size.w + (n - 1) * gap)) / 2;
-    const top = viewH / 2 - size.h / 2 + 30;
-    return tracks().map((id, index) => ({ id, index, x: left + index * (size.w + gap), y: top, ...size }));
+    const left = (viewW - (n * spine.w + (n - 1) * spine.gap)) / 2;
+    const top = Math.max(200, viewH / 2 - spine.h / 2 + 10);
+    return tracks().map((id, index) => ({ id, index, x: left + index * (spine.w + spine.gap), y: top, w: spine.w, h: spine.h }));
   }
 
   draw(ctx, viewW, viewH) {
@@ -128,18 +121,17 @@ export class RecordShelf {
     ctx.fillStyle = s.colors.title;
     ctx.font = font(30, true);
     // 上の端は知らせと音の表示が出るので、見出しは少し下げる
-    ctx.fillText(s.title, viewW / 2, 116);
-    // 持っている豆コイン（見出しの下）
+    ctx.fillText(s.title, viewW / 2, 104);
+    // 持っている豆コイン（右上。音の表示の下）
     const have = `${CONFIG.coins.name} ${coinText(coins())}`;
     ctx.font = font(15);
+    ctx.textAlign = 'right';
     ctx.fillStyle = CONFIG.colors.text;
-    ctx.fillText(have, viewW / 2 + 9, 150);
-    drawCoin(ctx, viewW / 2 - ctx.measureText(have).width / 2 - 6, 150, 7);
+    ctx.fillText(have, viewW - 20, 56);
+    drawCoin(ctx, viewW - 20 - ctx.measureText(have).width - 12, 56, 7);
 
     const items = this.#items(viewW, viewH);
-    if (s.style === 'B') this.#drawShelf(ctx, items, t);
-    else if (s.style === 'C') this.#drawJukebox(ctx, items, viewW, t);
-    else this.#drawJackets(ctx, items, t);
+    this.#drawShelf(ctx, items, t);
 
     // 選んでいる曲の説明
     const id = tracks()[this.index];
@@ -147,18 +139,16 @@ export class RecordShelf {
     ctx.textAlign = 'center';
     ctx.fillStyle = CONFIG.colors.text;
     ctx.font = font(18, true);
-    if (s.style !== 'C') {
-      ctx.fillText(trackName(id), viewW / 2, bottom + 44);
-      ctx.font = font(14);
-      ctx.fillStyle = s.colors.sub;
-      ctx.fillText(CONFIG.audio.music[id].mood, viewW / 2, bottom + 70);
-    }
+    ctx.fillText(trackName(id), viewW / 2, bottom + 52);
+    ctx.font = font(14);
+    ctx.fillStyle = s.colors.sub;
+    ctx.fillText(CONFIG.audio.music[id].mood, viewW / 2, bottom + 78);
     ctx.font = font(15, true);
     ctx.fillStyle = s.colors.accent;
-    ctx.fillText(this.#statusText(id), viewW / 2, bottom + (s.style === 'C' ? 40 : 100));
+    ctx.fillText(this.#statusText(id), viewW / 2, bottom + 106);
     if (this.message && performance.now() - this.message.at < 2000) {
       ctx.fillStyle = s.colors.warn;
-      ctx.fillText(this.message.text, viewW / 2, bottom + (s.style === 'C' ? 66 : 126));
+      ctx.fillText(this.message.text, viewW / 2, bottom + 130);
     }
     ctx.font = font(13);
     ctx.fillStyle = s.colors.sub;
@@ -209,128 +199,198 @@ export class RecordShelf {
     ctx.restore();
   }
 
-  // A：正方形のジャケットを横に並べる。選んでいるジャケットからは、レコード盤が上に出てくる
-  #drawJackets(ctx, items, t) {
-    const s = cfg();
-    for (const it of items) {
-      const sel = it.index === this.index;
-      const color = s.jackets[it.id];
-      if (sel) this.#disc(ctx, it.x + it.w / 2, it.y - 10, it.w * 0.42, color, t, it.id === currentTrack());
-      ctx.save();
-      if (sel) {
-        ctx.shadowColor = s.colors.accent;
-        ctx.shadowBlur = 20;
-      }
-      ctx.fillStyle = color;
-      ctx.fillRect(it.x, it.y, it.w, it.h);
-      ctx.restore();
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-      ctx.fillRect(it.x, it.y + it.h - 34, it.w, 34);
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#fff8ee';
-      ctx.font = font(13, true);
-      ctx.fillText(this.#tag(it.id), it.x + it.w / 2, it.y + it.h - 17);
-      // ジャケットの絵：曲ごとの丸い模様
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
-      ctx.beginPath();
-      ctx.arc(it.x + it.w / 2, it.y + it.h * 0.42, it.w * 0.24, 0, Math.PI * 2);
-      ctx.fill();
-      if (!ownsTrack(it.id)) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-        ctx.fillRect(it.x, it.y, it.w, it.h - 34);
-      }
-      if (sel) {
-        ctx.strokeStyle = s.colors.accent;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(it.x, it.y, it.w, it.h);
-      }
-    }
-  }
-
-  // B：木の棚に背表紙が並ぶ。選んでいる 1 枚は手前に少し引き出され、上でレコード盤が回る
+  // アンティークの本棚（仕様 039）：彫りの入った冠と台、真鍮の金具、木目の側板。上の右端でレコード盤が回る。
+  // 背表紙の装丁は spine.style（3 案）で描き分け、曲ごとに「シック」か「ポップ」の色を使う
   #drawShelf(ctx, items, t) {
     const s = cfg();
+    const w = s.wood;
     const first = items[0];
     const last = items[items.length - 1];
-    const shelfX = first.x - 30;
-    const shelfW = last.x + last.w - first.x + 60;
-    ctx.fillStyle = s.colors.wood;
-    ctx.fillRect(shelfX, first.y + first.h, shelfW, 16);
-    ctx.fillRect(shelfX, first.y - 20, 12, first.h + 36);
-    ctx.fillRect(shelfX + shelfW - 12, first.y - 20, 12, first.h + 36);
-    const sel = items[this.index];
-    this.#disc(ctx, sel.x + sel.w / 2, sel.y - 60, 46, s.jackets[sel.id], t, sel.id === currentTrack());
-    for (const it of items) {
-      const on = it.index === this.index;
-      const dy = on ? -18 : 0;
+    const x0 = first.x - 46;
+    const x1 = last.x + last.w + 46;
+    const y0 = first.y - 34;
+    const y1 = first.y + first.h + 18;
+    // 奥の板
+    ctx.fillStyle = w.back;
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.lineWidth = 1;
+    for (let x = x0 + 18; x < x1; x += 36) {
+      ctx.beginPath();
+      ctx.moveTo(x, y0);
+      ctx.lineTo(x, y1);
+      ctx.stroke();
+    }
+    // 側板（木目の線）
+    for (const sx of [x0 - 22, x1]) {
+      ctx.fillStyle = w.side;
+      ctx.fillRect(sx, y0 - 10, 22, y1 - y0 + 34);
+      ctx.strokeStyle = w.grain;
+      for (let k = 0; k < 5; k++) {
+        ctx.beginPath();
+        ctx.moveTo(sx + 4 + k * 3.5, y0 - 6);
+        ctx.bezierCurveTo(sx + 2 + k * 3.5, y0 + 80, sx + 8 + k * 3.5, y1 - 80, sx + 4 + k * 3.5, y1 + 20);
+        ctx.stroke();
+      }
+    }
+    // 冠（上の飾り）：段のついた板と、波形の彫り
+    ctx.fillStyle = w.top;
+    ctx.fillRect(x0 - 34, y0 - 26, x1 - x0 + 68, 18);
+    ctx.fillStyle = w.side;
+    ctx.fillRect(x0 - 26, y0 - 10, x1 - x0 + 52, 12);
+    ctx.fillStyle = w.dark;
+    for (let x = x0 - 20; x < x1 + 20; x += 16) {
+      ctx.beginPath();
+      ctx.arc(x + 8, y0 + 2, 5, 0, Math.PI);
+      ctx.fill();
+    }
+    // 台（下の飾り）と、真鍮の金具
+    ctx.fillStyle = w.top;
+    ctx.fillRect(x0 - 30, y1, x1 - x0 + 60, 16);
+    ctx.fillStyle = w.side;
+    ctx.fillRect(x0 - 24, y1 + 16, x1 - x0 + 48, 10);
+    ctx.fillStyle = w.brass;
+    for (const bx of [x0 - 18, x1 + 4]) {
+      ctx.fillRect(bx, y0 - 4, 14, 14);
+      ctx.fillRect(bx, y1 - 10, 14, 14);
+    }
+    ctx.fillStyle = w.dark;
+    for (const bx of [x0 - 18, x1 + 4]) {
+      ctx.fillRect(bx + 5, y0 + 1, 4, 4);
+      ctx.fillRect(bx + 5, y1 - 5, 4, 4);
+    }
+    // 冠の上で回るレコード盤（流している曲のラベル色）
+    const playing = currentTrack();
+    this.#disc(ctx, x1 - 30, y0 - 58, 30, s.covers[playing].main, t, true);
+    ctx.fillStyle = w.brass;
+    ctx.fillRect(x1 - 4, y0 - 82, 4, 40);
+
+    for (const it of items) this.#drawSpine(ctx, it, it.index === this.index);
+  }
+
+  // 背表紙 1 冊。選んでいる 1 冊は手前に引き出す（少し上にずらし、影を付ける）
+  #drawSpine(ctx, it, on) {
+    const s = cfg();
+    const c = s.covers[it.id];
+    const style = s.spine.style;
+    const x = it.x;
+    const y = it.y + (on ? -16 : 0);
+    const { w, h } = it;
+    ctx.save();
+    if (on) {
+      ctx.shadowColor = s.colors.accent;
+      ctx.shadowBlur = 16;
+    }
+    ctx.fillStyle = c.main;
+    ctx.fillRect(x, y, w, h);
+    ctx.restore();
+    // 丸みの陰影：左右の端を暗く、少し左を明るく
+    const g = ctx.createLinearGradient(x, 0, x + w, 0);
+    g.addColorStop(0, 'rgba(0, 0, 0, 0.35)');
+    g.addColorStop(0.25, 'rgba(255, 255, 255, 0.12)');
+    g.addColorStop(0.7, 'rgba(0, 0, 0, 0)');
+    g.addColorStop(1, 'rgba(0, 0, 0, 0.4)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x, y, w, h);
+
+    if (style === 'B') {
+      // 布の装丁：細かい布目と、貼った紙のラベル
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
+      ctx.lineWidth = 1;
+      for (let yy = y + 2; yy < y + h; yy += 3) {
+        ctx.beginPath();
+        ctx.moveTo(x, yy);
+        ctx.lineTo(x + w, yy);
+        ctx.stroke();
+      }
+      ctx.fillStyle = c.sub;
+      ctx.fillRect(x, y + 10, w, 6);
+      ctx.fillRect(x, y + h - 16, w, 6);
+      this.#label(ctx, x + 10, y + 34, w - 20, h - 110, c, true);
+    } else if (style === 'C') {
+      // 古書の装丁：上下は革、まん中はマーブル模様の紙
+      const mid = { y: y + 46, h: h - 112 };
       ctx.save();
-      if (on) {
-        ctx.shadowColor = s.colors.accent;
-        ctx.shadowBlur = 18;
+      ctx.beginPath();
+      ctx.rect(x, mid.y, w, mid.h);
+      ctx.clip();
+      ctx.fillStyle = c.sub;
+      ctx.fillRect(x, mid.y, w, mid.h);
+      ctx.lineWidth = 3;
+      for (let k = 0; k < 14; k++) {
+        ctx.strokeStyle = k % 2 ? c.main : c.accent;
+        ctx.globalAlpha = 0.55;
+        ctx.beginPath();
+        for (let yy = 0; yy <= mid.h; yy += 6) {
+          const xx = x + ((k * 13) % w) + Math.sin(yy / 18 + k) * 10;
+          if (yy === 0) ctx.moveTo(xx, mid.y + yy);
+          else ctx.lineTo(xx, mid.y + yy);
+        }
+        ctx.stroke();
       }
-      ctx.fillStyle = s.jackets[it.id];
-      ctx.fillRect(it.x, it.y + dy, it.w, it.h);
       ctx.restore();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-      ctx.fillRect(it.x + 6, it.y + dy, 4, it.h);
-      // 背表紙の曲名（縦に 1 文字ずつ）
-      ctx.fillStyle = '#fff8ee';
-      ctx.font = font(13, true);
-      ctx.textAlign = 'center';
-      const name = trackName(it.id).replace(/[・ ]/g, '').slice(0, 10);
-      [...name].forEach((ch, i) => ctx.fillText(ch, it.x + it.w / 2, it.y + dy + 18 + i * 17));
-      ctx.font = font(11, true);
-      ctx.fillText(this.#tag(it.id), it.x + it.w / 2, it.y + dy + it.h - 14);
-      if (!ownsTrack(it.id)) {
+      ctx.strokeStyle = c.foil;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, mid.y);
+      ctx.lineTo(x + w, mid.y);
+      ctx.moveTo(x, mid.y + mid.h);
+      ctx.lineTo(x + w, mid.y + mid.h);
+      ctx.stroke();
+      this.#label(ctx, x + 12, mid.y + 20, w - 24, mid.h - 40, c, true);
+    } else {
+      // 革と金箔の装丁：背の盛り上がり（バンド）と、金の枠の中の曲名
+      for (const by of [y + 18, y + 44, y + h - 70, y + h - 44]) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.fillRect(it.x, it.y + dy, it.w, it.h - 28);
+        ctx.fillRect(x, by + 4, w, 3);
+        ctx.fillStyle = c.foil;
+        ctx.fillRect(x + 4, by, w - 8, 2);
+        ctx.fillRect(x + 4, by + 6, w - 8, 1);
       }
+      this.#label(ctx, x + 8, y + 58, w - 16, h - 140, c, false);
+    }
+    // 下の札：値段か、持っている・再生中
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = font(12, true);
+    ctx.fillStyle = c.foil;
+    ctx.fillText(this.#tag(it.id), x + w / 2, y + h - 22);
+    if (!ownsTrack(it.id)) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.32)';
+      ctx.fillRect(x, y, w, h - 36);
+    }
+    if (on) {
+      ctx.strokeStyle = s.colors.accent;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, w, h);
     }
   }
 
-  // C：ジュークボックス：上にアーチと回る盤、下に曲名の札が縦に並ぶ
-  #drawJukebox(ctx, items, viewW, t) {
-    const s = cfg();
-    const first = items[0];
-    const boxX = first.x - 24;
-    const boxW = first.w + 48;
-    const top = first.y - 150;
-    ctx.fillStyle = s.colors.wood;
-    ctx.beginPath();
-    ctx.moveTo(boxX, first.y + items.length * (first.h + 10) + 10);
-    ctx.lineTo(boxX, top + boxW / 2);
-    ctx.arc(boxX + boxW / 2, top + boxW / 2, boxW / 2, Math.PI, 0);
-    ctx.lineTo(boxX + boxW, first.y + items.length * (first.h + 10) + 10);
-    ctx.closePath();
-    ctx.fill();
-    ctx.save();
-    ctx.globalAlpha = 0.5 + Math.sin(t * 3) * 0.2;
-    ctx.strokeStyle = s.colors.accent;
-    ctx.lineWidth = 4;
-    ctx.stroke();
-    ctx.restore();
-    const id = tracks()[this.index];
-    this.#disc(ctx, viewW / 2, top + 110, 54, s.jackets[id], t, id === currentTrack());
-    for (const it of items) {
-      const on = it.index === this.index;
-      ctx.fillStyle = on ? s.jackets[it.id] : 'rgba(255, 248, 238, 0.08)';
-      ctx.fillRect(it.x, it.y, it.w, it.h);
-      if (on) {
-        ctx.strokeStyle = s.colors.accent;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(it.x, it.y, it.w, it.h);
-      }
-      ctx.textAlign = 'left';
-      ctx.fillStyle = ownsTrack(it.id) ? '#fff8ee' : 'rgba(255, 248, 238, 0.55)';
-      ctx.font = font(12, true);
-      ctx.fillText(`${it.index + 1}`, it.x + 14, it.y + it.h / 2);
-      ctx.font = font(16, true);
-      ctx.fillText(trackName(it.id), it.x + 40, it.y + 22);
-      ctx.font = font(12);
-      ctx.fillText(CONFIG.audio.music[it.id].mood, it.x + 40, it.y + 46);
-      ctx.textAlign = 'right';
-      ctx.font = font(13, true);
-      ctx.fillText(this.#tag(it.id), it.x + it.w - 14, it.y + it.h / 2);
+  // 背表紙の曲名：縦に 1 文字ずつ。paper のときは紙のラベル、そうでなければ金の細い枠
+  #label(ctx, x, y, w, h, c, paper) {
+    if (paper) {
+      ctx.fillStyle = c.paper;
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = c.main;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+    } else {
+      ctx.strokeStyle = c.foil;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x, y, w, h);
+      ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
     }
+    const name = trackName(this.#idOf(c)).replace(/[・ ]/g, '');
+    const size = Math.min(15, (h - 16) / name.length);
+    ctx.font = font(size, true);
+    ctx.fillStyle = paper ? c.ink : c.foil;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const top = y + h / 2 - ((name.length - 1) * size) / 2;
+    [...name].forEach((ch, i) => ctx.fillText(ch, x + w / 2, top + i * size));
+  }
+
+  #idOf(cover) {
+    return Object.keys(cfg().covers).find((id) => cfg().covers[id] === cover);
   }
 }
