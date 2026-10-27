@@ -245,10 +245,11 @@ export const CONFIG = {
   coins: {
     name: '豆コイン',
     unit: '枚',
-    perMinute: 5,
-    killsPerCoin: 100,
-    clear: 30,
-    extraClear: 40,
+    // 2026-10-27 にすべて 2 倍にした（1 分 5 → 10 枚・100 体 → 50 体ごと・クリア 30 → 60 枚・エクストラ 40 → 80 枚。仕様 082）
+    perMinute: 10,
+    killsPerCoin: 50,
+    clear: 60,
+    extraClear: 80,
     // 結果画面の数え上げ。rowSec：行が出る間隔、countSec：1 行を数え上げる時間、totalSec：合計に足す時間（秒）
     tally: {
       rowSec: 0.45, countSec: 0.6, totalSec: 0.6,
@@ -275,6 +276,9 @@ export const CONFIG = {
       colors: { shield: '#3d5a8f', rim: '#f2c94c', bean: '#6b3f1f', crease: '#2e1808', glow: 'rgba(255, 230, 140, 0.35)' },
       texts: { picked: '豆の証を拾った！（クリアすると自分のものになる）', row: '豆の証 ×{n}（+{p}%）', overflow: '豆の証（{max} 個をこえた分）×{n}' },
     },
+    // 豆をがまんした（仕様 082）：1 回のプレイで出た珈琲豆（偽物を除く）のうち、拾わなかった割合 × max 枚 ×（生き延びた時間 ÷ fullSec 秒。1 まで）。
+    // やられてももらえる。豆の証の倍率はかけない。豆が 1 つも出なかったプレイ（クリエイター豆など）はもらえない
+    abstain: { max: 100, fullSec: 600, label: '豆をがまんした', detail: '（拾った豆 {picked} / {total} 個）' },
     texts: {
       unlocked: '新しい品種『{name}』が解放された！（浅煎り・中煎り・深煎り）',
       unlockedOne: '新しいキャラ『{name}』が解放された！',
