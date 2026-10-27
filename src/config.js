@@ -266,6 +266,15 @@ export const CONFIG = {
     },
     // 値段が足りている鍵の色
     affordableLock: '#f0d58a',
+    // 豆の証（仕様 081）：1 面の手下を倒すと dropChance の確率で落ちる（1 回のクリアで約 3,400 体倒すので、10 回のクリアで約 1 個）。
+    // 拾った証は、そのプレイをクリアしたときだけ自分のものになり、ずっと持ち続ける（max 個まで）。持っている 1 個につき、
+    // 結果画面でもらう豆コインが ratePer ずつ増える（足し算。10 個で 2 倍）。max 個持っているときに拾った分は overflowCoins 枚になる。
+    // 見た目は青い盾に金のふちと豆（shield・rim・bean・crease）。落ちている証は radius の大きさで、glow の光の輪を付ける
+    badge: {
+      name: '豆の証', max: 10, ratePer: 0.1, dropChance: 1 / 34000, overflowCoins: 50, radius: 10,
+      colors: { shield: '#3d5a8f', rim: '#f2c94c', bean: '#6b3f1f', crease: '#2e1808', glow: 'rgba(255, 230, 140, 0.35)' },
+      texts: { picked: '豆の証を拾った！（クリアすると自分のものになる）', row: '豆の証 ×{n}（+{p}%）', overflow: '豆の証（{max} 個をこえた分）×{n}' },
+    },
     texts: {
       unlocked: '新しい品種『{name}』が解放された！（浅煎り・中煎り・深煎り）',
       unlockedOne: '新しいキャラ『{name}』が解放された！',
@@ -286,7 +295,8 @@ export const CONFIG = {
   },
   player: {
     radius: 18,
-    speed: 220,
+    // 歩く速さのもとの値（2026-10-24 に 220 から 0.7 倍の 154 にした）
+    speed: 154,
     maxCaffeine: 100,
     caffeineDecayPerSec: 2.5,
     invincibleSec: 0.6,
@@ -357,6 +367,16 @@ export const CONFIG = {
     card: { bg: '#1f2a24', edge: '#6b4a2c', edgeWidth: 7, text: '#f3efe6', sub: 'rgba(243, 239, 230, 0.8)', muted: 'rgba(243, 239, 230, 0.25)' },
     // 種類ごとの色（カードの帯・選んでいるときの光）
     kindColors: { weapon: '#d9a066', item: '#8fc7a0', bonus: '#f0d58a', carry: '#b9a0e0', coins: '#f2c94c' },
+    // ドラゴン豆の「もう 1 つ選ぶ」の 4 枚目のカード「竜の宝」（仕様 038）。値段と回数は characters.dragon
+    extraPick: {
+      title: '竜の宝',
+      name: 'もう 1 つ選ぶ',
+      leadTwo: '竜の宝で、2 つ選べる！ 1 つ目を選ぶ',
+      leadOne: 'もう 1 つ選ぶ',
+      notEnough: '豆コインが足りない',
+      usedUp: 'このプレイではもう使えない',
+      colors: { gold: '#e8c060', scaleBg: '#173d24', scale: 'rgba(120, 200, 140, 0.25)', text: '#f3efe6' },
+    },
     // エナジードリンク（仕様 033）：カードの代わりに描く缶。sizeRate はカードの高さに対する缶の高さ、widthRate は缶の高さに対する幅。
     // bobPx・bobSpeed は上下に揺れる幅（px）と速さ、tiltRad は傾きの最大（ラジアン）、bubbles は泡の数
     drink: {
@@ -378,6 +398,16 @@ export const CONFIG = {
     default: 100,
     label: '攻撃の見え方',
     previewBackdrop: 0.15,
+  },
+  // 隠し要素。cafeAuLait：タイトルで word を打つと、豆がカフェオレ色になる（もう一度打つと戻る。仕様 037）
+  secrets: {
+    cafeAuLait: {
+      word: 'COFFEE',
+      onText: '隠しコマンド！ 豆がカフェオレ色になった',
+      offText: 'カフェオレ色をやめた',
+      // カフェオレ色（3 案から A）。color は豆の色、crease は割れ目の色
+      look: { color: '#c49a6c', crease: '#7a5232' },
+    },
   },
   // ステータス強化アイテム。perLevel は 1 段階（Lv）ごとの効果。最大 Lv は weaponLevels.max と同じ
   items: {
@@ -450,6 +480,10 @@ export const CONFIG = {
       //   あふれた割合が perBlade たまるごとに刃を 1 枚足す（maxExtra 枚まで）。ピーベリーは数が 1 のままなので足さない
       name: 'ミル・トルネード', desc: '2 枚の刃が\nまわりを回り続け、\n敵を押し返す', element: 'none', count: 2, orbitRadius: 70, bladeRadius: 12, angularSpeed: 3, damage: 1, hitCooldownSec: 0.5, knockback: 200,
       overflow: { perBlade: 0.2, maxExtra: 6 },
+      // slowSpin：Lv untilLevel になるまでは、回る速さを rate 倍にする（2026-10-24）
+      slowSpin: { untilLevel: 8, rate: 0.5 },
+      // focusSpinExp：ピーベリーは刃が 1 枚になる代わりに、回る速さを「本来の刃の数 ^ focusSpinExp」倍にする（1 なら枚数と同じ倍率。2026-10-24）
+      focusSpinExp: 1,
       // limitBreak：限界突破（Lv 9 から）では、everyLevels Lv ごとに刃を 1 枚足し、刃の大きさを shrinkRate 倍にする。
       // fitRate：どの Lv でも、刃どうしが重ならないよう、刃の半径を「隣の刃との距離の半分 × fitRate」までに抑える
       limitBreak: { everyLevels: 2, shrinkRate: 0.9, desc: '刃が 1 枚増え、\n少し小さくなる' },
@@ -780,6 +814,30 @@ export const CONFIG = {
     pull: { strength: 110 },
     dream: { fakeRatio: 0.4 },
   },
+  // ドラゴンのボス「まどろみ宝竜」（仕様 064）。1 面のクリアのあと、まれに挑める。出る確率はキャラ係の characters.dragon.bossChance。
+  // 体に触れたときのダメージと属性の倍率は、ネムリーヌ（boss）と同じ
+  dragonBoss: {
+    name: 'まどろみ宝竜',
+    hp: 1200,
+    radius: 85,
+    speed: 45,
+    // 竜の宝：ドラゴン豆がもう仕入れられる（2 回目以降に倒した）ときに、もらえる豆コイン
+    treasureCoins: 500,
+    // ねむけの息：intervalSec ごとに warnSec 予告してから blowSec 吐く。range・angleDeg の扇形に当たるとカフェインが caffeine 減る
+    breath: { intervalSec: 4, warnSec: 1, blowSec: 0.6, range: 420, angleDeg: 55, caffeine: 20, warn: 'rgba(190, 170, 255, 0.18)', mist: 'rgba(200, 185, 255, 0.55)' },
+    // 豆コインの雨：intervalSec ごとに count 枚を、プレイヤーから spreadRadius 以内に fallSec かけて落とす。
+    // 落ちた瞬間に hitRadius 以内ならカフェインが caffeine 減る。外れたコインは lifeSec 落ちていて、pickRadius 以内で拾うと豆コインが coins 枚入る
+    coinRain: { intervalSec: 6, count: 6, spreadRadius: 260, fallSec: 1.1, fallHeight: 260, hitRadius: 26, caffeine: 12, lifeSec: 6, pickRadius: 24, coins: 1, size: 10 },
+    colors: { body: '#1f5a2a', bodyDark: '#163f1e', line: '#0e2a13', belly: '#f3e2b8', bellyLine: '#d8c495', horn: '#f3e2b8', eye: '#f4efe6', pupil: '#1e120c', shadow: 'rgba(0, 0, 0, 0.35)' },
+    texts: {
+      offerTitle: '宝の山で眠っていた竜が、物音で目を覚ました！',
+      offerText: '挑む：Space / Enter　　やめる：Esc',
+      win: 'まどろみ宝竜を倒した！',
+      lose: '竜は宝の山に戻って、また眠った…',
+      pickup: '拾った豆コイン：{n} 枚',
+      treasure: '竜の宝を手に入れた！　豆コイン +{n}',
+    },
+  },
   // 音。BGM はブラウザの中で組み立てるローファイ調の曲（音楽ファイルは使わない）
   // chords は 1 小節ごとの和音（音名＋オクターブ）。bass は各小節の根音
   audio: {
@@ -788,11 +846,19 @@ export const CONFIG = {
     // 遊ぶ人が変えられる BGM の音量（%）。volume.music にこの割合をかける
     musicVolume: { default: 80, step: 10 },
     fadeOutSec: 2.5,
+    // 曲を切り替えるとき（普通 ⇔ ボス、曲を選び直したとき）に重ねる秒数
+    crossfadeSec: 2.5,
     crackle: 0.08,
     musicCutoffHz: 3200,
     swing: 0.28,
+    // 選べる曲の並び（ポーズメニューなどで出す順）。'normal' は最初から使える。ほかは豆コインで買う（仕様 101）
+    tracks: ['normal', 'morningBlend', 'midnightDrip', 'cafeBossa'],
+    // 曲の楽譜。chords と bass は 1 小節に 1 つ。melody は 1 小節を 8 つの記号で書く
+    // （音名で鳴らし始め、'-' はのばす、'.' は休み）。style はリズムの型（src/music/player.js）、lead はメロディーの楽器
     music: {
       normal: {
+        name: 'いつもの一杯',
+        mood: 'こもったローファイ・ジャズ。最初から使える',
         bpm: 72,
         chords: [
           ['D3', 'F3', 'A3', 'C4', 'E4'],
@@ -804,6 +870,7 @@ export const CONFIG = {
       },
       boss: {
         bpm: 80,
+        pad: true,
         chords: [
           ['A2', 'C3', 'E3', 'G3', 'B3'],
           ['F2', 'A2', 'C3', 'E3', 'G3'],
@@ -811,6 +878,70 @@ export const CONFIG = {
           ['E2', 'G#2', 'D3', 'F3'],
         ],
         bass: ['A1', 'F1', 'D2', 'E1'],
+      },
+      morningBlend: {
+        name: 'モーニングブレンド',
+        mood: '朝の光のような、明るく軽いローファイ。口笛のメロディー',
+        bpm: 80,
+        style: 'morning',
+        lead: 'whistle',
+        chords: [
+          ['F3', 'A3', 'C4', 'E4'], ['G3', 'C4', 'E4'], ['F3', 'A3', 'C4'], ['E3', 'G3', 'A#3', 'D4'],
+          ['A3', 'D4', 'F4'], ['G3', 'C4', 'E4'], ['F3', 'A#3', 'D4'], ['E3', 'G3', 'A#3', 'D4'],
+          ['F3', 'A3', 'C4', 'E4'], ['G3', 'C4', 'E4'], ['F3', 'A3', 'C4'], ['F3', 'A3', 'D4'],
+          ['A3', 'D4', 'F4'], ['G3', 'C4', 'E4'], ['F3', 'A#3', 'D4'], ['F3', 'A#3', 'D4', 'G4'],
+        ],
+        bass: ['F2', 'A1', 'D2', 'C2', 'A#1', 'A1', 'G1', 'C2', 'F2', 'A1', 'D2', 'C2', 'A#1', 'A1', 'G1', 'C2'],
+        melody: [
+          '. A5 - C6 - . A5 G5', 'E5 - - . C5 . E5 G5', 'F5 - A5 - . G5 F5 E5', 'G5 - - - . . . .',
+          '. D6 - C6 A5 - F5 .', 'G5 - E5 - . . C5 D5', 'F5 - D5 - . A#4 C5 D5', 'E5 - - - . . . .',
+          '. A5 - C6 - . A5 C6', 'E6 - - . D6 C6 . A5', 'F5 - A5 - C6 - A5 .', 'G5 - - . F5 E5 . .',
+          '. F5 A5 C6 - . D6 .', 'C6 - A5 - G5 - E5 .', 'F5 - - . G5 . A5 .', 'G5 - - - - - . .',
+        ],
+      },
+      midnightDrip: {
+        name: '真夜中のハンドドリップ',
+        mood: '雨の夜にしっとり。ゆっくりのピアノと鉄琴',
+        bpm: 64,
+        style: 'night',
+        lead: 'bell',
+        leadVel: 0.9,
+        swing: 0.18,
+        ambient: { kind: 'rain', level: 0.06 },
+        chords: [
+          ['G3', 'B3', 'C4', 'E4'], ['E3', 'A3', 'C4'], ['F3', 'A3', 'C4', 'E4'], ['G#3', 'B3', 'D4', 'F4'],
+          ['G3', 'B3', 'C4', 'E4'], ['G3', 'B3', 'E4'], ['E3', 'A3', 'C4'], ['A3', 'B3', 'D4'],
+          ['F3', 'A3', 'C4', 'E4'], ['F3', 'B3', 'D4'], ['G3', 'B3', 'E4'], ['E3', 'A3', 'C4'],
+          ['A3', 'D4', 'F4'], ['G#3', 'B3', 'D4', 'F4'], ['G3', 'B3', 'C4', 'E4'], ['A3', 'B3', 'D4'],
+        ],
+        bass: ['A1', 'F1', 'D2', 'E1', 'A1', 'C2', 'F1', 'E1', 'D2', 'G1', 'C2', 'F1', 'B1', 'E1', 'A1', 'E1'],
+        melody: [
+          'E5 - - - . B4 C5 -', 'A4 - - - . . . .', '. . F5 - E5 - D5 -', 'G#4 - - - . . B4 .',
+          'C5 - - - E5 - . .', 'G5 - - - . . E5 .', 'A5 - - G5 - - E5 -', 'D5 - - - - - . .',
+          '. . A5 - - C6 - .', 'B5 - - - A5 - G5 .', 'E5 - - - - - . .', '. . C5 - E5 - A5 .',
+          'F5 - - - D5 - . .', 'B4 - - G#4 - - . .', 'A4 - - - . . . .', '. . . . B4 - - -',
+        ],
+      },
+      cafeBossa: {
+        name: '昼下がりのカフェ・ボサノバ',
+        mood: '喫茶店の昼下がり。ギターとボサノバのリズム',
+        bpm: 100,
+        style: 'bossa',
+        lead: 'flute',
+        swing: 0,
+        chords: [
+          ['F#3', 'A3', 'C#4', 'E4'], ['D3', 'G3', 'B3'], ['E3', 'A3', 'C#4'], ['D#3', 'A3', 'C#4'],
+          ['D3', 'G3', 'B3'], ['G3', 'C#4', 'F#4'], ['F#3', 'A3', 'C#4', 'E4'], ['G3', 'D4', 'E4'],
+          ['F#3', 'B3', 'D4'], ['E3', 'A#3', 'D4'], ['E3', 'A3', 'C#4'], ['D#3', 'A3', 'C#4'],
+          ['D3', 'G3', 'B3'], ['G3', 'C#4', 'F#4'], ['F#3', 'A3', 'C#4', 'E4'], ['G3', 'C#4', 'E4'],
+        ],
+        bass: ['D2', 'E2', 'F#2', 'B1', 'E2', 'A1', 'D2', 'A1', 'G2', 'G2', 'F#2', 'B1', 'E2', 'A1', 'D2', 'A1'],
+        melody: [
+          'F#5 - - E5 F#5 - A5 -', 'G5 - - F#5 E5 - . .', 'E5 - - C#5 E5 - A5 .', 'F#5 - - - D#5 - . .',
+          'D5 - - B4 D5 - G5 -', 'E5 - C#5 - . A4 C#5 .', 'D5 - - - - - . .', '. . E5 F#5 G5 - A5 .',
+          'B5 - - A5 F#5 - D5 .', 'A#5 - - A5 G5 - E5 .', 'A5 - - - E5 - C#5 .', 'D#5 - F#5 - A5 - . .',
+          'G5 - - F#5 E5 - D5 -', 'C#5 - E5 - G5 - F#5 E5', 'F#5 - - - - - . .', '. . E5 - C#5 - A4 .',
+        ],
       },
     },
   },
