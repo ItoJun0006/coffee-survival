@@ -291,7 +291,7 @@ export const CONFIG = {
   stages: {
     main: { name: '1 面', world: { width: 2000, height: 2000 }, enemySpeedRate: 1, enemySpeedRates: {}, caffeineDecay: true, levelUpHealRate: 0, maxLevel: 8, overCapChance: 0 },
     extra: { name: 'エクストラステージ', world: { width: 1414, height: 1414 }, enemySpeedRate: 1.2, enemySpeedRates: {}, caffeineDecay: false, levelUpHealRate: 0.1, maxLevel: 16, overCapChance: 0.2,
-      enemyTimeOffsetSec: 480, enemyMaxCount: 250, bigWaveMaxCount: 330, bigWaveIntervalSec: [60, 90] },
+      enemyTimeOffsetSec: 480, enemyMaxCount: 375, bigWaveMaxCount: 375, bigWaveIntervalSec: [60, 90] },
   },
   player: {
     radius: 18,
@@ -683,7 +683,7 @@ export const CONFIG = {
     rampSec: 480,
     startGroup: 1,
     endGroup: 3,
-    maxCount: 200,
+    maxCount: 300,
     // 現れる場所（001 の FR-030）。画面の端から viewPad 外側より遠く、プレイヤーが角から cornerRadius 以内にいるときはその角から cornerRadius 以上離す。
     // 探し方：画面の外の円周上（半径を ringSteps 倍ずつ）を ringTries 回ずつ、だめならマップ全体を anywhereTries 回
     viewPad: 40,
@@ -700,8 +700,8 @@ export const CONFIG = {
     maxIntervalSec: 130,
     durationSec: 5,
     spawnRate: 3,
-    // ビッグウェーブの間だけ、同時に出ている敵の上限をこの数に上げる
-    maxCount: 280,
+    // ビッグウェーブの間の、同時に出ている敵の上限（2026-10-27 から、ふだんの上限 spawn.maxCount と同じ。仕様 009 FR-003）
+    maxCount: 300,
     stopBeforeBossSec: 30,
     title: 'ビッグウェーブ！',
     text: '眠気が押し寄せてくる…',
