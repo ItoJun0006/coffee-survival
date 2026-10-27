@@ -7,6 +7,7 @@ import { Enemy } from './entities/enemy.js';
 import { Boss } from './entities/boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
+import { BadgeField } from './entities/bean-badge.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
 import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin, noBeans, creatorGrowth, creatorXpRate, withEnergyDrink } from './characters.js';
@@ -137,6 +138,7 @@ export class Game {
     this.player.skin = wearsSkin(this.character);
     this.beans = [];
     this.xpOrbs = [];
+    this.badgeField = new BadgeField(); // 豆の証（仕様 081）
     this.enemies = [];
     this.waves = [];
     this.effects = [];
@@ -610,6 +612,7 @@ export class Game {
     this.effects = this.effects.filter((fx) => fx.alive);
     this.#collectBeans();
     this.#collectXpOrbs(dt);
+    if (this.badgeField.update(dt, this.player)) this.#toast(CONFIG.coins.badge.texts.picked); // 豆の証（仕様 081）
 
     if (!this.player.alive) this.#finish('gameover');
     else if (this.boss?.dead) this.#finish('clear');
@@ -653,6 +656,8 @@ export class Game {
     ];
     if (this.runCardCoins > 0) rows.push({ label: labels.cards, detail: `${this.runCardCoins / CONFIG.leveling.coinCard.amount} 回`, value: this.runCardCoins });
     if (cleared) rows.push(stage.id === 'extra' ? { label: labels.extraClear, value: c.extraClear } : { label: labels.clear, value: c.clear });
+    // 持っている豆の証の分（クリアなら、このプレイで拾った証を先に自分のものにする。仕様 081）
+    rows.push(...this.badgeField.settle(cleared, rows));
     const before = coins();
     addCoins(rows.reduce((sum, r) => sum + r.value, 0));
     this.coinTally = { rows, before, startedAt: performance.now(), skipped: false };
@@ -1206,6 +1211,7 @@ export class Game {
       sound.play('defeat');
       this.effects.push(new DefeatEffect(e.x, e.y, e.config.color, e.radius));
       this.#dropXp(e.x, e.y, e.config.xp);
+      this.badgeField.drop(e); // 豆の証（仕様 081）
       if (!noBeans(this.character) && Math.random() < enemyDropChance && this.beans.length < CONFIG.bean.maxCount + maxDroppedBeans) {
         this.beans.push(new Bean(e.x, e.y));
       }
@@ -1240,6 +1246,7 @@ export class Game {
       }
     });
     for (const b of this.beans) b.draw(wctx);
+    this.badgeField.draw(wctx); // 豆の証（仕様 081）
     for (const o of this.xpOrbs) o.draw(wctx);
     for (const w of this.waves) w.draw(wctx);
     for (const e of this.enemies) e.draw(wctx);

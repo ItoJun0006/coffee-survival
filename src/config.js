@@ -266,6 +266,15 @@ export const CONFIG = {
     },
     // 値段が足りている鍵の色
     affordableLock: '#f0d58a',
+    // 豆の証（仕様 081）：1 面の手下を倒すと dropChance の確率で落ちる（1 回のクリアで約 3,400 体倒すので、10 回のクリアで約 1 個）。
+    // 拾った証は、そのプレイをクリアしたときだけ自分のものになり、ずっと持ち続ける（max 個まで）。持っている 1 個につき、
+    // 結果画面でもらう豆コインが ratePer ずつ増える（足し算。10 個で 2 倍）。max 個持っているときに拾った分は overflowCoins 枚になる。
+    // 見た目は青い盾に金のふちと豆（shield・rim・bean・crease）。落ちている証は radius の大きさで、glow の光の輪を付ける
+    badge: {
+      name: '豆の証', max: 10, ratePer: 0.1, dropChance: 1 / 34000, overflowCoins: 50, radius: 10,
+      colors: { shield: '#3d5a8f', rim: '#f2c94c', bean: '#6b3f1f', crease: '#2e1808', glow: 'rgba(255, 230, 140, 0.35)' },
+      texts: { picked: '豆の証を拾った！（クリアすると自分のものになる）', row: '豆の証 ×{n}（+{p}%）', overflow: '豆の証（{max} 個をこえた分）×{n}' },
+    },
     texts: {
       unlocked: '新しい品種『{name}』が解放された！（浅煎り・中煎り・深煎り）',
       unlockedOne: '新しいキャラ『{name}』が解放された！',
