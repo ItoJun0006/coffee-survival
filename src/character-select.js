@@ -3,7 +3,7 @@ import { CHARACTERS, canBuy, canWearSkin, describeStats, groupMembers, isAvailab
 import { badges, buyVariety, coins } from './progress.js';
 import { drawBadgeIcon } from './entities/bean-badge.js';
 import { MENU_SIZE, coinText, drawCoin, drawMenuPopup } from './coin-ui.js';
-import { drawCharacter } from './entities/player.js';
+import { beanBodyPath, drawCharacter } from './entities/player.js';
 import { font } from './font.js';
 
 const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
@@ -263,7 +263,7 @@ export class CharacterSelect {
       drawCharacter(ctx, character, 22 * scale, { bob: selected ? Math.abs(Math.sin(performance.now() / 160)) : 0, skin: wearsSkin(character) });
       ctx.restore();
     } else {
-      this.#drawSilhouette(ctx, cx, cy, 22, character.placeholder ? 0.07 : 0.14);
+      this.#drawSilhouette(ctx, cx, cy, 22, character.placeholder ? 0.07 : 0.14, character);
       const price = character.unlock?.price;
       drawLock(ctx, cx, cy + 4, 10, price && canBuy(character) && coins() >= price ? CONFIG.coins.affordableLock : undefined);
     }
@@ -282,13 +282,12 @@ export class CharacterSelect {
     ctx.fillText(coinText(character.unlock.price), cx + 4, y);
   }
 
-  // まだ解放していないキャラの、うっすら見える影
-  #drawSilhouette(ctx, x, y, r, alpha) {
+  // まだ解放していないキャラの、うっすら見える影（しずく形などの形のあるキャラは、その形）
+  #drawSilhouette(ctx, x, y, r, alpha, character) {
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.fillStyle = '#f3e6d8';
-    ctx.beginPath();
-    ctx.ellipse(x, y, r * 0.82, r * 1.05, 0, 0, Math.PI * 2);
+    beanBodyPath(ctx, character, r, x, y);
     ctx.fill();
     ctx.restore();
   }
@@ -311,7 +310,7 @@ export class CharacterSelect {
       drawCharacter(ctx, sel, 42 * scale, { bob: Math.abs(Math.sin(performance.now() / 160)), skin: wearsSkin(sel) });
       ctx.restore();
     } else {
-      this.#drawSilhouette(ctx, cx, cy, 42, sel.placeholder ? 0.07 : 0.14);
+      this.#drawSilhouette(ctx, cx, cy, 42, sel.placeholder ? 0.07 : 0.14, sel);
       drawLock(ctx, cx, cy + 6, 18);
     }
 

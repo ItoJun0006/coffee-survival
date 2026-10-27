@@ -6,6 +6,19 @@ import { drawPattern } from './variety-look.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
+// 豆の体の形の道（パス）を作る。ふつうは楕円、shape のあるキャラ（リベリカ大粒のしずく形）はその形。x・y は真ん中
+export function beanBodyPath(ctx, character, r, x = 0, y = 0) {
+  ctx.beginPath();
+  const shape = character?.shape && CONFIG.characters.shapes[character.shape];
+  if (!shape) {
+    ctx.ellipse(x, y, r * 0.82, r * 1.05, 0, 0, Math.PI * 2);
+    return;
+  }
+  ctx.moveTo(x + shape.start[0] * r, y + shape.start[1] * r);
+  for (const c of shape.curves) ctx.bezierCurveTo(...c.map((v, i) => (i % 2 ? y : x) + v * r));
+  ctx.closePath();
+}
+
 // 珈琲豆のキャラを描く。look は目線の向き（長さ 0〜1）、bob は歩くときの弾み（0〜1）、skin はスキン「椿」を付けているか
 // 品種に模様（variety.pattern、仕様 016）があれば、豆の上に描く。模様は豆の輪郭の内側だけに描き、当たる範囲は変えない
 // dot はドット絵にするときのドットの大きさ（px）。0 ならなめらかな絵のまま
@@ -23,8 +36,7 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   if (character.dragon) drawDragonBack(ctx, r);
 
   ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, r * 0.82, r * 1.05, 0, 0, Math.PI * 2);
+  beanBodyPath(ctx, character, r);
   ctx.fill();
   const pattern = character.variety?.pattern;
   if (pattern) drawPattern(ctx, pattern.kind, (character.roast.id === 'light' && pattern.lightColor) || pattern.color, r, r * 0.82, r * 1.05);
@@ -58,8 +70,7 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   if (slowed) {
     ctx.globalAlpha = 0.45;
     ctx.fillStyle = CONFIG.colors.playerSlowed;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, r * 0.82, r * 1.05, 0, 0, Math.PI * 2);
+    beanBodyPath(ctx, character, r);
     ctx.fill();
   }
   ctx.restore();
