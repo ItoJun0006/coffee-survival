@@ -96,10 +96,6 @@ export const CONFIG = {
         rates: { speed: 0.95, caffeine: 0.95, damage: 1.1, interval: 1.05 }, pattern: { kind: 'spots', color: '#d9534f', lightColor: '#b0302a' },
       },
       {
-        id: 'pacamara', name: 'パカマラ', origin: 'パーカスとマラゴジッペを掛け合わせた大粒の品種', trait: '大粒', price: 320, power: 'beanHeal',
-        rates: { speed: 0.9, caffeine: 1.1, damage: 1.05, interval: 1.1 }, pattern: { kind: 'ring', color: '#f3dcb4', lightColor: '#604937' },
-      },
-      {
         id: 'yirgacheffe', name: 'イルガチェフェ', origin: 'エチオピアの産地。珈琲のふるさと', trait: '華やか', price: 360, power: 'xp',
         rates: { speed: 1.05, caffeine: 0.9, damage: 1, interval: 1 }, pattern: { kind: 'petals', color: '#fff4c2', lightColor: '#624e3a' },
       },
@@ -151,6 +147,13 @@ export const CONFIG = {
       price: 30, maxPerRun: 3, bossChance: 0.05,
       colors: { horn: '#f3e3b0', wing: '#1f5a2a' }, eyeCut: 0.55,
     },
+    // 双子豆（仕様 080）：同じ武器をいくつでも持てる（どれも攻撃の枠を 1 つ使う）。同じ武器の 2 つ目からは威力 copyDamageRate 倍で、
+    // 攻撃の間隔を N 等分した時間ずつずらして撃ち、青白い光の縁（copyGlow）を付けて描く（武器の仕組みと絵はメイン）。
+    // キャラの見た目は、roastIds の 2 粒（size は 1 粒の大きさ、gap は 2 粒の間。どちらも r に対する割合）が手（hand の色）をつなぐ形
+    twin: {
+      copyDamageRate: 0.7, copyGlow: '#9fe3ff',
+      roastIds: ['medium', 'dark'], size: 0.62, gap: 0.55, hand: '#e9c79a',
+    },
     // 豆の形（shape）。ふつうの豆は楕円で、shape のあるキャラだけこの形で描く。値は r に対する割合。
     // drop（しずく形。リベリカ大粒。2026-10-27 の朝のデザイン案から A に決めた）：start から、3 次ベジェ曲線（制御点 2 つと終点）を順につなぐ
     shapes: {
@@ -164,8 +167,8 @@ export const CONFIG = {
         ],
       },
     },
-    // 新しいキャラを足すために外した品種（仕様 016 FR-022。カティモールはクリエイター豆、マラゴジッペはドラゴン豆のため、仕様 021・022）。前に買っていた人には、値段の豆コインを返す
-    removedVarieties: [{ id: 'kent', price: 220 }, { id: 'catimor', price: 300 }, { id: 'maragogipe', price: 340 }],
+    // 新しいキャラを足すために外した品種（仕様 016 FR-022。カティモールはクリエイター豆、マラゴジッペはドラゴン豆、パカマラは双子豆のため、仕様 021・022・080）。前に買っていた人には、値段の豆コインを返す
+    removedVarieties: [{ id: 'kent', price: 220 }, { id: 'catimor', price: 300 }, { id: 'maragogipe', price: 340 }, { id: 'pacamara', price: 320 }],
     // 特別なキャラ。require の条件を満たすと仕入れられるようになり、price の豆コインで買う（仕様 016 FR-018）。
     // roast は性能と色（品種 × 焙煎度のキャラと同じ形）、origin と desc は買うポップアップに出す
     // require.type：clearCaffeine＝カフェインが上限の ratio 以上のまま 1 面をクリア、maxClears＝Lv 8 の攻撃を持ったまま 1 面をクリアした品種（特別なキャラはそれぞれ 1 種類）の数が count 以上、extraClear＝エクストラステージをクリア、bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
@@ -230,6 +233,13 @@ export const CONFIG = {
         roast: { trait: '宝の山', color: '#7a5a2e', crease: '#3d2a12', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
         require: { type: 'dragonDefeat', text: '1 面のクリア後にまれに現れる、ドラゴンのボスを倒す' },
       },
+      {
+        // 同じ武器をいくつでも持てる（仕様 080）。値は上の twin を使う。drawScale：2 粒並べると 1 粒が小さくなるので、見た目だけ大きくする
+        id: 'twin', name: '双子豆', price: 500, twin: true, drawScale: 1.2,
+        origin: 'いつも 2 粒いっしょの、ふたごの豆', desc: '同じ攻撃をいくつでも持てる。2 つ目からは威力 70%',
+        roast: { trait: 'ふたご', color: '#8b5a2b', crease: '#4e2f16', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
+        require: null,
+      },
     ],
     // 選択画面に並べるマスの数（最終目標）。まだ中身のないマスは「？？？」として鍵付きで出す
     plannedTotal: 66,
@@ -258,10 +268,11 @@ export const CONFIG = {
   coins: {
     name: '豆コイン',
     unit: '枚',
-    perMinute: 5,
-    killsPerCoin: 100,
-    clear: 30,
-    extraClear: 40,
+    // 2026-10-27 にすべて 2 倍にした（1 分 5 → 10 枚・100 体 → 50 体ごと・クリア 30 → 60 枚・エクストラ 40 → 80 枚。仕様 082）
+    perMinute: 10,
+    killsPerCoin: 50,
+    clear: 60,
+    extraClear: 80,
     // 結果画面の数え上げ。rowSec：行が出る間隔、countSec：1 行を数え上げる時間、totalSec：合計に足す時間（秒）
     tally: {
       rowSec: 0.45, countSec: 0.6, totalSec: 0.6,
@@ -288,6 +299,9 @@ export const CONFIG = {
       colors: { shield: '#3d5a8f', rim: '#f2c94c', bean: '#6b3f1f', crease: '#2e1808', glow: 'rgba(255, 230, 140, 0.35)' },
       texts: { picked: '豆の証を拾った！（クリアすると自分のものになる）', row: '豆の証 ×{n}（+{p}%）', overflow: '豆の証（{max} 個をこえた分）×{n}' },
     },
+    // 豆をがまんした（仕様 082）：1 回のプレイで出た珈琲豆（偽物を除く）のうち、拾わなかった割合 × max 枚 ×（生き延びた時間 ÷ fullSec 秒。1 まで）。
+    // やられてももらえる。豆の証の倍率はかけない。豆が 1 つも出なかったプレイ（クリエイター豆など）はもらえない
+    abstain: { max: 100, fullSec: 600, label: '豆をがまんした', detail: '（拾った豆 {picked} / {total} 個）' },
     texts: {
       unlocked: '新しい品種『{name}』が解放された！（浅煎り・中煎り・深煎り）',
       unlockedOne: '新しいキャラ『{name}』が解放された！',

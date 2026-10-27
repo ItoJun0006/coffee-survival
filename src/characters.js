@@ -136,6 +136,7 @@ export function describeStats(character) {
   }
   const lines = [`移動 ×${r.speedRate}　カフェイン上限 ${r.maxCaffeine}`, `攻撃力 ×${r.damageRate}　攻撃間隔 ×${r.attackIntervalRate}`];
   if (character.startWeapon) lines.push(`最初の武器：${CONFIG.weapons[character.startWeapon].name}`);
+  if (character.twin) lines.push('同じ攻撃をいくつでも持てる', `（2 つ目からは威力 ${Math.round(cfg.twin.copyDamageRate * 100)}%）`);
   if (character.dragon) lines.push(`レベルアップで、豆コイン ${cfg.dragon.price} 枚でもう 1 つ選べる`, `（1 回のプレイで ${cfg.dragon.maxPerRun} 回まで）`);
   if (character.creator) lines.push('珈琲豆は出ない。レベルアップで必ずエナジードリンク', `Lv ${cfg.creator.startLevel} から ${cfg.creator.rate} 倍ずつ伸びる（${cfg.creator.maxRate} 倍まで）`);
   return lines;
@@ -179,3 +180,11 @@ export function dragonExtraPick(c, used) {
   const enough = coins() >= price;
   return { price, left, enough, ok: left > 0 && enough };
 }
+
+// ---- 双子豆（仕様 080） ----
+// 同じ武器をいくつでも持てる。レベルアップの候補・攻撃の枠・武器の処理はメインが作り、この関数で判定する
+
+export const allowsDuplicateWeapons = (c) => !!c.twin;
+
+// 同じ武器の index 番目（0 から）の威力の倍率。1 つ目は 1、2 つ目からは copyDamageRate
+export const twinCopyDamageRate = (c, index) => (c.twin && index > 0 ? cfg.twin.copyDamageRate : 1);
