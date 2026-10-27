@@ -4,7 +4,6 @@ import { drawWeaponIcon } from './weapon-icons.js';
 import { drawCoin } from './coin-ui.js';
 import { font } from './font.js';
 import { stage } from './stage.js';
-import { drawCoin } from './coin-ui.js';
 
 const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 
