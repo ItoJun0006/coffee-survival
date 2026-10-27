@@ -6,6 +6,19 @@ import { drawPattern } from './variety-look.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
+// 豆の体の形の道（パス）を作る。ふつうは楕円、shape のあるキャラ（リベリカ大粒のしずく形）はその形。x・y は真ん中
+export function beanBodyPath(ctx, character, r, x = 0, y = 0) {
+  ctx.beginPath();
+  const shape = character?.shape && CONFIG.characters.shapes[character.shape];
+  if (!shape) {
+    ctx.ellipse(x, y, r * 0.82, r * 1.05, 0, 0, Math.PI * 2);
+    return;
+  }
+  ctx.moveTo(x + shape.start[0] * r, y + shape.start[1] * r);
+  for (const c of shape.curves) ctx.bezierCurveTo(...c.map((v, i) => (i % 2 ? y : x) + v * r));
+  ctx.closePath();
+}
+
 // 珈琲豆のキャラを描く。look は目線の向き（長さ 0〜1）、bob は歩くときの弾み（0〜1）、skin はスキン「椿」を付けているか
 // 品種に模様（variety.pattern、仕様 016）があれば、豆の上に描く。模様は豆の輪郭の内側だけに描き、当たる範囲は変えない
 // dot はドット絵にするときのドットの大きさ（px）。0 ならなめらかな絵のまま
@@ -14,16 +27,20 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
     drawBrothers(ctx, character, r, { look, bob, slowed, dot });
     return;
   }
+  if (character.twin) {
+    drawTwins(ctx, r, { look, bob, slowed });
+    return;
+  }
   const { color, crease } = character.roast;
   const sx = 1 + bob * 0.06;
   const sy = 1 - bob * 0.06;
   ctx.save();
   ctx.scale(sx, sy);
   if (character.creator) drawHeadphoneBand(ctx, r);
+  if (character.dragon) drawDragonBack(ctx, r);
 
   ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, r * 0.82, r * 1.05, 0, 0, Math.PI * 2);
+  beanBodyPath(ctx, character, r);
   ctx.fill();
   const pattern = character.variety?.pattern;
   if (pattern) drawPattern(ctx, pattern.kind, (character.roast.id === 'light' && pattern.lightColor) || pattern.color, r, r * 0.82, r * 1.05);
@@ -44,6 +61,7 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   if (character.eyes === 'one') drawOneEye(ctx, r, look, dot);
   else if (dot) drawDotEyes(ctx, r, look, dot, sx, sy);
   else drawEyes(ctx, r, look);
+  if (character.dragon) drawSharpEyes(ctx, r, color, dot);
   ctx.strokeStyle = '#fff8ee';
   ctx.lineWidth = Math.max(1.5, r * 0.08);
   ctx.beginPath();
@@ -51,12 +69,12 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   ctx.stroke();
   if (skin) drawCamelliaSkin(ctx, r);
   if (character.creator) drawCreatorGear(ctx, r);
+  if (character.dragon) drawHorns(ctx, r);
 
   if (slowed) {
     ctx.globalAlpha = 0.45;
     ctx.fillStyle = CONFIG.colors.playerSlowed;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, r * 0.82, r * 1.05, 0, 0, Math.PI * 2);
+    beanBodyPath(ctx, character, r);
     ctx.fill();
   }
   ctx.restore();
@@ -107,6 +125,28 @@ function drawDotEyes(ctx, r, look, dot, sx, sy) {
 }
 
 // こーひー3兄弟（仕様 018）：浅煎り・中煎り・深煎りの 3 粒を、上から順に串に刺した形で描く。
+// 双子豆（仕様 080）：2 粒が並んで手をつなぐ。2 粒とも、ふつうの豆（drawCharacter）を小さくして描く
+function drawTwins(ctx, r, opts) {
+  const t = CONFIG.characters.twin;
+  const roasts = t.roastIds.map((id) => CONFIG.characters.roasts.find((x) => x.id === id));
+  roasts.forEach((roast, i) => {
+    const side = i === 0 ? -1 : 1;
+    ctx.save();
+    ctx.translate(side * t.gap * r, 0);
+    // 2 粒とも、まん中（相手）のほうを見る。小さな豆にドット絵用の目を付けると目だけになるので、ふつうの目で描く
+    drawCharacter(ctx, { roast }, r * t.size, { ...opts, look: { x: -side * 0.5, y: 0 }, dot: 0 });
+    ctx.restore();
+  });
+  // つないだ手
+  ctx.strokeStyle = t.hand;
+  ctx.lineWidth = r * 0.1;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.12, r * 0.25);
+  ctx.lineTo(r * 0.12, r * 0.25);
+  ctx.stroke();
+}
+
 // 3 粒とも、ふつうの豆（drawCharacter）を小さくして描く
 function drawBrothers(ctx, character, r, opts) {
   const m = CONFIG.characters.multi;
@@ -198,6 +238,69 @@ function drawCreatorGear(ctx, r) {
   ctx.closePath();
   ctx.fill();
   ctx.restore();
+}
+
+// ドラゴン豆（仕様 022）：濃い緑の翼としっぽは豆の後ろ、角は前に描く。目は内側の上を豆の色でかくして吊り目にする
+function drawDragonBack(ctx, r) {
+  const { wing } = CONFIG.characters.dragon.colors;
+  ctx.fillStyle = wing;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(side * r * 0.7, -r * 0.2);
+    ctx.lineTo(side * r * 1.45, -r * 0.75);
+    ctx.lineTo(side * r * 1.3, -r * 0.3);
+    ctx.lineTo(side * r * 1.5, -r * 0.1);
+    ctx.lineTo(side * r * 1.2, r * 0.05);
+    ctx.lineTo(side * r * 1.3, r * 0.25);
+    ctx.lineTo(side * r * 0.75, r * 0.2);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // しっぽ（先は三角）
+  ctx.strokeStyle = wing;
+  ctx.lineWidth = r * 0.16;
+  ctx.beginPath();
+  ctx.moveTo(r * 0.5, r * 0.8);
+  ctx.quadraticCurveTo(r * 1.2, r * 1.05, r * 1.25, r * 0.55);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(r * 1.25, r * 0.35);
+  ctx.lineTo(r * 1.4, r * 0.6);
+  ctx.lineTo(r * 1.1, r * 0.6);
+  ctx.fill();
+}
+
+function drawHorns(ctx, r) {
+  ctx.fillStyle = CONFIG.characters.dragon.colors.horn;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(side * r * 0.25, -r * 0.92);
+    ctx.lineTo(side * r * 0.55, -r * 1.38);
+    ctx.lineTo(side * r * 0.5, -r * 0.82);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+// 目（drawEyes・drawDotEyes と同じ位置と大きさ）の上の辺を、内側ほど深く豆の色でかくす
+function drawSharpEyes(ctx, r, color, dot) {
+  const { dotsW, dotsH } = CONFIG.player.eyes;
+  const cut = CONFIG.characters.dragon.eyeCut;
+  const halfW = dot ? (dotsW * dot) / 2 : r * 0.2;
+  const halfH = dot ? (dotsH * dot) / 2 : r * 0.2;
+  const ey = -r * 0.05;
+  ctx.fillStyle = color;
+  for (const side of [-1, 1]) {
+    const inner = side * (r * 0.38 - halfW) - side;
+    const outer = side * (r * 0.38 + halfW) + side;
+    ctx.beginPath();
+    ctx.moveTo(inner, ey - halfH - 2);
+    ctx.lineTo(outer, ey - halfH - 2);
+    ctx.lineTo(outer, ey - halfH + 0.5);
+    ctx.lineTo(inner, ey - halfH + halfH * 2 * cut);
+    ctx.closePath();
+    ctx.fill();
+  }
 }
 
 // スキン「椿」（頭に大きな椿の髪飾り）。椿の花の絵は、大きさ 80 を基準にしたアイコンの絵（item-icons.js）を使う

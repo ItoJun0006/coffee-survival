@@ -1,8 +1,9 @@
 import { CONFIG } from './config.js';
 import { CHARACTERS, canBuy, canWearSkin, describeStats, groupMembers, isAvailable, statBars, toggleSkin, wearsSkin } from './characters.js';
-import { buyVariety, coins } from './progress.js';
+import { badges, buyVariety, coins } from './progress.js';
+import { drawBadgeIcon } from './entities/bean-badge.js';
 import { MENU_SIZE, coinText, drawCoin, drawMenuPopup } from './coin-ui.js';
-import { drawCharacter } from './entities/player.js';
+import { beanBodyPath, drawCharacter } from './entities/player.js';
 import { font } from './font.js';
 
 const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
@@ -172,6 +173,38 @@ export class CharacterSelect {
     ctx.font = font(28, true);
     ctx.fillText(num, left + 40 + nameW, top + 32);
     ctx.restore();
+    this.#drawBadges(ctx, viewW, top + h + 8);
+  }
+
+  // 豆コインの下に、持っている豆の証の数と、豆コインが増える割合を出す（仕様 081）。1 個もないときは出さない
+  #drawBadges(ctx, viewW, top) {
+    const n = badges();
+    if (!n) return;
+    const b = CONFIG.coins.badge;
+    const tail = `/ ${b.max} 個　コイン +${Math.round(n * b.ratePer * 100)}%`;
+    const h = 40;
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = font(13);
+    const nameW = ctx.measureText(b.name).width;
+    const tailW = ctx.measureText(tail).width;
+    ctx.font = font(24, true);
+    const numW = ctx.measureText(String(n)).width;
+    const w = nameW + numW + tailW + 66;
+    const left = viewW - 16 - w;
+    ctx.fillStyle = 'rgba(20, 12, 8, 0.85)';
+    ctx.fillRect(left, top, w, h);
+    ctx.strokeStyle = CONFIG.colors.xpBar;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(left, top, w, h);
+    drawBadgeIcon(ctx, left + 22, top + h / 2, 9);
+    ctx.fillStyle = CONFIG.coins.affordableLock;
+    ctx.fillText(String(n), left + 44 + nameW, top + 29);
+    ctx.font = font(13);
+    ctx.fillText(b.name, left + 38, top + 26);
+    ctx.fillText(tail, left + 50 + nameW + numW, top + 26);
+    ctx.restore();
   }
 
   draw(ctx, viewW, viewH) {
@@ -230,7 +263,7 @@ export class CharacterSelect {
       drawCharacter(ctx, character, 22 * scale, { bob: selected ? Math.abs(Math.sin(performance.now() / 160)) : 0, skin: wearsSkin(character) });
       ctx.restore();
     } else {
-      this.#drawSilhouette(ctx, cx, cy, 22, character.placeholder ? 0.07 : 0.14);
+      this.#drawSilhouette(ctx, cx, cy, 22, character.placeholder ? 0.07 : 0.14, character);
       const price = character.unlock?.price;
       drawLock(ctx, cx, cy + 4, 10, price && canBuy(character) && coins() >= price ? CONFIG.coins.affordableLock : undefined);
     }
@@ -249,13 +282,12 @@ export class CharacterSelect {
     ctx.fillText(coinText(character.unlock.price), cx + 4, y);
   }
 
-  // まだ解放していないキャラの、うっすら見える影
-  #drawSilhouette(ctx, x, y, r, alpha) {
+  // まだ解放していないキャラの、うっすら見える影（しずく形などの形のあるキャラは、その形）
+  #drawSilhouette(ctx, x, y, r, alpha, character) {
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.fillStyle = '#f3e6d8';
-    ctx.beginPath();
-    ctx.ellipse(x, y, r * 0.82, r * 1.05, 0, 0, Math.PI * 2);
+    beanBodyPath(ctx, character, r, x, y);
     ctx.fill();
     ctx.restore();
   }
@@ -278,7 +310,7 @@ export class CharacterSelect {
       drawCharacter(ctx, sel, 42 * scale, { bob: Math.abs(Math.sin(performance.now() / 160)), skin: wearsSkin(sel) });
       ctx.restore();
     } else {
-      this.#drawSilhouette(ctx, cx, cy, 42, sel.placeholder ? 0.07 : 0.14);
+      this.#drawSilhouette(ctx, cx, cy, 42, sel.placeholder ? 0.07 : 0.14, sel);
       drawLock(ctx, cx, cy + 6, 18);
     }
 
