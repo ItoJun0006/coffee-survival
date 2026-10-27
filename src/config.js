@@ -271,7 +271,7 @@ export const CONFIG = {
   //   enemyMaxCount：同時に出ている敵の上限、bigWaveMaxCount：ビッグウェーブの間の上限、bigWaveIntervalSec：ビッグウェーブの間隔 [最短, 最長]
   stages: {
     main: { name: '1 面', world: { width: 2000, height: 2000 }, enemySpeedRate: 1, enemySpeedRates: {}, caffeineDecay: true, levelUpHealRate: 0, maxLevel: 8, overCapChance: 0 },
-    extra: { name: 'エクストラステージ', world: { width: 1414, height: 1414 }, enemySpeedRate: 1, enemySpeedRates: {}, caffeineDecay: false, levelUpHealRate: 0.1, maxLevel: 16, overCapChance: 0.2,
+    extra: { name: 'エクストラステージ', world: { width: 1414, height: 1414 }, enemySpeedRate: 1.2, enemySpeedRates: {}, caffeineDecay: false, levelUpHealRate: 0.1, maxLevel: 16, overCapChance: 0.2,
       enemyTimeOffsetSec: 480, enemyMaxCount: 250, bigWaveMaxCount: 330, bigWaveIntervalSec: [60, 90] },
   },
   player: {
@@ -324,6 +324,13 @@ export const CONFIG = {
     },
     width: [3, 3, 6],
     alpha: [0.75, 0.9, 1],
+  },
+  // 攻撃を強化した直後の見た目（仕様 002 の FR-004。C「金色」）。sec 秒で消える。
+  //   ring：攻撃の絵の縁の外側に付ける金色の輪（gap は縁からのすき間）。label：プレイヤーの頭の上に出る「アイコン Lv N ↑」の札
+  upgradeFlash: {
+    sec: 1.2,
+    ring: { color: '#f0d58a', width: 3, gap: 2 },
+    label: { offsetY: 96, rise: 24, fadeFrom: 0.6, iconSize: 26, w: 124, h: 36, panel: 'rgba(20, 12, 8, 0.85)', color: '#f0d58a', text: 'Lv {level} ↑' },
   },
   // 持てる数。weapons は最初の豆マシンガンを含む
   slots: { weapons: 3, items: 2 },
