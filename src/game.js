@@ -9,6 +9,7 @@ import { DragonBoss, rollDragon, drawDragonPanel, takeDragonTreasure } from './e
 import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
 import { BadgeField } from './entities/bean-badge.js';
+import { AbstainCounter } from './coin-bonus.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
 import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin, noBeans, creatorGrowth, creatorXpRate, withEnergyDrink, dragonExtraPick } from './characters.js';
@@ -140,6 +141,7 @@ export class Game {
     this.beans = [];
     this.xpOrbs = [];
     this.badgeField = new BadgeField(); // 豆の証（仕様 081）
+    this.abstain = new AbstainCounter(); // 豆をがまんした（仕様 082）
     this.enemies = [];
     this.waves = [];
     this.effects = [];
@@ -706,6 +708,8 @@ export class Game {
     if (cleared) rows.push(stage.id === 'extra' ? { label: labels.extraClear, value: c.extraClear } : { label: labels.clear, value: c.clear });
     // 持っている豆の証の分（クリアなら、このプレイで拾った証を先に自分のものにする。仕様 081）
     rows.push(...this.badgeField.settle(cleared, rows));
+    // 豆をがまんした分（豆の証の倍率はかけないので、証のあとに足す。仕様 082）
+    rows.push(...this.abstain.rows(this.beans, this.time));
     const before = coins();
     addCoins(rows.reduce((sum, r) => sum + r.value, 0));
     this.coinTally = { rows, before, startedAt: performance.now(), skipped: false };
