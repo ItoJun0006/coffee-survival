@@ -207,7 +207,7 @@ export class RecordShelf {
   }
 
   // アンティークの本棚（仕様 039）：彫りの入った冠と台、真鍮の金具、木目の側板。上の右端でレコード盤が回る。
-  // 背表紙の装丁は spine.style（3 案）で描き分け、曲ごとに「シック」か「ポップ」の色を使う
+  // 背表紙は布の装丁に紙のラベル。曲ごとに「シック」か「ポップ」の色を使う
   #drawShelf(ctx, items, t) {
     const s = cfg();
     const w = s.wood;
@@ -279,7 +279,6 @@ export class RecordShelf {
   #drawSpine(ctx, it, on) {
     const s = cfg();
     const c = s.covers[it.id];
-    const style = s.spine.style;
     const x = it.x;
     const y = it.y + (on ? -16 : 0);
     const { w, h } = it;
@@ -300,62 +299,19 @@ export class RecordShelf {
     ctx.fillStyle = g;
     ctx.fillRect(x, y, w, h);
 
-    if (style === 'B') {
-      // 布の装丁：細かい布目と、貼った紙のラベル
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
-      ctx.lineWidth = 1;
-      for (let yy = y + 2; yy < y + h; yy += 3) {
-        ctx.beginPath();
-        ctx.moveTo(x, yy);
-        ctx.lineTo(x + w, yy);
-        ctx.stroke();
-      }
-      ctx.fillStyle = c.sub;
-      ctx.fillRect(x, y + 10, w, 6);
-      ctx.fillRect(x, y + h - 16, w, 6);
-      this.#label(ctx, x + 10, y + 34, w - 20, h - 110, c, true);
-    } else if (style === 'C') {
-      // 古書の装丁：上下は革、まん中はマーブル模様の紙
-      const mid = { y: y + 46, h: h - 112 };
-      ctx.save();
+    // 布の装丁：細かい布目と、貼った紙のラベル
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
+    ctx.lineWidth = 1;
+    for (let yy = y + 2; yy < y + h; yy += 3) {
       ctx.beginPath();
-      ctx.rect(x, mid.y, w, mid.h);
-      ctx.clip();
-      ctx.fillStyle = c.sub;
-      ctx.fillRect(x, mid.y, w, mid.h);
-      ctx.lineWidth = 3;
-      for (let k = 0; k < 14; k++) {
-        ctx.strokeStyle = k % 2 ? c.main : c.accent;
-        ctx.globalAlpha = 0.55;
-        ctx.beginPath();
-        for (let yy = 0; yy <= mid.h; yy += 6) {
-          const xx = x + ((k * 13) % w) + Math.sin(yy / 18 + k) * 10;
-          if (yy === 0) ctx.moveTo(xx, mid.y + yy);
-          else ctx.lineTo(xx, mid.y + yy);
-        }
-        ctx.stroke();
-      }
-      ctx.restore();
-      ctx.strokeStyle = c.foil;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x, mid.y);
-      ctx.lineTo(x + w, mid.y);
-      ctx.moveTo(x, mid.y + mid.h);
-      ctx.lineTo(x + w, mid.y + mid.h);
+      ctx.moveTo(x, yy);
+      ctx.lineTo(x + w, yy);
       ctx.stroke();
-      this.#label(ctx, x + 12, mid.y + 20, w - 24, mid.h - 40, c, true);
-    } else {
-      // 革と金箔の装丁：背の盛り上がり（バンド）と、金の枠の中の曲名
-      for (const by of [y + 18, y + 44, y + h - 70, y + h - 44]) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.fillRect(x, by + 4, w, 3);
-        ctx.fillStyle = c.foil;
-        ctx.fillRect(x + 4, by, w - 8, 2);
-        ctx.fillRect(x + 4, by + 6, w - 8, 1);
-      }
-      this.#label(ctx, x + 8, y + 58, w - 16, h - 140, c, false);
     }
+    ctx.fillStyle = c.sub;
+    ctx.fillRect(x, y + 10, w, 6);
+    ctx.fillRect(x, y + h - 16, w, 6);
+    this.#label(ctx, x + 10, y + 34, w - 20, h - 110, c);
     // 下の札：値段か、持っている・再生中
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -373,24 +329,17 @@ export class RecordShelf {
     }
   }
 
-  // 背表紙の曲名：縦に 1 文字ずつ。paper のときは紙のラベル、そうでなければ金の細い枠
-  #label(ctx, x, y, w, h, c, paper) {
-    if (paper) {
-      ctx.fillStyle = c.paper;
-      ctx.fillRect(x, y, w, h);
-      ctx.strokeStyle = c.main;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
-    } else {
-      ctx.strokeStyle = c.foil;
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(x, y, w, h);
-      ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
-    }
+  // 背表紙の紙のラベルと、曲名（縦に 1 文字ずつ）
+  #label(ctx, x, y, w, h, c) {
+    ctx.fillStyle = c.paper;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = c.main;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
     const name = trackName(this.#idOf(c)).replace(/[・ ]/g, '');
     const size = Math.min(15, (h - 16) / name.length);
     ctx.font = font(size, true);
-    ctx.fillStyle = paper ? c.ink : c.foil;
+    ctx.fillStyle = c.ink;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const top = y + h / 2 - ((name.length - 1) * size) / 2;

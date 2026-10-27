@@ -400,20 +400,20 @@ export const CONFIG = {
     previewBackdrop: 0.15,
   },
   // レコード棚（仕様 039）：タイトルから入り、豆コインで BGM を買って選ぶ。price は 1 曲の値段（最初の曲は買わなくてよい）。
-  // spine.style は背表紙の装丁の案（3 案から選ぶ）、covers は曲ごとの装丁の色、jacket は曲ごとのジャケットの絵
+  // spine は背表紙の大きさ、covers は曲ごとの装丁の色、jacket は曲ごとのジャケットの絵
   recordShelf: {
     price: 150,
     title: 'レコード棚',
     button: '♪ レコード棚（R キー）',
-    // 背表紙。style は装丁の案（3 案から選ぶ）、w・h・gap は 1 冊の幅・高さ・すき間（px）
-    spine: { style: 'A', w: 92, h: 270, gap: 16 },
+    // 背表紙（布の装丁に紙のラベル）。w・h・gap は 1 冊の幅・高さ・すき間（px）
+    spine: { w: 92, h: 270, gap: 16 },
     // 曲ごとの装丁の色。シック（いつもの一杯・真夜中のハンドドリップ）とポップ（モーニングブレンド・ボサノバ）を 2 冊ずつ。
-    // main は地、sub は布や紙の色、accent はマーブルの差し色、foil は金箔・銀箔、paper はラベルの紙、ink はラベルの字
+    // main は布の地、sub は上下の帯、foil は値段の札の字、paper はラベルの紙、ink はラベルの字
     covers: {
-      normal: { main: '#4a2c1c', sub: '#6b4630', accent: '#a0784c', foil: '#d8b46a', paper: '#efe2c4', ink: '#3b2418' },
-      midnightDrip: { main: '#1d2747', sub: '#2f3d66', accent: '#7f8fb8', foil: '#c9ced8', paper: '#e6e4dc', ink: '#1d2747' },
-      morningBlend: { main: '#e8a33a', sub: '#f3c45e', accent: '#d9583a', foil: '#7a2e1c', paper: '#fff4d6', ink: '#a8381e' },
-      cafeBossa: { main: '#2f9a8a', sub: '#5cc0a8', accent: '#f08a6a', foil: '#fff1c8', paper: '#fff4e2', ink: '#1f6a5e' },
+      normal: { main: '#4a2c1c', sub: '#6b4630', foil: '#d8b46a', paper: '#efe2c4', ink: '#3b2418' },
+      midnightDrip: { main: '#1d2747', sub: '#2f3d66', foil: '#c9ced8', paper: '#e6e4dc', ink: '#1d2747' },
+      morningBlend: { main: '#e8a33a', sub: '#f3c45e', foil: '#7a2e1c', paper: '#fff4d6', ink: '#a8381e' },
+      cafeBossa: { main: '#2f9a8a', sub: '#5cc0a8', foil: '#fff1c8', paper: '#fff4e2', ink: '#1f6a5e' },
     },
     // ジャケット：選んでいる曲の絵を、棚の右の壁に額で飾る。size は絵の一辺の大きさの上限（px）、
     // shelfX は棚のまん中の位置（画面の幅に対する割合。額の分だけ左に寄せる）
