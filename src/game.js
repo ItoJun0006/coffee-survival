@@ -347,14 +347,14 @@ export class Game {
     };
   }
 
-  // 同じ武器の 2 つ目からは、色を変えて描く（仕様 080。色の変え方は CONFIG.twinCopy.filter）
+  // 同じ武器の 2 つ目からは、金色にして描く（仕様 080。色の変え方は CONFIG.twinCopy.filter）
   #withCopyLook(ctx, weapon, drawFn) {
     if (!weapon.copyIndex) {
       drawFn();
       return;
     }
     ctx.save();
-    ctx.filter = CONFIG.twinCopy.filters[CONFIG.twinCopy.style];
+    ctx.filter = CONFIG.twinCopy.filter;
     drawFn();
     ctx.restore();
   }
