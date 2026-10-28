@@ -1673,42 +1673,26 @@ export class Game {
     ctx.restore();
   }
 
-  // 持っている豆の証の数と、豆コインの増え方（仕様 081・083）。1 個も持っていないときは出さない（見つけるまでの楽しみ）
+  // 持っている豆の証（仕様 042）：10 個の枠を並べ、持っている数だけ盾を描き、右に豆コインの増え方を出す。
+  // 1 個も持っていないときは出さない（見つけるまでの楽しみ）
   #drawBadgeCount(ctx) {
     const n = badges();
     if (n <= 0) return;
     const b = CONFIG.coins.badge;
     const t = CONFIG.title.badgeCount;
-    const rate = `+${Math.round(n * b.ratePer * 100)}%`;
     const y = this.viewH - 60;
     ctx.textBaseline = 'middle';
-    if (t.style === 'B') {
-      // 10 個の枠を並べ、持っている数だけ盾を描く
-      for (let i = 0; i < b.max; i++) {
-        const x = 24 + i * 18;
-        if (i < n) drawBadgeIcon(ctx, x, y, 7);
-        else {
-          ctx.strokeStyle = 'rgba(243, 230, 216, 0.3)';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(x - 6, y - 7, 12, 15);
-        }
+    for (let i = 0; i < b.max; i++) {
+      const x = 24 + i * t.step;
+      if (i < n) drawBadgeIcon(ctx, x, y, 7);
+      else {
+        ctx.strokeStyle = t.emptyColor;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - 6, y - 7, 12, 15);
       }
-      ctx.fillStyle = t.rateColor;
-      ctx.fillText(`豆コイン ${rate}`, 24 + b.max * 18, y);
-    } else if (t.style === 'C') {
-      // 豆コインの行の右に、盾と「×個数」の札
-      const x = 46 + ctx.measureText(`${CONFIG.coins.name} ${coinText(coins())}`).width;
-      drawBadgeIcon(ctx, x, this.viewH - 44, 8);
-      ctx.fillStyle = 'rgba(243, 230, 216, 0.9)';
-      ctx.fillText(`×${n}`, x + 12, this.viewH - 44);
-      ctx.fillStyle = t.rateColor;
-      ctx.fillText(rate, x + 14 + ctx.measureText(`×${n}`).width + 6, this.viewH - 44);
-    } else {
-      drawBadgeIcon(ctx, 24, y, 8);
-      ctx.fillText(`${b.name} ${n} / ${b.max} 個`, 36, y);
-      ctx.fillStyle = t.rateColor;
-      ctx.fillText(`（豆コイン ${rate}）`, 40 + ctx.measureText(`${b.name} ${n} / ${b.max} 個`).width, y);
     }
+    ctx.fillStyle = t.rateColor;
+    ctx.fillText(t.text.replace('{p}', Math.round(n * b.ratePer * 100)), 24 + b.max * t.step, y);
   }
 
   // ロゴ入りのイラストを、欠けないように画面いっぱいに表示し、下に案内を重ねる
