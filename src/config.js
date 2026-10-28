@@ -359,6 +359,13 @@ export const CONFIG = {
   // levelFloor：Lv の強化だけで縮む間隔の倍率の下限（限界突破で 0 以下にならないように）
   // startChoices は、1 面の始めに選ぶ最初の攻撃の候補の数。startGuardMs は、その画面を開いてからクリックを受け付けない時間（仕様 032）
   weaponLevels: { choices: 3, startChoices: 3, startGuardMs: 400, max: 8, damagePerLevel: 0.25, intervalPerLevel: 0.08, minIntervalRate: 0.25, overCapItemRate: 0.5, levelFloor: 0.05 },
+  // 双子豆の同じ武器の 2 つ目から（仕様 080。メインの受け持ち）：武器そのものの色を変える。style は見た目の案（3 案から選ぶ）、
+  // filters は描くときにかける色の変え方（canvas の filter）、desc は「もう 1 つ持つ」のカードの説明
+  twinCopy: {
+    style: 'A',
+    filters: { A: 'hue-rotate(180deg) saturate(1.3)', B: 'invert(1) hue-rotate(180deg)', C: 'sepia(1) saturate(2.6) hue-rotate(-12deg) brightness(1.15)' },
+    desc: 'もう 1 つ持つ。\nずらして撃ち、\n威力は 70%',
+  },
   // Lv 2・4・6 で上がる見た目の段階（仕様 014）：攻撃の縁（当たる範囲の内側）に光る線を描く。
   // tiers は段階が上がる Lv。MAX（Lv 8）は武器ごとの maxVisual で描く。配列の値は段階 1・2・3 の順。
   // colors は属性ごとの線の色、width は線の太さ（px）、alpha は濃さ
