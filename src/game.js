@@ -8,6 +8,7 @@ import { Boss } from './entities/boss.js';
 import { DragonBoss, rollDragon, drawDragonPanel, takeDragonTreasure } from './entities/dragon-boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
+import { RareEnemy, rollRareAt, drawRareArrow } from './entities/rare-enemy.js';
 import { BadgeField } from './entities/bean-badge.js';
 import { AbstainCounter } from './coin-bonus.js';
 import { WEAPON_ORDER } from './weapons/index.js';
@@ -195,6 +196,10 @@ export class Game {
     this.waveUntil = 0;
     const camp = CONFIG.bagCamp;
     this.bagCampAt = camp.minSec + Math.random() * (camp.maxSec - camp.minSec);
+    // レア敵（仕様 013）：出る時刻（出ないプレイは null）と、出ている敵。倒すとこのプレイの攻撃の枠が増える
+    this.rareAt = rollRareAt(stage.id);
+    this.rare = null;
+    this.weaponSlots = CONFIG.slots.weapons;
     this.#applyDebugWeapons();
   }
 
@@ -664,6 +669,7 @@ export class Game {
     else this.#updatePlayer(dt);
     this.#spawnBeans(dt);
     if (!this.boss) this.#spawnEnemies(dt);
+    this.#updateRare();
     this.#updateEnemies(dt);
     if (this.boss) this.#updateBoss(dt);
     // ダイスケ豆が固まっている間は、攻撃も止まる（仕様 019）
@@ -1209,6 +1215,40 @@ export class Game {
     return this.time + (stage.enemyTimeOffsetSec ?? 0);
   }
 
+  // ---- レア敵「まくらウサギ」（仕様 013）。動きと絵は entities/rare-enemy.js ----
+
+  // 時刻が来たら、画面の外に出して知らせる。出てから leaveAfterSec たつか、ボスが出たら去り始め、画面の外へ出たら消える
+  #updateRare() {
+    const cfg = CONFIG.rareEnemy;
+    if (this.rareAt !== null && this.time >= this.rareAt) {
+      this.rareAt = null;
+      if (this.boss) return;
+      const { x, y } = this.#spawnPoint();
+      this.rare = new RareEnemy(x, y, this.#enemyStrength(), this.time);
+      this.enemies.push(this.rare);
+      this.notice = { title: cfg.texts.appear, text: cfg.texts.appearSub, until: this.time + 2.5 };
+      sound.play(cfg.sounds.appear);
+    }
+    const r = this.rare;
+    if (!r) return;
+    if (!r.leaving && (this.boss || this.time - r.appearedAt >= cfg.leaveAfterSec)) r.leaving = true;
+    if (r.leaving && dist(r, this.player) > Math.hypot(this.viewW, this.viewH) / 2 + r.radius * 3) {
+      this.enemies = this.enemies.filter((e) => e !== r);
+      this.rare = null;
+      this.notice = { title: cfg.texts.fled, text: '', until: this.time + 2.5 };
+    }
+  }
+
+  // 倒したら、このプレイの間だけ攻撃の枠を増やす（ふつうの敵と同じく経験値の粒も落とす）
+  #defeatRare(e) {
+    const cfg = CONFIG.rareEnemy;
+    this.rare = null;
+    this.weaponSlots = cfg.slots;
+    this.notice = { title: cfg.texts.defeat, text: cfg.texts.defeatSub, until: this.time + 2.5 };
+    sound.play(cfg.sounds.defeat);
+    this.effects.push(new DefeatEffect(e.x, e.y, cfg.color, e.radius * 3));
+  }
+
   // 今の生存時間に応じた敵の強さの倍率
   #enemyStrength() {
     const s = CONFIG.enemyScaling;
@@ -1320,6 +1360,7 @@ export class Game {
     const { enemyDropChance, maxDroppedBeans } = CONFIG.leveling;
     this.enemies = this.enemies.filter((e) => {
       if (!e.dead) return true;
+      if (e === this.rare) this.#defeatRare(e);
       addKills(1);
       this.runKills += 1;
       sound.play('defeat');
@@ -1392,6 +1433,7 @@ export class Game {
       this.characterSelect.draw(ctx, this.viewW, this.viewH);
     } else {
       this.#drawHud();
+      if (this.rare) drawRareArrow(ctx, this.rare, this.player, this.viewW, this.viewH);
       if (this.state === 'paused') this.#drawPauseMenu();
       if (this.state === 'levelup' || this.state === 'carry' || this.state === 'start') this.levelUpMenu.draw(ctx, this.viewW, this.viewH);
       this.#drawOverlay();
