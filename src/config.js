@@ -426,6 +426,19 @@ export const CONFIG = {
     label: '攻撃の見え方',
     previewBackdrop: 0.15,
   },
+  // ポーズメニューの見た目（仕様 040）。style は 3 案（A 木の札／B 陶器のタイル／C 真鍮のプレート）。
+  // depth はボタンの厚み（px）、radius は角の丸み、face* は表の面、side は厚みの面、bar* は値のバー、knob はつまみ
+  pauseLook: {
+    style: 'A',
+    width: 340,
+    height: 48,
+    gap: 14,
+    styles: {
+      A: { depth: 6, radius: 6, faceTop: '#8a5f3c', faceBottom: '#6b4528', faceOnTop: '#e2b26a', faceOnBottom: '#c48a3e', side: '#3e2614', highlight: 'rgba(255, 230, 190, 0.45)', grain: 'rgba(40, 20, 8, 0.25)', focus: '#f0d58a', text: '#f3e6d8', textOn: '#3b2418', barTrack: '#2a1a10', barFillTop: '#f0c070', barFillBottom: '#b97a30', knob: '#a8823c', knobLight: '#f6e2a8' },
+      B: { depth: 5, radius: 14, faceTop: '#f6eddc', faceBottom: '#e2d2b4', faceOnTop: '#fff6e2', faceOnBottom: '#f0c98a', side: '#b8a07a', highlight: 'rgba(255, 255, 255, 0.9)', focus: '#7a4f2e', text: '#4a2c1c', textOn: '#3b2418', barTrack: '#cbb894', barFillTop: '#8a5a36', barFillBottom: '#5e3a20', knob: '#f2e6d0', knobLight: '#ffffff' },
+      C: { depth: 6, radius: 4, faceTop: '#d8b46a', faceBottom: '#8f6a2c', faceOnTop: '#f6dc9a', faceOnBottom: '#c49a48', side: '#5a4018', highlight: 'rgba(255, 248, 220, 0.8)', rivets: '#5a4018', focus: '#fff1c8', text: '#2e1e0c', textOn: '#2e1e0c', barTrack: '#2a1e10', barFillTop: '#ffb347', barFillBottom: '#d9702a', knob: '#8f6a2c', knobLight: '#fff1c8' },
+    },
+  },
   // レコード棚（仕様 039）：タイトルから入り、豆コインで BGM を買って選ぶ。price は 1 曲の値段（最初の曲は買わなくてよい）。
   // spine は背表紙の大きさ、covers は曲ごとの装丁の色、jacket は曲ごとのジャケットの絵
   recordShelf: {
