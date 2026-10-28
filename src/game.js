@@ -212,7 +212,7 @@ export class Game {
       let weapon = this.weapons.find((w) => w.config.name === name);
       if (!weapon) {
         const W = WEAPON_ORDER.find((W) => new W(this).config.name === name);
-        if (!W || this.weapons.length >= CONFIG.slots.weapons) continue;
+        if (!W || this.weapons.length >= this.weaponSlots) continue;
         weapon = new W(this);
         this.weapons.push(weapon);
       }
@@ -306,7 +306,8 @@ export class Game {
     const slots = CONFIG.slots;
     // Lv 8 から先（限界突破）は、エクストラステージで overCap に当たったときだけ候補に入れる
     const canUpgrade = (lv) => lv < max || (this.overCap && lv < stage.maxLevel);
-    const free = this.weapons.length < slots.weapons;
+    // 攻撃の枠の数は、まくらウサギを倒すと増える（仕様 013）
+    const free = this.weapons.length < this.weaponSlots;
     const weapons = WEAPON_ORDER.flatMap((W) => {
       const owned = this.weapons.filter((w) => w instanceof W);
       if (!owned.length) return free ? [this.#weaponChoice(new W(this), true)] : [];
@@ -890,7 +891,7 @@ export class Game {
         beans: () => value >= r.count,
         maxLevel: () => value >= r.level,
         dragonDefeat: () => true,
-        allWeaponsMax: () => this.weapons.length >= CONFIG.slots.weapons && this.weapons.every((w) => w.isMax),
+        allWeaponsMax: () => this.weapons.length >= this.weaponSlots && this.weapons.every((w) => w.isMax),
       }[type]();
       if (met && unlock(readyId(c.group))) this.#toast(CONFIG.coins.texts.ready.replace('{name}', c.name).replace('{price}', coinText(c.price)));
     }
@@ -1622,7 +1623,7 @@ export class Game {
       ly += 14;
     };
     ctx.font = font(11);
-    line(`攻撃 ${this.weapons.length}/${slots.weapons}`, 'rgba(243, 230, 216, 0.85)');
+    line(`攻撃 ${this.weapons.length}/${this.weaponSlots}`, 'rgba(243, 230, 216, 0.85)');
     for (const wp of this.weapons) {
       ly += 2;
       drawWeaponIcon(ctx, weaponIdOf(wp), x + 9, ly + 6, 18);
