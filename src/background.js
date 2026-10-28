@@ -16,6 +16,14 @@ function seededRandom(seed) {
 // 夜の暗さの絵に足す、マップの外側の余白（画面の端がマップの外に出ても暗くできるように）
 const DARK_PAD = 1200;
 
+// 0 以上 1 未満の決まった乱数。同じ数を渡せば毎回同じ値になる（石積みの壁の石の長さと色を選ぶ）
+function hash(a, b) {
+  let h = (a * 374761393 + b * 668265263) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
 // 色（#rrggbb）を明るさ 1 + amount 倍にする
 function shade(hex, amount) {
   const n = parseInt(hex.slice(1), 16);
@@ -383,7 +391,7 @@ export class Background {
     }
   }
 
-  // 外周のレンガの壁。マップの外側に、内側へ影を落として描く
+  // 外周の石積みの壁（仕様 005 の FR-004）。マップの外側に、内側へ影を落として描く
   #drawWall(ctx) {
     const w = CONFIG.scenery.wall;
     const { width, height } = stage.world;
@@ -401,11 +409,19 @@ export class Background {
       ctx.clip();
       ctx.fillStyle = w.mortar;
       ctx.fillRect(x, y, rw, rh);
-      for (let by = Math.floor(y / w.brickH) * w.brickH, row = 0; by < y + rh; by += w.brickH, row++) {
-        const offset = (Math.floor(by / w.brickH) % 2) * (w.brickW / 2);
-        for (let bx = Math.floor(x / w.brickW) * w.brickW - offset; bx < x + rw; bx += w.brickW) {
-          ctx.fillStyle = (Math.floor(bx / w.brickW) + row) % 3 ? w.brick : w.brickAlt;
-          ctx.fillRect(bx + 1, by + 1, w.brickW - 2, w.brickH - 2);
+      // 石は段ごとに、長さと色を決まった乱数で選びながら左から並べる。段の始まりも少しずつずらす
+      const gap = w.gap;
+      for (let by = Math.floor(y / w.stoneH) * w.stoneH; by < y + rh; by += w.stoneH) {
+        const row = Math.round(by / w.stoneH);
+        const longest = Math.max(...w.stoneLens);
+        let bx = Math.floor(x / longest) * longest - longest * 2 - Math.floor(hash(row, 1) * longest);
+        for (let i = 0; bx < x + rw; i++) {
+          const len = w.stoneLens[Math.floor(hash(row, i + bx) * w.stoneLens.length)];
+          ctx.fillStyle = w.stones[Math.floor(hash(i + bx, row * 7) * w.stones.length)];
+          ctx.fillRect(bx + gap, by + gap, len - gap * 2, w.stoneH - gap * 2);
+          ctx.fillStyle = w.highlight;
+          ctx.fillRect(bx + gap, by + gap, len - gap * 2, w.highlightH);
+          bx += len;
         }
       }
       ctx.restore();
