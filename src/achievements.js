@@ -18,21 +18,6 @@ export const isDone = (item) => DONE[item.done.kind](item.done.id);
 // 隠しコマンドなど、ほかに記録が残らないものは、ここで解放の印を付ける
 export const markDone = (id) => unlock(id);
 
-// 幅に収まるように折り返す（日本語なので 1 文字ずつ測る）
-function wrap(ctx, text, maxWidth) {
-  const lines = [];
-  let line = '';
-  for (const ch of text) {
-    if (ctx.measureText(line + ch).width > maxWidth) {
-      lines.push(line);
-      line = '';
-    }
-    line += ch;
-  }
-  if (line) lines.push(line);
-  return lines;
-}
-
 const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 
 export class AchievementScreen {
@@ -69,9 +54,7 @@ export class AchievementScreen {
     ctx.font = font(15);
     ctx.fillStyle = s.colors.sub;
     ctx.fillText(s.count.replace('{done}', done).replace('{all}', items.length), viewW / 2, 144);
-    if (s.style === 'B') this.#drawStampCard(ctx, items, viewW, viewH);
-    else if (s.style === 'C') this.#drawMedals(ctx, items, viewW, viewH);
-    else this.#drawList(ctx, items, viewW, viewH);
+    this.#drawList(ctx, items, viewW, viewH);
     const b = this.#back(viewW, viewH);
     ctx.strokeStyle = s.colors.title;
     ctx.lineWidth = 1.5;
@@ -82,7 +65,7 @@ export class AchievementScreen {
     ctx.restore();
   }
 
-  // A：黒板の一覧。左に★、名前、下に条件、右にごほうび
+  // 黒板の一覧（3 案から A）。左に★、名前、下に条件、右にごほうび
   #drawList(ctx, items, viewW, viewH) {
     const s = cfg();
     const w = Math.min(620, viewW - 48);
@@ -121,102 +104,6 @@ export class AchievementScreen {
         ctx.lineTo(x + w, y + rowH);
         ctx.stroke();
       }
-    });
-  }
-
-  // B：喫茶店のスタンプカード。解放したマスには丸い判子を押す
-  #drawStampCard(ctx, items, viewW, viewH) {
-    const s = cfg();
-    const cols = 3;
-    const rows = Math.ceil(items.length / cols);
-    const cw = Math.min(210, (viewW - 80) / cols);
-    const ch = Math.min(170, (viewH - 280) / rows);
-    const x0 = (viewW - cw * cols) / 2;
-    const y0 = 180;
-    ctx.fillStyle = s.colors.card;
-    ctx.fillRect(x0 - 20, y0 - 16, cw * cols + 40, ch * rows + 32);
-    ctx.strokeStyle = s.colors.cardLine;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x0 - 12, y0 - 8, cw * cols + 24, ch * rows + 16);
-    items.forEach((it, i) => {
-      const x = x0 + (i % cols) * cw;
-      const y = y0 + Math.floor(i / cols) * ch;
-      const ok = isDone(it);
-      ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = s.colors.cardLine;
-      ctx.strokeRect(x + 6, y + 6, cw - 12, ch - 12);
-      ctx.setLineDash([]);
-      const cx = x + cw / 2;
-      const cy = y + ch * 0.34;
-      const r = Math.min(cw, ch) * 0.22;
-      if (ok) {
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(-0.2);
-        ctx.strokeStyle = s.colors.stamp;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.fillStyle = s.colors.stamp;
-        ctx.font = font(13, true);
-        ctx.textAlign = 'center';
-        ctx.fillText(it.stamp, 0, 0);
-        ctx.restore();
-      } else {
-        ctx.fillStyle = s.colors.cardLine;
-        ctx.font = font(26, true);
-        ctx.textAlign = 'center';
-        ctx.fillText('？', cx, cy);
-      }
-      ctx.textAlign = 'center';
-      ctx.fillStyle = s.colors.cardInk;
-      ctx.font = font(14, true);
-      ctx.fillText(ok ? it.name : s.hidden, cx, y + ch * 0.64);
-      ctx.font = font(11);
-      wrap(ctx, it.hint, cw - 28).slice(0, 2).forEach((l, k) => ctx.fillText(l, cx, y + ch * 0.82 + k * 14));
-    });
-  }
-
-  // C：額に入ったメダルを並べる。まだのメダルは影だけ
-  #drawMedals(ctx, items, viewW, viewH) {
-    const s = cfg();
-    const cols = 3;
-    const rows = Math.ceil(items.length / cols);
-    const cw = Math.min(210, (viewW - 80) / cols);
-    const ch = Math.min(180, (viewH - 280) / rows);
-    const x0 = (viewW - cw * cols) / 2;
-    const y0 = 176;
-    items.forEach((it, i) => {
-      const x = x0 + (i % cols) * cw + 8;
-      const y = y0 + Math.floor(i / cols) * ch + 6;
-      const w = cw - 16;
-      const h = ch - 12;
-      const ok = isDone(it);
-      ctx.fillStyle = s.colors.frame;
-      ctx.fillRect(x, y, w, h);
-      ctx.fillStyle = s.colors.felt;
-      ctx.fillRect(x + 6, y + 6, w - 12, h - 12);
-      const cx = x + w / 2;
-      const cy = y + h * 0.36;
-      // リボンとメダル
-      ctx.fillStyle = ok ? s.colors.ribbon : 'rgba(0, 0, 0, 0.3)';
-      ctx.fillRect(cx - 12, cy - 34, 10, 22);
-      ctx.fillRect(cx + 2, cy - 34, 10, 22);
-      ctx.fillStyle = ok ? s.colors.star : 'rgba(0, 0, 0, 0.35)';
-      ctx.beginPath();
-      ctx.arc(cx, cy, 18, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = ok ? s.colors.frame : 'rgba(255, 255, 255, 0.15)';
-      ctx.font = font(18, true);
-      ctx.textAlign = 'center';
-      ctx.fillText(ok ? '★' : '？', cx, cy + 1);
-      ctx.fillStyle = ok ? s.colors.text : s.colors.dim;
-      ctx.font = font(14, true);
-      ctx.fillText(ok ? it.name : s.hidden, cx, y + h * 0.62);
-      ctx.fillStyle = s.colors.sub;
-      ctx.font = font(11);
-      wrap(ctx, it.hint, w - 24).slice(0, 2).forEach((l, k) => ctx.fillText(l, cx, y + h * 0.8 + k * 14));
     });
   }
 }

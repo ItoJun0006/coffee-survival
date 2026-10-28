@@ -427,36 +427,37 @@ export const CONFIG = {
     previewBackdrop: 0.15,
   },
   // 実績（仕様 041）：隠し要素と解放の条件の一覧。まだのものは名前を hidden にして、hint（条件）だけ見せる。
-  // done は解放したかの調べ方（unlocked：解放の印 id があるか、badges：豆の証を 1 つ以上持っているか）。stamp はスタンプカードの判子の字。
-  // style は見た目の案（A 黒板の一覧／B スタンプカード／C メダルの額。3 案から選ぶ）
+  // done は解放したかの調べ方（unlocked：解放の印 id があるか、badges：豆の証を 1 つ以上持っているか）。見た目は黒板の一覧（3 案から A）
   achievements: {
-    style: 'A',
     title: '実績',
     count: '{done} / {all} 達成',
     hidden: '？？？',
     back: 'もどる（Esc）',
     button: '★ 実績（A キー）',
     items: [
-      { name: '椿三輪', hint: 'レア強化「椿の花」を 3 種類そろえる', reward: 'スキン「椿」', stamp: '椿', done: { kind: 'unlocked', id: 'skin-camellia' } },
-      { name: 'カフェオレの合言葉', hint: 'タイトル画面で、この店の看板の飲み物を英語で打つ', reward: '豆がカフェオレ色になる', stamp: '乳', done: { kind: 'unlocked', id: 'secret-coffee' } },
-      { name: 'まどろみ宝竜', hint: '1 面のクリアのあと、まれに目を覚ます竜を倒す', reward: 'ドラゴン豆が仕入れられる', stamp: '竜', done: { kind: 'unlocked', id: 'ready-dragon' } },
-      { name: '豆の証', hint: '手下がまれに落とす証を拾って、クリアする', reward: '豆コインが増える', stamp: '証', done: { kind: 'badges' } },
-      { name: '横切るジャコウネコ', hint: 'まれに横切る猫に追いついて、触る', reward: '豆コインどっさり', stamp: '猫', done: { kind: 'unlocked', id: 'secret-cat' } },
-      { name: '金色の羊', hint: '3 分間無傷', reward: '経験値がたくさん', stamp: '羊', done: { kind: 'unlocked', id: 'secret-golden-sheep' } },
+      { name: '椿三輪', hint: 'レア強化「椿の花」を 3 種類そろえる', reward: 'スキン「椿」', done: { kind: 'unlocked', id: 'skin-camellia' } },
+      { name: 'カフェオレの合言葉', hint: 'タイトル画面で、この店の看板の飲み物を英語で打つ', reward: '豆がカフェオレ色になる', done: { kind: 'unlocked', id: 'secret-coffee' } },
+      { name: 'まどろみ宝竜', hint: '1 面のクリアのあと、まれに目を覚ます竜を倒す', reward: 'ドラゴン豆が仕入れられる', done: { kind: 'unlocked', id: 'ready-dragon' } },
+      { name: '豆の証', hint: '手下がまれに落とす証を拾って、クリアする', reward: '豆コインが増える', done: { kind: 'badges' } },
+      { name: '横切るジャコウネコ', hint: 'まれに横切る猫に追いついて、触る', reward: '豆コインどっさり', done: { kind: 'unlocked', id: 'secret-cat' } },
+      { name: '金色の羊', hint: '3 分間無傷', reward: '経験値がたくさん', done: { kind: 'unlocked', id: 'secret-golden-sheep' } },
     ],
-    colors: { backdrop: 'rgba(20, 14, 10, 0.94)', title: '#f0d58a', text: '#f3e6d8', sub: 'rgba(243, 230, 216, 0.72)', dim: 'rgba(243, 230, 216, 0.4)', star: '#f2c94c', board: '#1f2a24', frame: '#6b4a2c', card: '#f3e8d2', cardLine: '#b89a70', cardInk: '#4a2c1c', stamp: '#c0392b', felt: '#2b3a2e', ribbon: '#b03a3a' },
+    colors: { backdrop: 'rgba(20, 14, 10, 0.94)', title: '#f0d58a', text: '#f3e6d8', sub: 'rgba(243, 230, 216, 0.72)', dim: 'rgba(243, 230, 216, 0.4)', star: '#f2c94c', board: '#1f2a24', frame: '#6b4a2c' },
   },
-  // ポーズメニューの見た目（仕様 040）。style は 3 案（A 木の札／B 陶器のタイル／C 真鍮のプレート）。
-  // depth はボタンの厚み（px）、radius は角の丸み、face* は表の面、side は厚みの面、bar* は値のバー、knob はつまみ
+  // ポーズメニューの見た目（仕様 040）：磨いた真鍮のプレート（3 案から C、仕上げの 3 案から「磨いた真鍮」）。
+  // depth はプレートの厚み（px）、radius は角の丸み。face は表の面の色の帯（上から）、faceOn は選んでいるとき、bevel* は面取り、
+  // screw* はねじ、engrave* は刻印の字、groove はバーの溝、liquid* はバーの中の液体
   pauseLook: {
-    style: 'A',
-    width: 340,
-    height: 48,
+    width: 360,
+    height: 50,
     gap: 14,
-    styles: {
-      A: { depth: 6, radius: 6, faceTop: '#8a5f3c', faceBottom: '#6b4528', faceOnTop: '#e2b26a', faceOnBottom: '#c48a3e', side: '#3e2614', highlight: 'rgba(255, 230, 190, 0.45)', grain: 'rgba(40, 20, 8, 0.25)', focus: '#f0d58a', text: '#f3e6d8', textOn: '#3b2418', barTrack: '#2a1a10', barFillTop: '#f0c070', barFillBottom: '#b97a30', knob: '#a8823c', knobLight: '#f6e2a8' },
-      B: { depth: 5, radius: 14, faceTop: '#f6eddc', faceBottom: '#e2d2b4', faceOnTop: '#fff6e2', faceOnBottom: '#f0c98a', side: '#b8a07a', highlight: 'rgba(255, 255, 255, 0.9)', focus: '#7a4f2e', text: '#4a2c1c', textOn: '#3b2418', barTrack: '#cbb894', barFillTop: '#8a5a36', barFillBottom: '#5e3a20', knob: '#f2e6d0', knobLight: '#ffffff' },
-      C: { depth: 6, radius: 4, faceTop: '#d8b46a', faceBottom: '#8f6a2c', faceOnTop: '#f6dc9a', faceOnBottom: '#c49a48', side: '#5a4018', highlight: 'rgba(255, 248, 220, 0.8)', rivets: '#5a4018', focus: '#fff1c8', text: '#2e1e0c', textOn: '#2e1e0c', barTrack: '#2a1e10', barFillTop: '#ffb347', barFillBottom: '#d9702a', knob: '#8f6a2c', knobLight: '#fff1c8' },
+    depth: 6,
+    radius: 5,
+    colors: {
+      face: ['#f3d68c', '#c99a3e', '#e8c26a', '#a67a2a'], faceOn: ['#fff0b8', '#e2b452', '#f6d886', '#c08f36'],
+      side: '#5a3e14', bevelLight: 'rgba(255, 248, 215, 0.85)', bevelDark: 'rgba(70, 45, 10, 0.6)',
+      screw: '#8a6420', screwLight: '#fff1c0', screwSlot: '#4a320c', focus: '#fff1c8',
+      engrave: '#3a2608', engraveLight: 'rgba(255, 245, 210, 0.7)', groove: '#3a2810', liquidTop: '#ffc35a', liquidBottom: '#d0661e',
     },
   },
   // レコード棚（仕様 039）：タイトルから入り、豆コインで BGM を買って選ぶ。price は 1 曲の値段（最初の曲は買わなくてよい）。
