@@ -105,6 +105,18 @@ export class Voices {
     this.#osc('sine', 5.2, time, dur, this.#level(f * 0.012, o.frequency));
   }
 
+  // 高さが f1 から f2 へなめらかに変わる、やわらかい音（あくびや跳ねる音）
+  glide(f1, f2, time, dur, vel, dest, type = 'sine') {
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(0.1 * vel, time + Math.min(0.03, dur / 3));
+    g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+    g.connect(dest);
+    const o = this.#osc(type, f1, time, dur, g);
+    o.frequency.setValueAtTime(f1, time);
+    o.frequency.exponentialRampToValueAtTime(f2, time + dur);
+  }
+
   // 鉄琴（ビブラフォン）風：澄んだ音が長く残る
   bell(f, time, dur, vel, dest) {
     const g = this.envelope(0.07 * vel, time, dur + 1.2, dest);

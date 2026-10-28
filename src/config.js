@@ -787,7 +787,7 @@ export const CONFIG = {
   // レア敵「まくらウサギ」（仕様 013）。1 回のプレイで chance の確率で、appearFromSec〜appearToSec のどこかに 1 回だけ出る（1 面だけ）。
   // 出てから leaveAfterSec たつか、ボスが出たら去る。体力は出た時点の羊の体力 × hpRate（手下全体の体力の倍率 061 も含む）。
   // プレイヤーとの距離が approachDist より遠いと近づき、fleeDist より近いと逃げ、その間はうろうろする（向きは wanderTurnSec ごとに変える）。
-  // 倒すと、そのプレイの間だけ攻撃の枠が slots になる。sounds は効果音の名前（専用の音ができたら差し替える）
+  // 倒すと、そのプレイの間だけ攻撃の枠が slots になる。sounds は効果音の名前（専用の音。仕様 102）
   rareEnemy: {
     // color は倒したときのエフェクトの粒の色
     color: '#bfe0f2',
@@ -808,7 +808,7 @@ export const CONFIG = {
     xp: 30,
     contactCaffeine: 5,
     slots: 4,
-    sounds: { appear: 'bossAppear', defeat: 'clear' },
+    sounds: { appear: 'rareAppear', defeat: 'rareDefeat' },
     // 体は半径の bodyW × bodyH 倍の角の丸い四角。breath は息をするような伸び縮みの割合。arrow は画面の外にいるときの向きの印
     look: {
       body: '#bfe0f2', ear: '#d7e9f7', earInner: '#9fd3e6', seam: '#7fb6d2', eye: '#3c5a73', cheek: '#f2a7b8',
