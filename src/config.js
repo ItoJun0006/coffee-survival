@@ -426,17 +426,36 @@ export const CONFIG = {
     label: '攻撃の見え方',
     previewBackdrop: 0.15,
   },
-  // ポーズメニューの見た目（仕様 040）。style は 3 案（A 木の札／B 陶器のタイル／C 真鍮のプレート）。
-  // depth はボタンの厚み（px）、radius は角の丸み、face* は表の面、side は厚みの面、bar* は値のバー、knob はつまみ
+  // ポーズメニューの見た目（仕様 040）：真鍮のプレート（3 案から C）。finish は仕上げの案（polished 磨いた真鍮／aged 古びた真鍮／brushed ヘアライン。3 案から選ぶ）。
+  // depth はプレートの厚み（px）、radius は角の丸み。face は表の面の色の帯（上から）、faceOn は選んでいるとき、bevel* は面取り、
+  // screw* はねじ、engrave* は刻印の字、groove はバーの溝、liquid* はバーの中の液体、patina* は緑青のしみ
   pauseLook: {
-    style: 'A',
-    width: 340,
-    height: 48,
+    finish: 'polished',
+    width: 360,
+    height: 50,
     gap: 14,
-    styles: {
-      A: { depth: 6, radius: 6, faceTop: '#8a5f3c', faceBottom: '#6b4528', faceOnTop: '#e2b26a', faceOnBottom: '#c48a3e', side: '#3e2614', highlight: 'rgba(255, 230, 190, 0.45)', grain: 'rgba(40, 20, 8, 0.25)', focus: '#f0d58a', text: '#f3e6d8', textOn: '#3b2418', barTrack: '#2a1a10', barFillTop: '#f0c070', barFillBottom: '#b97a30', knob: '#a8823c', knobLight: '#f6e2a8' },
-      B: { depth: 5, radius: 14, faceTop: '#f6eddc', faceBottom: '#e2d2b4', faceOnTop: '#fff6e2', faceOnBottom: '#f0c98a', side: '#b8a07a', highlight: 'rgba(255, 255, 255, 0.9)', focus: '#7a4f2e', text: '#4a2c1c', textOn: '#3b2418', barTrack: '#cbb894', barFillTop: '#8a5a36', barFillBottom: '#5e3a20', knob: '#f2e6d0', knobLight: '#ffffff' },
-      C: { depth: 6, radius: 4, faceTop: '#d8b46a', faceBottom: '#8f6a2c', faceOnTop: '#f6dc9a', faceOnBottom: '#c49a48', side: '#5a4018', highlight: 'rgba(255, 248, 220, 0.8)', rivets: '#5a4018', focus: '#fff1c8', text: '#2e1e0c', textOn: '#2e1e0c', barTrack: '#2a1e10', barFillTop: '#ffb347', barFillBottom: '#d9702a', knob: '#8f6a2c', knobLight: '#fff1c8' },
+    depth: 6,
+    radius: 5,
+    finishes: {
+      polished: {
+        face: ['#f3d68c', '#c99a3e', '#e8c26a', '#a67a2a'], faceOn: ['#fff0b8', '#e2b452', '#f6d886', '#c08f36'],
+        side: '#5a3e14', bevelLight: 'rgba(255, 248, 215, 0.85)', bevelDark: 'rgba(70, 45, 10, 0.6)',
+        screw: '#8a6420', screwLight: '#fff1c0', screwSlot: '#4a320c', focus: '#fff1c8',
+        engrave: '#3a2608', engraveLight: 'rgba(255, 245, 210, 0.7)', groove: '#3a2810', liquidTop: '#ffc35a', liquidBottom: '#d0661e',
+      },
+      aged: {
+        face: ['#c8a868', '#8f6d34', '#b08d4e', '#6e5124'], faceOn: ['#e2c682', '#a8823e', '#c8a35c', '#83612a'],
+        side: '#3e2a0e', bevelLight: 'rgba(240, 225, 180, 0.55)', bevelDark: 'rgba(40, 25, 5, 0.65)',
+        screw: '#6a4c1c', screwLight: '#d8bf86', screwSlot: '#2e1e08', focus: '#e8d8a8',
+        engrave: '#2a1a06', engraveLight: 'rgba(235, 220, 175, 0.5)', groove: '#2a1c0a', liquidTop: '#e0a64e', liquidBottom: '#9a4c1a',
+        patina: '#5f8f78', patinaDark: '#3e6a5a',
+      },
+      brushed: {
+        face: ['#e6c97e', '#d0ab58', '#dcbb6a', '#b8903e'], faceOn: ['#f6e09c', '#e2be68', '#ecd084', '#cba450'],
+        side: '#4e3612', bevelLight: 'rgba(255, 250, 225, 0.7)', bevelDark: 'rgba(60, 40, 8, 0.55)',
+        screw: '#7a5a1e', screwLight: '#f8e8b8', screwSlot: '#3e2a0a', focus: '#fff6d6',
+        engrave: '#3a2808', engraveLight: 'rgba(255, 248, 220, 0.6)', groove: '#3a2a12', liquidTop: '#7fd0e8', liquidBottom: '#2f7f9a',
+      },
     },
   },
   // レコード棚（仕様 039）：タイトルから入り、豆コインで BGM を買って選ぶ。price は 1 曲の値段（最初の曲は買わなくてよい）。
