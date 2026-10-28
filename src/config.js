@@ -426,6 +426,26 @@ export const CONFIG = {
     label: '攻撃の見え方',
     previewBackdrop: 0.15,
   },
+  // 実績（仕様 041）：隠し要素と解放の条件の一覧。まだのものは名前を hidden にして、hint（条件）だけ見せる。
+  // done は解放したかの調べ方（unlocked：解放の印 id があるか、badges：豆の証を 1 つ以上持っているか）。stamp はスタンプカードの判子の字。
+  // style は見た目の案（A 黒板の一覧／B スタンプカード／C メダルの額。3 案から選ぶ）
+  achievements: {
+    style: 'A',
+    title: '実績',
+    count: '{done} / {all} 達成',
+    hidden: '？？？',
+    back: 'もどる（Esc）',
+    button: '★ 実績（A キー）',
+    items: [
+      { name: '椿三輪', hint: 'レア強化「椿の花」を 3 種類そろえる', reward: 'スキン「椿」', stamp: '椿', done: { kind: 'unlocked', id: 'skin-camellia' } },
+      { name: 'カフェオレの合言葉', hint: 'タイトル画面で、この店の看板の飲み物を英語で打つ', reward: '豆がカフェオレ色になる', stamp: '乳', done: { kind: 'unlocked', id: 'secret-coffee' } },
+      { name: 'まどろみ宝竜', hint: '1 面のクリアのあと、まれに目を覚ます竜を倒す', reward: 'ドラゴン豆が仕入れられる', stamp: '竜', done: { kind: 'unlocked', id: 'ready-dragon' } },
+      { name: '豆の証', hint: '手下がまれに落とす証を拾って、クリアする', reward: '豆コインが増える', stamp: '証', done: { kind: 'badges' } },
+      { name: '横切るジャコウネコ', hint: 'まれに横切る猫に追いついて、触る', reward: '豆コインどっさり', stamp: '猫', done: { kind: 'unlocked', id: 'secret-cat' } },
+      { name: '金色の羊', hint: '3 分間無傷', reward: '経験値がたくさん', stamp: '羊', done: { kind: 'unlocked', id: 'secret-golden-sheep' } },
+    ],
+    colors: { backdrop: 'rgba(20, 14, 10, 0.94)', title: '#f0d58a', text: '#f3e6d8', sub: 'rgba(243, 230, 216, 0.72)', dim: 'rgba(243, 230, 216, 0.4)', star: '#f2c94c', board: '#1f2a24', frame: '#6b4a2c', card: '#f3e8d2', cardLine: '#b89a70', cardInk: '#4a2c1c', stamp: '#c0392b', felt: '#2b3a2e', ribbon: '#b03a3a' },
+  },
   // ポーズメニューの見た目（仕様 040）。style は 3 案（A 木の札／B 陶器のタイル／C 真鍮のプレート）。
   // depth はボタンの厚み（px）、radius は角の丸み、face* は表の面、side は厚みの面、bar* は値のバー、knob はつまみ
   pauseLook: {
