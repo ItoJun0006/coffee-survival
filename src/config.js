@@ -790,6 +790,45 @@ export const CONFIG = {
     title: 'ねぶくろキャンプ！',
     text: '寝袋に取り囲まれた…',
   },
+  // レア敵「まくらウサギ」（仕様 013）。1 回のプレイで chance の確率で、appearFromSec〜appearToSec のどこかに 1 回だけ出る（1 面だけ）。
+  // 出てから leaveAfterSec たつか、ボスが出たら去る。体力は出た時点の羊の体力 × hpRate（手下全体の体力の倍率 061 も含む）。
+  // プレイヤーとの距離が approachDist より遠いと近づき、fleeDist より近いと逃げ、その間はうろうろする（向きは wanderTurnSec ごとに変える）。
+  // 倒すと、そのプレイの間だけ攻撃の枠が slots になる。sounds は効果音の名前（専用の音ができたら差し替える）
+  rareEnemy: {
+    // color は倒したときのエフェクトの粒の色
+    color: '#bfe0f2',
+    chance: 0.1,
+    appearFromSec: 240,
+    appearToSec: 420,
+    leaveAfterSec: 90,
+    hpRate: 3,
+    radius: 20,
+    approachDist: 600,
+    fleeDist: 350,
+    approachSpeed: 120,
+    wanderSpeed: 90,
+    fleeSpeed: 190,
+    wanderTurnSec: 1.2,
+    // 角に追い詰められたとき、壁に沿って走り抜ける時間
+    escapeSec: 1,
+    xp: 30,
+    contactCaffeine: 5,
+    slots: 4,
+    sounds: { appear: 'bossAppear', defeat: 'clear' },
+    // 体は半径の bodyW × bodyH 倍の角の丸い四角。breath は息をするような伸び縮みの割合。arrow は画面の外にいるときの向きの印
+    look: {
+      body: '#bfe0f2', ear: '#d7e9f7', earInner: '#9fd3e6', seam: '#7fb6d2', eye: '#3c5a73', cheek: '#f2a7b8',
+      bodyW: 2.0, bodyH: 1.3, breath: 0.05, arrow: { size: 16, margin: 28 },
+    },
+    texts: {
+      name: 'まくらウサギ',
+      appear: 'まくらウサギが現れた！',
+      appearSub: '追いかけて倒すと、攻撃の枠が増える',
+      defeat: '攻撃の枠が 4 つになった！',
+      defeatSub: 'まくらウサギを倒した',
+      fled: 'まくらウサギは逃げてしまった…',
+    },
+  },
   // 珈琲店の木の床（仕様 005）。横長の板を、継ぎ目をずらして並べた板張り
   // size はドット 1 マスの大きさ（pixelArt.size と合わせる）、periodDots は柄 1 枚の大きさ（ドットの数）
   // enabled を false にすると、背景のタイルの床（scenery.floor）になる
@@ -864,6 +903,8 @@ export const CONFIG = {
       strength: 0.7,
       // 夜の暗さを描くときの縮小率（小さいほど軽い）。ドット絵の 1 マス（3px）に合わせて 1/3 にする
       darkScale: 1 / 3,
+      // 夜にランプの下を照らす暖かい色（仕様 005 の FR-005）。radius の丸いにじみを、夜の暗さの rate 倍の濃さで足す
+      warm: { color: 'rgba(140, 70, 20, 0.5)', radius: 190, rate: 0.9 },
     },
   },
   // ラスボス：眠気の化身 ネムリーヌ
