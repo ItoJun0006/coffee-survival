@@ -38,6 +38,7 @@ export class Background {
   constructor() {
     this.layer = document.createElement('canvas');
     this.dark = document.createElement('canvas');
+    this.warm = document.createElement('canvas');
     this.builtFor = null;
   }
 
@@ -143,6 +144,10 @@ export class Background {
     // ぼかさずに引き伸ばし、ドット絵と同じ 3px のマスにそろえる（ぼかすより軽い）
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(this.dark, (camera.x + m) * k, (camera.y + m) * k, viewW * k, viewH * k, 0, 0, viewW, viewH);
+    // ランプの下を暖かい色で照らす。暗いほど強くする（色を足すので、暗い所を明るく塗り直す）
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = alpha * CONFIG.scenery.lamps.warm.rate;
+    ctx.drawImage(this.warm, (camera.x + m) * k, (camera.y + m) * k, viewW * k, viewH * k, 0, 0, viewW, viewH);
     ctx.restore();
   }
 
@@ -163,6 +168,26 @@ export class Background {
       d.fillStyle = g;
       d.beginPath();
       d.arc(l.x, l.y, lightRadius, 0, Math.PI * 2);
+      d.fill();
+    }
+    this.#buildWarm();
+  }
+
+  // 夜にランプの下を照らす暖かい色の絵。夜の暗さの絵と同じ大きさ・同じ縮小率で作る
+  #buildWarm() {
+    const { darkScale: k, warm } = CONFIG.scenery.lamps;
+    this.warm.width = this.dark.width;
+    this.warm.height = this.dark.height;
+    const d = this.warm.getContext('2d');
+    d.setTransform(k, 0, 0, k, 0, 0);
+    d.translate(this.margin + DARK_PAD, this.margin + DARK_PAD);
+    for (const l of this.lamps) {
+      const g = d.createRadialGradient(l.x, l.y, 0, l.x, l.y, warm.radius);
+      g.addColorStop(0, warm.color);
+      g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      d.fillStyle = g;
+      d.beginPath();
+      d.arc(l.x, l.y, warm.radius, 0, Math.PI * 2);
       d.fill();
     }
   }
