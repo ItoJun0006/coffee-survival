@@ -168,11 +168,16 @@ class Sound {
       case 'clear':
         ['C4', 'E4', 'G4', 'B4', 'D5'].forEach((n, i) => v.ep(freq(n), t + i * 0.06, 3, 0.8, out));
         break;
-      // まくらウサギ（仕様 013・102）。出たとき：鈴がふわっと上がって、あくびのように下がる
+      // まくらウサギ（仕様 013・102）。出たとき：ぴょこぴょこ跳ねながら遠ざかる（だんだん小さくなる）
       case 'rareAppear': {
-        const o = this.#louder(3);
-        ['E6', 'G#6', 'B6', 'E7'].forEach((n, i) => v.bell(freq(n), t + i * 0.07, 0.3, 0.8, o));
-        v.glide(880, 520, t + 0.4, 0.8, 0.7, o);
+        const o = this.#louder(5);
+        for (let i = 0; i < 4; i++) {
+          const at = t + i * 0.14;
+          const vel = 1 - i * 0.2;
+          v.glide(700, 1150, at, 0.1, vel, o);
+          v.pluck(freq('G5'), at, 0.15, vel * 0.6, o);
+        }
+        v.bell(freq('E7'), t + 0.62, 0.3, 0.5, o);
         break;
       }
       // 倒したとき：枠が 1 つずつ増えるように 4 つの鈴を数え、最後に和音
