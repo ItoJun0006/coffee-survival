@@ -426,6 +426,22 @@ export const CONFIG = {
     label: '攻撃の見え方',
     previewBackdrop: 0.15,
   },
+  // ポーズメニューの見た目（仕様 040）：磨いた真鍮のプレート（3 案から C、仕上げの 3 案から「磨いた真鍮」）。
+  // depth はプレートの厚み（px）、radius は角の丸み。face は表の面の色の帯（上から）、faceOn は選んでいるとき、bevel* は面取り、
+  // screw* はねじ、engrave* は刻印の字、groove はバーの溝、liquid* はバーの中の液体
+  pauseLook: {
+    width: 360,
+    height: 50,
+    gap: 14,
+    depth: 6,
+    radius: 5,
+    colors: {
+      face: ['#f3d68c', '#c99a3e', '#e8c26a', '#a67a2a'], faceOn: ['#fff0b8', '#e2b452', '#f6d886', '#c08f36'],
+      side: '#5a3e14', bevelLight: 'rgba(255, 248, 215, 0.85)', bevelDark: 'rgba(70, 45, 10, 0.6)',
+      screw: '#8a6420', screwLight: '#fff1c0', screwSlot: '#4a320c', focus: '#fff1c8',
+      engrave: '#3a2608', engraveLight: 'rgba(255, 245, 210, 0.7)', groove: '#3a2810', liquidTop: '#ffc35a', liquidBottom: '#d0661e',
+    },
+  },
   // レコード棚（仕様 039）：タイトルから入り、豆コインで BGM を買って選ぶ。price は 1 曲の値段（最初の曲は買わなくてよい）。
   // spine は背表紙の大きさ、covers は曲ごとの装丁の色、jacket は曲ごとのジャケットの絵
   recordShelf: {

@@ -23,6 +23,7 @@ import { drawItemIcon } from './item-icons.js';
 import { PixelLayer } from './pixel-layer.js';
 import { Floor } from './floor.js';
 import { sound } from './sound.js';
+import { drawPauseItem } from './pause-look.js';
 import { RecordShelf, applySavedTrack, stepTrack, currentTrackName } from './record-shelf.js';
 import { font } from './font.js';
 import { Background } from './background.js';
@@ -894,19 +895,21 @@ export class Game {
   }
 
   #pauseMenuItems() {
-    const w = Math.min(240, this.viewW - 64);
-    const h = 48;
+    const L = CONFIG.pauseLook;
+    const w = Math.min(L.width, this.viewW - 64);
+    const h = L.height;
     const x = (this.viewW - w) / 2;
-    const y = this.viewH / 2 - 10;
-    const gap = h + 16;
+    const gap = h + L.gap;
+    const y = this.viewH / 2 - (gap * 5) / 2 + 30;
+    // name・ratio・valueText・choice は見た目（仕様 040）で使う。ratio はバーの割合
     return [
-      { label: '再開', x, y, w, h, action: () => { this.state = 'playing'; } },
-      { label: `音楽の音量  ◀ ${sound.musicVolume}% ▶`, x, y: y + gap, w, h, adjust: (d) => sound.changeMusicVolume(d) },
+      { name: '再開', x, y, w, h, action: () => { this.state = 'playing'; } },
+      { name: '音楽の音量', ratio: sound.musicVolume / 100, valueText: `${sound.musicVolume}%`, x, y: y + gap, w, h, adjust: (d) => sound.changeMusicVolume(d) },
       // 買った曲の中から切り替える（仕様 039）
-      { label: `曲  ◀ ${currentTrackName()} ▶`, x, y: y + gap * 2, w, h, adjust: (d) => stepTrack(d) },
+      { name: '曲', choice: currentTrackName(), x, y: y + gap * 2, w, h, adjust: (d) => stepTrack(d) },
       // 攻撃の見え方（仕様 035）。→ で薄く、← で濃く
-      { label: `${CONFIG.weaponAlpha.label}  ◀ ${weaponAlpha.value}% ▶`, x, y: y + gap * 3, w, h, adjust: (d) => weaponAlpha.change(d), weaponAlpha: true },
-      { label: 'タイトルへ戻る', x, y: y + gap * 4, w, h, action: () => { saveProgress(); this.reset(); this.state = 'title'; } },
+      { name: CONFIG.weaponAlpha.label, ratio: weaponAlpha.value / 100, valueText: `${weaponAlpha.value}%`, x, y: y + gap * 3, w, h, adjust: (d) => weaponAlpha.change(d), weaponAlpha: true },
+      { name: 'タイトルへ戻る', x, y: y + gap * 4, w, h, action: () => { saveProgress(); this.reset(); this.state = 'title'; } },
     ];
   }
 
@@ -1753,16 +1756,8 @@ export class Game {
     ctx.textBaseline = 'middle';
     ctx.fillStyle = c.text;
     ctx.font = font(28, true);
-    ctx.fillText('ポーズ中', this.viewW / 2, this.viewH / 2 - 60);
-
-    ctx.font = font(18, true);
-    items.forEach((it, i) => {
-      const selected = i === this.pauseIndex;
-      ctx.fillStyle = selected ? c.hudBar : c.hudBg;
-      ctx.fillRect(it.x, it.y, it.w, it.h);
-      ctx.fillStyle = selected ? '#3b2418' : c.text;
-      ctx.fillText(it.label, it.x + it.w / 2, it.y + it.h / 2);
-    });
+    ctx.fillText('ポーズ中', this.viewW / 2, items[0].y - 44);
+    items.forEach((it, i) => drawPauseItem(ctx, it, i === this.pauseIndex, performance.now() / 1000));
   }
 
   #drawOverlay() {
