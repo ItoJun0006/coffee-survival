@@ -53,6 +53,9 @@ export function stepTrack(d) {
 const trackName = (id) => CONFIG.audio.music[id].name;
 export const currentTrackName = () => trackName(currentTrack());
 
+// 棚の飾り（側板・冠）が、端の背表紙から外へはみ出す幅（px）
+const SHELF_EDGE = 80;
+
 const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 
 export class RecordShelf {
@@ -83,7 +86,7 @@ export class RecordShelf {
     if (input.wasPressed('ArrowRight', 'KeyD', 'ArrowDown', 'KeyS')) this.index = (this.index + 1) % n;
     if (!input.consumeClick()) return null;
     if (input.clickPos) {
-      const hit = this.#items(viewW, viewH).find((it) => inRect(input.clickPos, it));
+      const hit = this.#layout(viewW, viewH).items.find((it) => inRect(input.clickPos, it));
       if (!hit) return null;
       this.index = hit.index;
     }
@@ -107,17 +110,31 @@ export class RecordShelf {
     this.toast(texts.bought.replace('{name}', trackName(id)));
   }
 
-  // 背表紙の並び。棚の飾りの分だけ、上下に余白をとる
-  #items(viewW, viewH) {
-    const { spine } = cfg();
+  // 並べ方：背表紙の位置（items）と、棚のまん中の x（cx）。ふつうは棚を左に寄せて、右の壁に額を飾る。
+  // 画面がせまくて、棚と narrow.minFrame 以上の額が入りきらないときは、本を細くして額の場所を空ける
+  #layout(viewW, viewH) {
+    const { spine, jacket, narrow } = cfg();
     const n = tracks().length;
-    const left = this.#shelfCx(viewW) - (n * spine.w + (n - 1) * spine.gap) / 2;
+    const inner = (w, gap) => n * w + (n - 1) * gap;
     const top = Math.max(200, viewH / 2 - spine.h / 2 + 10);
-    return tracks().map((id, index) => ({ id, index, x: left + index * (spine.w + spine.gap), y: top, w: spine.w, h: spine.h }));
+    const place = (cx, w, gap) => {
+      const left = cx - inner(w, gap) / 2;
+      return { cx, items: tracks().map((id, index) => ({ id, index, x: left + index * (w + gap), y: top, w, h: spine.h })) };
+    };
+    const cx = viewW * jacket.shelfX;
+    const half = inner(spine.w, spine.gap) / 2 + SHELF_EDGE;
+    const frame = Math.min(jacket.size, viewH * 0.45, viewW - (cx + half) - 100);
+    if (cx - half >= narrow.margin && frame >= narrow.minFrame) return place(cx, spine.w, spine.gap);
+    const room = viewW - narrow.margin - 2 * SHELF_EDGE - (narrow.minFrame + 100);
+    const k = Math.min(1, room / inner(spine.w, spine.gap));
+    const w = spine.w * k;
+    const gap = spine.gap * k;
+    return place(narrow.margin + SHELF_EDGE + inner(w, gap) / 2, w, gap);
   }
 
   draw(ctx, viewW, viewH) {
     const s = cfg();
+    const L = this.#layout(viewW, viewH);
     const t = (performance.now() - (this.openedAt ?? 0)) / 1000;
     ctx.save();
     ctx.fillStyle = s.colors.bg;
@@ -127,7 +144,7 @@ export class RecordShelf {
     ctx.fillStyle = s.colors.title;
     ctx.font = font(30, true);
     // 上の端は知らせと音の表示が出るので、見出しは少し下げる
-    ctx.fillText(s.title, this.#shelfCx(viewW), 104);
+    ctx.fillText(s.title, L.cx, 104);
     // 持っている豆コイン（右上。音の表示の下）
     const have = `${CONFIG.coins.name} ${coinText(coins())}`;
     ctx.font = font(15);
@@ -136,7 +153,7 @@ export class RecordShelf {
     ctx.fillText(have, viewW - 20, 56);
     drawCoin(ctx, viewW - 20 - ctx.measureText(have).width - 12, 56, 7);
 
-    const items = this.#items(viewW, viewH);
+    const { items } = L;
     this.#drawShelf(ctx, items, t);
     this.#drawFramed(ctx, viewW, viewH, items);
 
@@ -146,16 +163,16 @@ export class RecordShelf {
     ctx.textAlign = 'center';
     ctx.fillStyle = CONFIG.colors.text;
     ctx.font = font(18, true);
-    ctx.fillText(trackName(id), this.#shelfCx(viewW), bottom + 52);
+    ctx.fillText(trackName(id), L.cx, bottom + 52);
     ctx.font = font(14);
     ctx.fillStyle = s.colors.sub;
-    ctx.fillText(CONFIG.audio.music[id].mood, this.#shelfCx(viewW), bottom + 78);
+    ctx.fillText(CONFIG.audio.music[id].mood, L.cx, bottom + 78);
     ctx.font = font(15, true);
     ctx.fillStyle = s.colors.accent;
-    ctx.fillText(this.#statusText(id), this.#shelfCx(viewW), bottom + 106);
+    ctx.fillText(this.#statusText(id), L.cx, bottom + 106);
     if (this.message && performance.now() - this.message.at < 2000) {
       ctx.fillStyle = s.colors.warn;
-      ctx.fillText(this.message.text, this.#shelfCx(viewW), bottom + 130);
+      ctx.fillText(this.message.text, L.cx, bottom + 130);
     }
     ctx.font = font(13);
     ctx.fillStyle = s.colors.sub;
@@ -346,11 +363,6 @@ export class RecordShelf {
     [...name].forEach((ch, i) => ctx.fillText(ch, x + w / 2, top + i * size));
   }
 
-  // 棚のまん中の x。右にジャケットの額を飾るので、棚を左に寄せる
-  #shelfCx(viewW) {
-    return viewW * cfg().jacket.shelfX;
-  }
-
   // ジャケット 1 枚。まだ買っていない曲は暗くする
   #drawJacket(ctx, id, x, y, size) {
     const img = this.jackets[id];
@@ -371,7 +383,7 @@ export class RecordShelf {
     const w = cfg().wood;
     const first = items[0];
     const last = items[items.length - 1];
-    const shelfRight = last.x + last.w + 80;
+    const shelfRight = last.x + last.w + SHELF_EDGE;
     const size = Math.min(cfg().jacket.size, viewH * 0.45, viewW - shelfRight - 100);
     // 画面がせまくて額が入らないときは、飾らない
     if (size < 80) return;
