@@ -345,7 +345,8 @@ export const CONFIG = {
     baseXp: 5,
     xpGrowth: 4,
     xpGrowthSq: 1.2,
-    coinCard: { chance: 0.5, amount: 5, name: '豆コイン ＋5 枚', desc: '豆コインを 5 枚もらう\n（プレイが終わると\n手に入る）', text: '豆コインを 5 枚もらった！' },
+    // amount は 2026-10-27 に 5 → 10 枚（豆コイン 2 倍、仕様 082）
+    coinCard: { chance: 0.5, amount: 10, name: '豆コイン ＋10 枚', desc: '豆コインを 10 枚もらう\n（プレイが終わると\n手に入る）', text: '豆コインを 10 枚もらった！' },
     enemyDropChance: 0.4,
     maxDroppedBeans: 60,
     // 全攻撃を手に入れた後のレベルアップで上がる攻撃力
