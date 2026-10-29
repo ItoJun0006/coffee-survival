@@ -2,6 +2,8 @@ export const CONFIG = {
   // タイトル画面。image はロゴ入りのイラストで、読み込めるまでは name を文字で描く
   // zoom はイラストをゆっくり拡大・縮小させる量（0.025 で最大 2.5% 大きくなる）と、1 往復の秒数
   title: {
+    // タイトルの左下に出す、持っている豆の証（仕様 042。3 案から B）。step は盾の間隔（px）、emptyColor はまだの枠、rateColor と text は増え方
+    badgeCount: { step: 18, emptyColor: 'rgba(243, 230, 216, 0.3)', rateColor: '#f2c94c', text: '豆コイン +{p}%' },
     name: '珈琲サバイバル',
     subtitle: '〜 眠気に負けるな 〜',
     image: 'assets/images/title.webp',
