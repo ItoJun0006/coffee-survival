@@ -613,9 +613,8 @@ export const CONFIG = {
         8: { drops: 8, linger: true, damageRate: 0.75, desc: '雫が 8 つになり、\n着弾点に湯気が残る' },
       },
       commonDesc: 'ダメージが上がり、\n降らせる間隔が縮む',
-      // Lv 8（MAX）の見た目：落とす所の上に小さなドリッパーが現れて落とす・珈琲色の湯気の範囲。mist は着弾点に残る湯気の範囲、crown は着弾で跳ねる雫の数
+      // Lv 8（MAX）の見た目：光をまとった雫・珈琲色の湯気の範囲。mist は着弾点に残る湯気の範囲、crown は着弾で跳ねる雫の数
       maxVisual: {
-        dripper: '#b8733a', dripperRim: '#e0a36a', dripperSize: 11, dripperFadeSec: 0.12,
         drop: '#6b3e22', glow: '#ff9a3c', glowRadius: 14, glowAlpha: 0.45,
         steam: '#f4efe6', steamAlpha: 0.5,
         splash: '#c98a4b', crown: 6, crownLift: 10, mistFill: 'rgba(70, 38, 20, 0.45)', mistEdge: '#8a5a32', wisps: 5, wispHeight: 46,
