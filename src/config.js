@@ -426,6 +426,40 @@ export const CONFIG = {
     label: '攻撃の見え方',
     previewBackdrop: 0.15,
   },
+  // 実績（仕様 041）：隠し要素と解放の条件の一覧。まだのものは名前を hidden にして、hint（条件）だけ見せる。
+  // done は解放したかの調べ方（unlocked：解放の印 id があるか、badges：豆の証を 1 つ以上持っているか）。見た目は黒板の一覧（3 案から A）
+  achievements: {
+    title: '実績',
+    count: '{done} / {all} 達成',
+    hidden: '？？？',
+    back: 'もどる（Esc）',
+    button: '★ 実績（A キー）',
+    items: [
+      { name: '椿三輪', hint: 'レア強化「椿の花」を 3 種類そろえる', reward: 'スキン「椿」', done: { kind: 'unlocked', id: 'skin-camellia' } },
+      { name: 'カフェオレの合言葉', hint: 'タイトル画面で、この店の看板の飲み物を英語で打つ', reward: '豆がカフェオレ色になる', done: { kind: 'unlocked', id: 'secret-coffee' } },
+      { name: 'まどろみ宝竜', hint: '1 面のクリアのあと、まれに目を覚ます竜を倒す', reward: 'ドラゴン豆が仕入れられる', done: { kind: 'unlocked', id: 'ready-dragon' } },
+      { name: '豆の証', hint: '手下がまれに落とす証を拾って、クリアする', reward: '豆コインが増える', done: { kind: 'badges' } },
+      { name: '横切るジャコウネコ', hint: 'まれに横切る猫に追いついて、触る', reward: '豆コインどっさり', done: { kind: 'unlocked', id: 'secret-cat' } },
+      { name: '金色の羊', hint: '3 分間無傷', reward: '経験値がたくさん', done: { kind: 'unlocked', id: 'secret-golden-sheep' } },
+    ],
+    colors: { backdrop: 'rgba(20, 14, 10, 0.94)', title: '#f0d58a', text: '#f3e6d8', sub: 'rgba(243, 230, 216, 0.72)', dim: 'rgba(243, 230, 216, 0.4)', star: '#f2c94c', board: '#1f2a24', frame: '#6b4a2c' },
+  },
+  // ポーズメニューの見た目（仕様 040）：磨いた真鍮のプレート（3 案から C、仕上げの 3 案から「磨いた真鍮」）。
+  // depth はプレートの厚み（px）、radius は角の丸み。face は表の面の色の帯（上から）、faceOn は選んでいるとき、bevel* は面取り、
+  // screw* はねじ、engrave* は刻印の字、groove はバーの溝、liquid* はバーの中の液体
+  pauseLook: {
+    width: 360,
+    height: 50,
+    gap: 14,
+    depth: 6,
+    radius: 5,
+    colors: {
+      face: ['#f3d68c', '#c99a3e', '#e8c26a', '#a67a2a'], faceOn: ['#fff0b8', '#e2b452', '#f6d886', '#c08f36'],
+      side: '#5a3e14', bevelLight: 'rgba(255, 248, 215, 0.85)', bevelDark: 'rgba(70, 45, 10, 0.6)',
+      screw: '#8a6420', screwLight: '#fff1c0', screwSlot: '#4a320c', focus: '#fff1c8',
+      engrave: '#3a2608', engraveLight: 'rgba(255, 245, 210, 0.7)', groove: '#3a2810', liquidTop: '#ffc35a', liquidBottom: '#d0661e',
+    },
+  },
   // レコード棚（仕様 039）：タイトルから入り、豆コインで BGM を買って選ぶ。price は 1 曲の値段（最初の曲は買わなくてよい）。
   // spine は背表紙の大きさ、covers は曲ごとの装丁の色、jacket は曲ごとのジャケットの絵
   recordShelf: {

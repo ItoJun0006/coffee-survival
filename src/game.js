@@ -23,6 +23,8 @@ import { drawItemIcon } from './item-icons.js';
 import { PixelLayer } from './pixel-layer.js';
 import { Floor } from './floor.js';
 import { sound } from './sound.js';
+import { drawPauseItem } from './pause-look.js';
+import { AchievementScreen, markDone } from './achievements.js';
 import { RecordShelf, applySavedTrack, stepTrack, currentTrackName } from './record-shelf.js';
 import { font } from './font.js';
 import { Background } from './background.js';
@@ -115,6 +117,7 @@ export class Game {
     sound.init();
     applySavedTrack();
     this.recordShelf = new RecordShelf((text) => this.#toast(text));
+    this.achievementScreen = new AchievementScreen();
     // 画面の上に数秒出す知らせ（キャラの解放など）。ゲームの時間ではなく実際の時間で消える
     this.toasts = [];
     this.#checkUnlocks('launches', recordLaunch());
@@ -571,15 +574,20 @@ export class Game {
     // − で BGM を小さく、＋で大きく（日本語キーボードの ; ＋ キーと、テンキーにも対応）
     if (this.input.wasPressed('Minus', 'NumpadSubtract')) this.#changeMusicVolume(-1);
     if (this.input.wasPressed('Equal', 'Semicolon', 'NumpadAdd')) this.#changeMusicVolume(1);
-    sound.setPaused(this.state === 'paused');
+    sound.setPaused(this.state === 'paused' || (this.state === 'achievements' && this.achievementsFrom === 'paused'));
     // 知らせは、レベルアップの選択・ポーズ・持っていく攻撃の選択の間は進めず、閉じてから出す
     if (this.state === 'paused' || this.state === 'levelup' || this.state === 'carry' || this.state === 'start') {
       for (const t of this.toasts) t.until += dt * 1000;
     }
     if (this.state === 'title') {
       this.#checkSecretCommand();
-      // レコード棚（仕様 039）：R キーか、右下のボタンのクリックで入る
+      // レコード棚（仕様 039）：R キーか、右下のボタンのクリックで入る。実績（仕様 041）は A キーか、その上のボタン
       const pos = this.input.clickPos;
+      if (this.input.wasPressed('KeyA') || (pos && this.input.clicked && inRect(pos, this.#achievementButton()))) {
+        this.input.consumeClick();
+        this.#openAchievements('title');
+        return;
+      }
       if (this.input.wasPressed('KeyR') || (pos && this.input.clicked && inRect(pos, this.#shelfButton()))) {
         this.input.consumeClick();
         this.recordShelf.open();
@@ -590,6 +598,10 @@ export class Game {
         this.characterSelect.open(this.character);
         this.state = 'select';
       }
+      return;
+    }
+    if (this.state === 'achievements') {
+      if (this.achievementScreen.update(this.input, this.viewW, this.viewH) === 'back') this.state = this.achievementsFrom;
       return;
     }
     if (this.state === 'records') {
@@ -741,7 +753,9 @@ export class Game {
       this.typed = ((this.typed ?? '') + ch).slice(-word.length);
       if (this.typed !== word) continue;
       this.typed = '';
-      this.#toast(toggleCafeAuLait() ? onText : offText);
+      const on = toggleCafeAuLait();
+      if (on) markDone('secret-coffee'); // 実績（仕様 041）
+      this.#toast(on ? onText : offText);
     }
   }
 
@@ -894,19 +908,22 @@ export class Game {
   }
 
   #pauseMenuItems() {
-    const w = Math.min(240, this.viewW - 64);
-    const h = 48;
+    const L = CONFIG.pauseLook;
+    const w = Math.min(L.width, this.viewW - 64);
+    const h = L.height;
     const x = (this.viewW - w) / 2;
-    const y = this.viewH / 2 - 10;
-    const gap = h + 16;
+    const gap = h + L.gap;
+    const y = this.viewH / 2 - (gap * 6) / 2 + 30;
+    // name・ratio・valueText・choice は見た目（仕様 040）で使う。ratio はバーの割合
     return [
-      { label: '再開', x, y, w, h, action: () => { this.state = 'playing'; } },
-      { label: `音楽の音量  ◀ ${sound.musicVolume}% ▶`, x, y: y + gap, w, h, adjust: (d) => sound.changeMusicVolume(d) },
+      { name: '再開', x, y, w, h, action: () => { this.state = 'playing'; } },
+      { name: '音楽の音量', ratio: sound.musicVolume / 100, valueText: `${sound.musicVolume}%`, x, y: y + gap, w, h, adjust: (d) => sound.changeMusicVolume(d) },
       // 買った曲の中から切り替える（仕様 039）
-      { label: `曲  ◀ ${currentTrackName()} ▶`, x, y: y + gap * 2, w, h, adjust: (d) => stepTrack(d) },
+      { name: '曲', choice: currentTrackName(), x, y: y + gap * 2, w, h, adjust: (d) => stepTrack(d) },
       // 攻撃の見え方（仕様 035）。→ で薄く、← で濃く
-      { label: `${CONFIG.weaponAlpha.label}  ◀ ${weaponAlpha.value}% ▶`, x, y: y + gap * 3, w, h, adjust: (d) => weaponAlpha.change(d), weaponAlpha: true },
-      { label: 'タイトルへ戻る', x, y: y + gap * 4, w, h, action: () => { saveProgress(); this.reset(); this.state = 'title'; } },
+      { name: CONFIG.weaponAlpha.label, ratio: weaponAlpha.value / 100, valueText: `${weaponAlpha.value}%`, x, y: y + gap * 3, w, h, adjust: (d) => weaponAlpha.change(d), weaponAlpha: true },
+      { name: '実績', x, y: y + gap * 4, w, h, action: () => this.#openAchievements('paused') },
+      { name: 'タイトルへ戻る', x, y: y + gap * 5, w, h, action: () => { saveProgress(); this.reset(); this.state = 'title'; } },
     ];
   }
 
@@ -1388,6 +1405,11 @@ export class Game {
       this.#drawTitle();
     } else if (this.state === 'records') {
       this.recordShelf.draw(this.ctx, this.viewW, this.viewH);
+    } else if (this.state === 'achievements') {
+      // 後ろに、開いた元の画面（タイトルかプレイ中）を残して重ねる
+      if (this.achievementsFrom === 'title') this.#drawTitle();
+      else this.#drawHud();
+      this.achievementScreen.draw(ctx, this.viewW, this.viewH);
     } else if (this.state === 'select') {
       this.characterSelect.draw(ctx, this.viewW, this.viewH);
     } else {
@@ -1578,7 +1600,7 @@ export class Game {
 
   #drawNotice() {
     // 選択画面の見出しと重ならないように、選んでいる間は出さない
-    if (!this.notice || this.time > this.notice.until || this.state === 'levelup' || this.state === 'start') return;
+    if (!this.notice || this.time > this.notice.until || ['levelup', 'start', 'paused', 'achievements'].includes(this.state)) return;
     const { ctx } = this;
     const k = Math.min(1, (this.notice.until - this.time) / 0.5);
     ctx.save();
@@ -1628,6 +1650,36 @@ export class Game {
     this.#drawPointCard();
     drawTitleRecords(this.ctx, this.viewW, records());
     this.#drawShelfButton();
+    this.#drawTitleButton(this.#achievementButton(), CONFIG.achievements.button);
+  }
+
+  #drawTitleButton(b, text) {
+    const { ctx } = this;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.strokeStyle = CONFIG.recordShelf.colors.accent;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(b.x, b.y, b.w, b.h);
+    ctx.fillStyle = CONFIG.recordShelf.colors.accent;
+    ctx.font = font(14, true);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, b.x + b.w / 2, b.y + b.h / 2);
+    ctx.restore();
+  }
+
+  // 実績の画面を開く。from は閉じたときに戻る状態（title か paused）
+  #openAchievements(from) {
+    this.achievementsFrom = from;
+    this.achievementScreen.open();
+    this.state = 'achievements';
+  }
+
+  // タイトルの右下、レコード棚の上の「実績」のボタン（仕様 041）
+  #achievementButton() {
+    const b = this.#shelfButton();
+    return { ...b, y: b.y - b.h - 10 };
   }
 
   // タイトルの右下の「レコード棚」のボタン（仕様 039）
@@ -1753,16 +1805,8 @@ export class Game {
     ctx.textBaseline = 'middle';
     ctx.fillStyle = c.text;
     ctx.font = font(28, true);
-    ctx.fillText('ポーズ中', this.viewW / 2, this.viewH / 2 - 60);
-
-    ctx.font = font(18, true);
-    items.forEach((it, i) => {
-      const selected = i === this.pauseIndex;
-      ctx.fillStyle = selected ? c.hudBar : c.hudBg;
-      ctx.fillRect(it.x, it.y, it.w, it.h);
-      ctx.fillStyle = selected ? '#3b2418' : c.text;
-      ctx.fillText(it.label, it.x + it.w / 2, it.y + it.h / 2);
-    });
+    ctx.fillText('ポーズ中', this.viewW / 2, items[0].y - 44);
+    items.forEach((it, i) => drawPauseItem(ctx, it, i === this.pauseIndex, performance.now() / 1000));
   }
 
   #drawOverlay() {
