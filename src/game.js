@@ -12,7 +12,7 @@ import { BadgeField } from './entities/bean-badge.js';
 import { AbstainCounter } from './coin-bonus.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
-import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin, noBeans, creatorGrowth, creatorXpRate, withEnergyDrink, dragonExtraPick } from './characters.js';
+import { CONDITIONS, loadLastCharacter, readyId, saveLastCharacter, wearsSkin, noBeans, creatorGrowth, creatorXpRate, withEnergyDrink, dragonExtraPick, allowsDuplicateWeapons } from './characters.js';
 import { addMaxClear, refundRemovedVarieties, unlock, recordLaunch, recordPlay, addPlayTime, addDistance, addKills, addBeans, saveProgress, pointCard, addCoins, coins, spendCoins } from './progress.js';
 import { coinText, drawCoin, drawCoinTally, tallyDone } from './coin-ui.js';
 import { recordResult, records } from './records.js';
@@ -301,10 +301,19 @@ export class Game {
     const slots = CONFIG.slots;
     // Lv 8 から先（限界突破）は、エクストラステージで overCap に当たったときだけ候補に入れる
     const canUpgrade = (lv) => lv < max || (this.overCap && lv < stage.maxLevel);
+    const free = this.weapons.length < slots.weapons;
     const weapons = WEAPON_ORDER.flatMap((W) => {
-      const owned = this.weapons.find((w) => w instanceof W);
-      if (owned) return canUpgrade(owned.level) ? [this.#weaponChoice(owned, false)] : [];
-      return this.weapons.length < slots.weapons ? [this.#weaponChoice(new W(this), true)] : [];
+      const owned = this.weapons.filter((w) => w instanceof W);
+      if (!owned.length) return free ? [this.#weaponChoice(new W(this), true)] : [];
+      // 同じ武器が 2 つ以上あれば、それぞれ別々に強化の候補に出す
+      const list = owned.filter((w) => canUpgrade(w.level)).map((w) => this.#weaponChoice(w, false));
+      // 双子豆は、持っている武器を Lv に関係なく「もう 1 つ持つ」として出す（仕様 080）
+      if (free && allowsDuplicateWeapons(this.character)) {
+        const copy = new W(this);
+        copy.copyIndex = owned.length;
+        list.push(this.#weaponChoice(copy, true));
+      }
+      return list;
     });
     const items = Object.keys(CONFIG.items).flatMap((id) => {
       const owned = this.items.find((it) => it.id === id);
@@ -319,13 +328,15 @@ export class Game {
       kind: 'weapon',
       weaponId: weaponIdOf(weapon),
       name: weapon.name,
-      desc: isNew ? weapon.desc : (weapon.upgradeDesc(weapon.level + 1) ?? weapon.desc),
+      desc: isNew ? (weapon.copyIndex ? CONFIG.twinCopy.desc : weapon.desc) : (weapon.upgradeDesc(weapon.level + 1) ?? weapon.desc),
       element: weapon.config.element,
       level: isNew ? 0 : weapon.level,
       isNew,
       apply: () => {
-        if (isNew) this.weapons.push(weapon);
-        else {
+        if (isNew) {
+          this.weapons.push(weapon);
+          if (weapon.copyIndex) this.#spreadCopies(weapon.constructor);
+        } else {
           weapon.level += 1;
           // 強化した直後に、その攻撃を金色に光らせ、頭の上に「アイコン Lv N ↑」を出す（仕様 002 の FR-004）
           weapon.startUpgradeFlash();
@@ -334,6 +345,35 @@ export class Game {
         return isNew ? `${weapon.name} を手に入れた！` : `${weapon.name} が Lv ${weapon.level} になった！`;
       },
     };
+  }
+
+  // 同じ武器の 2 つ目からは、金色にして描く（仕様 080。色の変え方は CONFIG.twinCopy.filter）
+  #withCopyLook(ctx, weapon, drawFn) {
+    if (!weapon.copyIndex) {
+      drawFn();
+      return;
+    }
+    ctx.save();
+    ctx.filter = CONFIG.twinCopy.filter;
+    drawFn();
+    ctx.restore();
+  }
+
+  // 同じ武器が N 個あるときは、撃つ時間を間隔の N 等分ずつずらす（仕様 080）。
+  // 発動の間隔がない武器（ミル・トルネード）は、刃の向きを刃と刃の間の N 等分ずつずらす
+  #spreadCopies(W) {
+    const same = this.weapons.filter((w) => w instanceof W);
+    const n = same.length;
+    const [first] = same;
+    same.forEach((w, i) => {
+      if (i === 0) return;
+      if (first.config.intervalSec) {
+        const interval = first.config.intervalSec * first.intervalRate;
+        w.timer = first.timer - (interval * i) / n;
+      } else if ('angle' in first) {
+        w.angle = first.angle + ((Math.PI * 2) / Math.max(1, first.bladeCount ?? 1)) * (i / n);
+      }
+    });
   }
 
   #itemChoice(id, owned) {
@@ -1354,9 +1394,11 @@ export class Game {
     // 攻撃の絵は、攻撃の見え方（仕様 035）の濃さでまとめて重ねる
     this.weaponLayer.draw(wctx, (lctx) => {
       for (const w of this.weapons) {
-        w.drawBelow(lctx);
-        w.drawLevelFx(lctx, true);
-        w.drawUpgradeFlash(lctx, true);
+        this.#withCopyLook(lctx, w, () => {
+          w.drawBelow(lctx);
+          w.drawLevelFx(lctx, true);
+          w.drawUpgradeFlash(lctx, true);
+        });
       }
     });
     for (const b of this.beans) b.draw(wctx);
@@ -1371,9 +1413,11 @@ export class Game {
     if (this.stoneBurst) this.#drawStoneBurst(wctx);
     this.weaponLayer.draw(wctx, (lctx) => {
       for (const w of this.weapons) {
-        w.draw(lctx);
-        w.drawLevelFx(lctx, false);
-        w.drawUpgradeFlash(lctx, false);
+        this.#withCopyLook(lctx, w, () => {
+          w.draw(lctx);
+          w.drawLevelFx(lctx, false);
+          w.drawUpgradeFlash(lctx, false);
+        });
       }
     });
     wctx.restore();

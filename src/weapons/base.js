@@ -1,5 +1,6 @@
 import { CONFIG } from '../config.js';
 import { circle } from './max-fx.js';
+import { twinCopyDamageRate } from '../characters.js';
 
 export const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 export const angleTo = (from, to) => Math.atan2(to.y - from.y, to.x - from.x);
@@ -30,6 +31,8 @@ export class Weapon {
     this.#baseConfig = config;
     this.timer = 0;
     this.level = 1;
+    // 同じ武器の何個目か（0 が 1 つ目）。双子豆だけが 2 つ目から持てる（仕様 080）
+    this.copyIndex = 0;
   }
 
   // 範囲アップの倍率をかけた設定。倍率が変わったときだけ作り直す
@@ -46,8 +49,9 @@ export class Weapon {
     return this.#config;
   }
 
+  // 同じ武器の 2 つ目からは「（2 つ目）」を付けて見分ける
   get name() {
-    return this.config.name;
+    return this.copyIndex ? `${this.config.name}（${this.copyIndex + 1} つ目）` : this.config.name;
   }
 
   get desc() {
@@ -131,7 +135,9 @@ export class Weapon {
   get damageRate() {
     // ピーベリーは 1 つにした数の分だけ威力を上乗せし（仕様 017）、こーひー3兄弟は 1 発を弱くする（仕様 018）
     const focus = this.stats && this.focusCount > 1 ? this.focusCount ** CONFIG.characters.focus.damageExp : 1;
-    return (1 + CONFIG.weaponLevels.damagePerLevel * this.commonUpgrades) * focus * (this.multiDamage ?? 1);
+    // 双子豆の同じ武器の 2 つ目からは、威力を下げる（仕様 080）
+    const copy = twinCopyDamageRate(this.game.character ?? {}, this.copyIndex);
+    return (1 + CONFIG.weaponLevels.damagePerLevel * this.commonUpgrades) * focus * (this.multiDamage ?? 1) * copy;
   }
 
   // 攻撃の間隔の倍率。キャラの倍率・強化の段階・発生頻度アップで縮む。ただし下限がある
