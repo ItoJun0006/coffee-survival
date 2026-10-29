@@ -459,6 +459,9 @@ export const CONFIG = {
         sleepyCloud: 'assets/images/art/soundtrack-cover-sleepy-cloud.jpg',
       },
     },
+    // 画面がせまくて、棚と額が入りきらないときは、本を細くして額の場所を空ける。
+    // margin は棚の飾りと画面の左端との間（px）、minFrame は額の絵の一辺の最小（px）
+    narrow: { margin: 16, minFrame: 200 },
     // 本棚の木と真鍮の色
     wood: { back: '#2a1a12', side: '#5a3a24', top: '#7a5234', dark: '#3a2416', grain: 'rgba(0, 0, 0, 0.22)', brass: '#c9a25a' },
     texts: {
