@@ -434,8 +434,8 @@ export const CONFIG = {
     button: '♪ レコード棚（R キー）',
     // 背表紙（布の装丁に紙のラベル）。w・h・gap は 1 冊の幅・高さ・すき間（px）
     spine: { w: 92, h: 270, gap: 16 },
-    // 曲ごとの装丁の色。シック（いつもの一杯・真夜中のハンドドリップ）とポップ（モーニングブレンド・ボサノバ・コーヒー・ストーム）。
-    // coffeeStorm は、ジャケット（色あざやか版）の紫と黄色に合わせる
+    // 曲ごとの装丁の色。シック（いつもの一杯・真夜中のハンドドリップ・ねむり雲のラテ）とポップ（モーニングブレンド・ボサノバ・コーヒー・ストーム）。
+    // coffeeStorm は、ジャケット（色あざやか版）の紫と黄色に、sleepyCloud は、ジャケット（眠る雲のラテアート）のラベンダーと金のふちに合わせる
     // main は布の地、sub は上下の帯、foil は値段の札の字、paper はラベルの紙、ink はラベルの字
     covers: {
       normal: { main: '#4a2c1c', sub: '#6b4630', foil: '#d8b46a', paper: '#efe2c4', ink: '#3b2418' },
@@ -443,6 +443,7 @@ export const CONFIG = {
       morningBlend: { main: '#e8a33a', sub: '#f3c45e', foil: '#7a2e1c', paper: '#fff4d6', ink: '#a8381e' },
       cafeBossa: { main: '#2f9a8a', sub: '#5cc0a8', foil: '#fff1c8', paper: '#fff4e2', ink: '#1f6a5e' },
       coffeeStorm: { main: '#5b3aa0', sub: '#2fb4a8', foil: '#f5d547', paper: '#fff5c8', ink: '#4a2a86' },
+      sleepyCloud: { main: '#4a3b5e', sub: '#b8944e', foil: '#e6dcf2', paper: '#f5efe4', ink: '#4a3b5e' },
     },
     // ジャケット：選んでいる曲の絵を、棚の右の壁に額で飾る。size は絵の一辺の大きさの上限（px）、
     // shelfX は棚のまん中の位置（画面の幅に対する割合。額の分だけ左に寄せる）
@@ -455,6 +456,7 @@ export const CONFIG = {
         midnightDrip: 'assets/images/art/cafe-bean-vs-sleep-cloud.jpg',
         cafeBossa: 'assets/images/art/bean-characters-shelf.jpg',
         coffeeStorm: 'assets/images/art/soundtrack-cover-color.jpg',
+        sleepyCloud: 'assets/images/art/soundtrack-cover-sleepy-cloud.jpg',
       },
     },
     // 本棚の木と真鍮の色
