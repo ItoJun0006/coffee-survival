@@ -936,8 +936,8 @@ export const CONFIG = {
     musicCutoffHz: 3200,
     swing: 0.28,
     // 選べる曲の並び（ポーズメニューなどで出す順）。'normal' は最初から使える。ほかは豆コインで買う（仕様 101）
-    tracks: ['normal', 'morningBlend', 'midnightDrip', 'cafeBossa'],
-    // 曲の楽譜。chords と bass は 1 小節に 1 つ。melody は 1 小節を 8 つの記号で書く
+    tracks: ['normal', 'morningBlend', 'midnightDrip', 'cafeBossa', 'coffeeStorm', 'sleepyCloud'],
+    // 曲の楽譜。chords と bass は 1 小節に 1 つ。melody は 1 小節を 8 つ（barSteps が 6 の曲は 6 つ）の記号で書く
     // （音名で鳴らし始め、'-' はのばす、'.' は休み）。style はリズムの型（src/music/player.js）、lead はメロディーの楽器
     music: {
       normal: {
@@ -1025,6 +1025,51 @@ export const CONFIG = {
           'D5 - - B4 D5 - G5 -', 'E5 - C#5 - . A4 C#5 .', 'D5 - - - - - . .', '. . E5 F#5 G5 - A5 .',
           'B5 - - A5 F#5 - D5 .', 'A#5 - - A5 G5 - E5 .', 'A5 - - - E5 - C#5 .', 'D#5 - F#5 - A5 - . .',
           'G5 - - F#5 E5 - D5 -', 'C#5 - E5 - G5 - F#5 E5', 'F#5 - - - - - . .', '. . E5 - C#5 - A4 .',
+        ],
+      },
+      // サウンドトラックのジャケット（assets/images/art/soundtrack-cover-color.jpg）の曲名「COFFEE STORM」から（仕様 103）
+      coffeeStorm: {
+        name: 'コーヒー・ストーム',
+        mood: '豆がはじける嵐のような表題曲。速く明るく力強い',
+        bpm: 128,
+        style: 'storm',
+        lead: 'lead',
+        swing: 0,
+        chords: [
+          ['D4', 'F#4', 'A4'], ['C#4', 'E4', 'A4'], ['D4', 'F#4', 'B4'], ['D4', 'G4', 'B4'],
+          ['D4', 'F#4', 'A4'], ['C#4', 'E4', 'A4'], ['D4', 'G4', 'B4'], ['C#4', 'E4', 'A4'],
+          ['D4', 'G4', 'B4'], ['C#4', 'E4', 'A4'], ['C#4', 'F#4', 'A4'], ['D4', 'F#4', 'B4'],
+          ['D4', 'G4', 'B4'], ['C#4', 'E4', 'A4'], ['E4', 'G4', 'B4'], ['C#4', 'E4', 'A4'],
+        ],
+        bass: ['D2', 'A1', 'B1', 'G1', 'D2', 'A1', 'G1', 'A1', 'G1', 'A1', 'F#1', 'B1', 'G1', 'A1', 'E2', 'A1'],
+        melody: [
+          'F#5 - A5 - D6 - - .', 'C#6 - B5 A5 - - E5 .', 'F#5 - B5 - D6 - C#6 B5', 'D6 - - - B5 - G5 .',
+          'A5 - F#5 A5 D6 - E6 -', 'C#6 - - A5 - E5 A5 .', 'B5 - D6 - G6 - F#6 E6', 'E6 - - - - . . .',
+          'D6 - B5 - G5 - B5 D6', 'E6 - C#6 - A5 - C#6 E6', 'F#6 - E6 - C#6 - A5 .', 'B5 - D6 - F#6 - - .',
+          'G6 - F#6 - E6 - D6 -', 'E6 - C#6 - A5 - - .', 'B5 - E6 - G6 - F#6 E6', 'E6 - - - C#6 - E6 -',
+        ],
+      },
+      // ジャケット（assets/images/art/soundtrack-cover-sleepy-cloud.jpg）の、眠る雲のラテアートから（仕様 104）
+      sleepyCloud: {
+        name: 'ねむり雲のラテ',
+        mood: '湯気がゆらゆら、子守歌のようなオルゴール。やさしく眠たい一杯',
+        bpm: 84,
+        barSteps: 6,
+        style: 'lullaby',
+        lead: 'musicBox',
+        swing: 0,
+        chords: [
+          ['F3', 'A3', 'C4'], ['D3', 'F3', 'A3'], ['F3', 'A#3', 'D4'], ['E3', 'G3', 'C4'],
+          ['F3', 'A3', 'C4'], ['E3', 'A3', 'C4'], ['F3', 'A#3', 'D4'], ['E3', 'G3', 'C4'],
+          ['D3', 'F3', 'A3'], ['E3', 'A3', 'C4'], ['F3', 'A#3', 'D4'], ['F3', 'A3', 'C4'],
+          ['F3', 'A#3', 'D4'], ['E3', 'G3', 'C4'], ['F3', 'A3', 'C4'], ['F3', 'G3', 'C4'],
+        ],
+        bass: ['F2', 'D2', 'A#1', 'C2', 'F2', 'A1', 'A#1', 'C2', 'D2', 'A1', 'A#1', 'F2', 'A#1', 'C2', 'F2', 'C2'],
+        melody: [
+          'A5 - - G5 - F5', 'F5 - - D5 - .', 'D5 - F5 A#5 - A5', 'G5 - - - - .',
+          'A5 - - C6 - A5', 'G5 - - E5 - .', 'F5 - G5 A5 - D5', 'E5 - - - - .',
+          'F5 - - A5 - D6', 'C6 - - A5 - .', 'A#5 - A5 G5 - F5', 'A5 - - - - .',
+          'D6 - - A#5 - F5', 'G5 - - E5 - C5', 'F5 - - - - .', '. . . G5 - -',
         ],
       },
     },

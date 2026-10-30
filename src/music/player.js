@@ -11,7 +11,7 @@ import { freq } from './voices.js';
 // ラジオのつまみを一気に回すのではなく、片方を下げながらもう片方を上げるイメージ。
 // 重なっている間は 2 曲ぶんの「層（layer）」を同時に予約する。
 
-// メロディーの書き方：1 小節を 8 つの記号で書く。音名はそこで鳴らし始め、'-' はのばす、'.' は休み
+// メロディーの書き方：1 小節を 8 つ（6/8 拍子の曲は 6 つ）の記号で書く。音名はそこで鳴らし始め、'-' はのばす、'.' は休み
 function parseBar(text) {
   const tokens = text.trim().split(/\s+/);
   const notes = [];
@@ -21,6 +21,9 @@ function parseBar(text) {
   });
   return notes;
 }
+
+// 1 小節のステップの数。ふつうは 8（4 拍子）。子守歌のような 6/8 拍子は 6
+const barSteps = (song) => song.barSteps ?? 8;
 
 // 楽譜を、鳴らすときに使いやすい形にしておく（曲ごとに 1 回だけ）
 const prepared = new WeakMap();
@@ -112,6 +115,37 @@ const STYLES = {
     if ((odd ? [2, 4] : [0, 3, 6]).includes(i)) v.rim(at, 0.8, out);
     v.shaker(at, i % 2 ? 0.9 : 0.5, out);
   },
+
+  // 子守歌：6/8 拍子（1 小節 6 ステップ）で、ゆりかごのように和音を 1 音ずつ上り下りする。太鼓はなし
+  lullaby(p, i, at, s) {
+    const { v, chord, root, out } = p;
+    if (i === 0) {
+      v.bass(root, at, s * 6 + 0.2, out, 0.22);
+      v.wash(chord, at, s * 6 + 0.3, out, 0.012);
+    }
+    const order = [0, 1, 2, 1, 0, 1];
+    v.ep(chord[order[i]] * 2, at, s * 2.2, i === 0 ? 0.55 : 0.38, out);
+    if (i === 3) v.shaker(at, 0.25, out);
+  },
+
+  // 嵐のような表題曲：4 つ打ちの太鼓と、休まず刻むベース、金管風のきざみ。
+  // 8 小節ごとに頭でシンバル、終わりの小節でスネアを連打してつなぐ（フィル）
+  storm(p, i, at, s, bar) {
+    const { v, chord, root, out } = p;
+    const fill = bar % 8 === 7;
+    if (i === 0) {
+      chord.forEach((f) => v.brass(f, at, s * 1.5, 1, out));
+      v.wash(chord, at, s * 8 + 0.3, out, 0.015);
+      if (bar % 8 === 0) v.crash(at, 1, out);
+    }
+    if (i === 3) chord.forEach((f) => v.brass(f, at, s, 0.7, out));
+    if (i === 6 && !fill) chord.forEach((f) => v.brass(f, at, s * 2, 0.8, out));
+    v.drive(i % 2 ? root * 2 : root, at, s * 0.9, out);
+    if (i % 2 === 0) v.kick(at, i === 0 ? 1 : 0.8, out);
+    if (i === 2 || i === 6) v.snare(at, 1, out);
+    if (fill && i >= 4) v.snare(at, 0.5 + (i - 4) * 0.15, out);
+    v.hat(at, i % 2 ? 1 : 0.6, out);
+  },
 };
 
 export class MusicPlayer {
@@ -131,7 +165,7 @@ export class MusicPlayer {
   start(song, time, startBar = 0) {
     this.stop(time);
     const layer = this.#layer(song, time, 1);
-    layer.step = startBar * 8;
+    layer.step = startBar * barSteps(song);
     this.layers.push(layer);
   }
 
@@ -169,7 +203,7 @@ export class MusicPlayer {
     for (const l of this.layers) {
       while (l.nextTime < until && (l.endAt === null || l.nextTime < l.endAt)) {
         const s = 60 / l.song.bpm / 2;
-        this.#playStep(l, l.step % 8, l.nextTime, s);
+        this.#playStep(l, l.step % barSteps(l.song), l.nextTime, s);
         l.nextTime += s;
         l.step++;
       }
@@ -187,14 +221,15 @@ export class MusicPlayer {
 
   #nextBarStart(l) {
     const s = 60 / l.song.bpm / 2;
-    const left = (8 - (l.step % 8)) % 8;
+    const n = barSteps(l.song);
+    const left = (n - (l.step % n)) % n;
     return l.nextTime + left * s;
   }
 
   #playStep(l, i, time, s) {
     const song = l.song;
     const data = prepare(song);
-    const bar = Math.floor(l.step / 8);
+    const bar = Math.floor(l.step / barSteps(song));
     const n = bar % data.chords.length;
     const swing = song.swing ?? this.swing;
     const at = time + (i % 2 ? swing * s : 0);
