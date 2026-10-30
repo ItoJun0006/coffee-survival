@@ -340,11 +340,13 @@ export const CONFIG = {
   },
   // 敵が落とす経験値の粒を拾うと経験値が入り、レベルアップごとに攻撃が 1 つ増える
   // 次のレベルに必要な経験値は baseXp + xpGrowth ×（Lv − 1）+ xpGrowthSq ×（Lv − 1）²（仕様 036。後半ほど上がりにくい）。
-  // coinCard：レベルアップの候補に、chance の確率で「豆コイン ＋amount 枚」のカードを 1 枚まぜる（仕様 036）
+  // coinCard：レベルアップの候補に、chance の確率で「豆コイン ＋amount 枚」のカードを、ほかの候補とは別に 1 枚足す（仕様 036）
+  // ownedUpgrade：true なら、候補に持っている攻撃の強化が 1 枚もないとき、いちばん Lv の低い攻撃の強化を必ず入れる（仕様 036）
   leveling: {
     baseXp: 5,
     xpGrowth: 4,
-    xpGrowthSq: 1.2,
+    xpGrowthSq: 0.6,
+    ownedUpgrade: true,
     coinCard: { chance: 0.5, amount: 5, name: '豆コイン ＋5 枚', desc: '豆コインを 5 枚もらう\n（プレイが終わると\n手に入る）', text: '豆コインを 5 枚もらった！' },
     enemyDropChance: 0.4,
     maxDroppedBeans: 60,

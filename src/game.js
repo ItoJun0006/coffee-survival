@@ -403,7 +403,8 @@ export class Game {
     const pick = all.find(isOverCap);
     const rest = all.filter((c) => c !== pick);
     // クリエイター豆は、最後の 1 枚がエナジードリンクになる（仕様 021）
-    const choices = withEnergyDrink(this.character, this.player, shuffle([...(pick ? [pick] : []), ...rest].slice(0, CONFIG.weaponLevels.choices)));
+    const picked = this.#withOwnedUpgrade([...(pick ? [pick] : []), ...rest].slice(0, CONFIG.weaponLevels.choices), all);
+    const choices = withEnergyDrink(this.character, this.player, shuffle(picked));
     const base = this.#withCoinCard(choices.length ? choices : this.#bonusChoices());
     const extra = this.#extraPickChoice();
     this.picksLeft = 1;
@@ -411,7 +412,16 @@ export class Game {
     this.state = 'levelup';
   }
 
-  // coinCard.chance の確率で「豆コイン」のカードを 1 枚まぜる（仕様 036）。3 枚あるときは、攻撃・アイテム・ボーナスの最後の 1 枚と入れ替える
+  // 持っている攻撃の強化の候補が 1 枚もなければ、いちばん Lv の低い攻撃の強化を、最後の 1 枚と入れ替えて入れる（仕様 036）
+  #withOwnedUpgrade(list, all) {
+    const isUpgrade = (c) => c.kind === 'weapon' && !c.isNew;
+    if (!CONFIG.leveling.ownedUpgrade || list.length === 0 || list.some(isUpgrade)) return list;
+    const lowest = all.filter(isUpgrade).sort((a, b) => a.level - b.level)[0];
+    if (!lowest) return list;
+    return [...list.slice(0, -1), lowest];
+  }
+
+  // coinCard.chance の確率で「豆コイン」のカードを、ほかの候補とは別に 1 枚足す（仕様 036）
   #withCoinCard(list) {
     const cc = CONFIG.leveling.coinCard;
     if (Math.random() >= cc.chance) return list;
@@ -422,9 +432,7 @@ export class Game {
         return cc.text;
       },
     };
-    if (list.length < CONFIG.weaponLevels.choices) return [...list, card];
-    const i = list.findLastIndex((c) => c.kind !== 'drink');
-    return list.map((c, j) => (j === i ? card : c));
+    return [...list, card];
   }
 
   // ドラゴン豆の「もう 1 つ選ぶ」のカード（仕様 038）。買えないときも、理由を見せるために出す
