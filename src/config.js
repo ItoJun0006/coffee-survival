@@ -150,10 +150,10 @@ export const CONFIG = {
       colors: { horn: '#f3e3b0', wing: '#1f5a2a' }, eyeCut: 0.55,
     },
     // 双子豆（仕様 080）：同じ武器をいくつでも持てる（どれも攻撃の枠を 1 つ使う）。同じ武器の 2 つ目からは威力 copyDamageRate 倍で、
-    // 攻撃の間隔を N 等分した時間ずつずらして撃ち、青白い光の縁（copyGlow）を付けて描く（武器の仕組みと絵はメイン）。
+    // 攻撃の間隔を N 等分した時間ずつずらして撃ち、武器そのものを金色にして描く（武器の仕組みと絵・色はメインの CONFIG.twinCopy）。
     // キャラの見た目は、roastIds の 2 粒（size は 1 粒の大きさ、gap は 2 粒の間。どちらも r に対する割合）が手（hand の色）をつなぐ形
     twin: {
-      copyDamageRate: 0.7, copyGlow: '#9fe3ff',
+      copyDamageRate: 0.7,
       roastIds: ['medium', 'dark'], size: 0.62, gap: 0.55, hand: '#e9c79a',
     },
     // 豆の形（shape）。ふつうの豆は楕円で、shape のあるキャラだけこの形で描く。値は r に対する割合。
