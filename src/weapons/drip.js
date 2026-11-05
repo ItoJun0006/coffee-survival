@@ -114,12 +114,6 @@ export class Drip extends Weapon {
           this.#dropPath(ctx, d.x, y, c.dropSize);
           ctx.fill();
         } else {
-          // 落とす所の上に小さなドリッパーが現れ、そこから落ちる
-          const top = d.y - c.fallHeight;
-          ctx.save();
-          ctx.globalAlpha = Math.min(1, (c.delaySec - d.timer) / v.dripperFadeSec, d.timer / v.dripperFadeSec);
-          this.#drawDripper(ctx, d.x, top, v);
-          ctx.restore();
           drawGlow(ctx, d.x, y, v.glowRadius, v.glow, v.glowAlpha);
           ctx.fillStyle = v.drop;
           this.#dropPath(ctx, d.x, y, c.dropSize);
@@ -156,21 +150,5 @@ export class Drip extends Weapon {
       const k = Math.min(1, m.life / c.linger.durationSec * 2);
       drawWisps(ctx, m.x, m.y, { count: v.wisps, height: v.wispHeight, spread: radius * 1.4, size: 5, color: v.steam, alpha: v.steamAlpha * k, time: t, speed: 1.4, seed: m.seed });
     }
-  }
-
-  // 銅色の小さなドリッパー（(x, y) が中心）
-  #drawDripper(ctx, x, y, v) {
-    const w = v.dripperSize;
-    ctx.fillStyle = v.dripper;
-    ctx.beginPath();
-    ctx.moveTo(x - w, y - w * 0.6);
-    ctx.lineTo(x + w, y - w * 0.6);
-    ctx.lineTo(x + w * 0.35, y + w * 0.4);
-    ctx.lineTo(x - w * 0.35, y + w * 0.4);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = v.dripperRim;
-    ctx.fillRect(x - w * 1.1, y - w * 0.75, w * 2.2, 3);
-    ctx.fillRect(x - w * 0.5, y + w * 0.4, w, 3);
   }
 }
