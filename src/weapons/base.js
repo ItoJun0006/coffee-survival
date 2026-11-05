@@ -24,6 +24,12 @@ export class Weapon {
   #stats = null;
   #statsLevel = 0;
   #statsConfig = null;
+  // ピーベリーの大きさの倍率（仕様 017）をかけた設定と、そのときの倍率
+  #focusConfig = null;
+  #focusArea = null;
+  #focusSize = 1;
+  // 強化の値を組み立てている間は true（そのあいだ config は大きさの倍率をかけない。組み立てと設定が互いを呼び合わないように）
+  #building = false;
 
   constructor(game, config) {
     this.game = game;
@@ -34,6 +40,27 @@ export class Weapon {
 
   // 範囲アップの倍率をかけた設定。倍率が変わったときだけ作り直す
   get config() {
+    const area = this.#areaConfig();
+    // ピーベリーは、減った数 N に応じて、大きさと当たる範囲も N^sizeExp 倍にする（sizeMax 倍まで。仕様 017）
+    if (!this.game.character?.focus || this.#building) return area;
+    this.stats;
+    const f = CONFIG.characters.focus;
+    const size = this.focusCount > 1 ? Math.min(f.sizeMax ?? 1, this.focusCount ** (f.sizeExp ?? 0)) : 1;
+    if (size === 1) return area;
+    if (this.#focusArea !== area || this.#focusSize !== size) {
+      const c = { ...area };
+      for (const k of [...AREA_KEYS, ...(c.areaKeys ?? [])]) {
+        if (typeof c[k] === 'number') c[k] *= size;
+      }
+      this.#focusConfig = c;
+      this.#focusArea = area;
+      this.#focusSize = size;
+    }
+    return this.#focusConfig;
+  }
+
+  // 範囲アップの倍率だけをかけた設定
+  #areaConfig() {
     const rate = this.game.areaRate;
     if (this.#configRate !== rate) {
       const c = { ...this.#baseConfig };
@@ -71,8 +98,17 @@ export class Weapon {
   // 今の Lv までに受けた特別な強化をまとめたもの。upgrades を Lv の小さい順に重ねる。
   // キー名が Rate で終わる値はかけ算、それ以外は上書き。desc はカードの説明なので重ねない
   get stats() {
-    const c = this.config;
+    const c = this.#areaConfig();
     if (this.#stats && this.#statsLevel === this.level && this.#statsConfig === c) return this.#stats;
+    this.#building = true;
+    try {
+      return this.#buildStats(c);
+    } finally {
+      this.#building = false;
+    }
+  }
+
+  #buildStats(c) {
     const s = this.baseStats();
     const levels = Object.keys(c.upgrades ?? {}).map(Number).sort((a, b) => a - b);
     for (const lv of levels) {
