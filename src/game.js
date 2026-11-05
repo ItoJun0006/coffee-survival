@@ -8,6 +8,7 @@ import { Boss } from './entities/boss.js';
 import { DragonBoss, rollDragon, drawDragonPanel, takeDragonTreasure } from './entities/dragon-boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
+import { JacoCat, countCatTouch, debugCat } from './entities/jaco-cat.js';
 import { BadgeField } from './entities/bean-badge.js';
 import { AbstainCounter } from './coin-bonus.js';
 import { WEAPON_ORDER } from './weapons/index.js';
@@ -195,6 +196,9 @@ export class Game {
     this.waveUntil = 0;
     const camp = CONFIG.bagCamp;
     this.bagCampAt = camp.minSec + Math.random() * (camp.maxSec - camp.minSec);
+    // 横切るジャコウネコ（仕様 065）：走っている猫と、次に抽選する時刻
+    this.cat = null;
+    this.catRollAt = debugCat ? 3 : 60;
     this.#applyDebugWeapons();
   }
 
@@ -672,6 +676,7 @@ export class Game {
     else this.#updatePlayer(dt);
     this.#spawnBeans(dt);
     if (!this.boss) this.#spawnEnemies(dt);
+    this.#updateCat(dt);
     this.#updateEnemies(dt);
     if (this.boss) this.#updateBoss(dt);
     // ダイスケ豆が固まっている間は、攻撃も止まる（仕様 019）
@@ -1217,6 +1222,32 @@ export class Game {
     return this.time + (stage.enemyTimeOffsetSec ?? 0);
   }
 
+  // ---- 隠し要素「横切るジャコウネコ」（仕様 065）。動きと絵は entities/jaco-cat.js ----
+
+  // 毎分 1 回抽選して、当たれば画面の外から走らせる（?cat のときは 3 秒後に必ず）。触ると豆コインと、コピ・ルアクの条件
+  #updateCat(dt) {
+    const cfg = CONFIG.jacoCat;
+    if (this.time >= this.catRollAt) {
+      const first = this.catRollAt;
+      this.catRollAt = Math.floor(this.time / 60 + 1) * 60;
+      if (!this.cat && !this.boss && ((debugCat && first < 60) || Math.random() < cfg.chancePerMin)) {
+        this.cat = new JacoCat(this.player, Math.hypot(this.viewW, this.viewH) / 2 + cfg.radius * 3);
+        this.notice = { title: cfg.texts.appear, text: cfg.texts.appearSub, until: this.time + 2.5 };
+      }
+    }
+    if (!this.cat) return;
+    this.cat.update(dt);
+    if (this.cat.touches(this.player)) {
+      addCoins(cfg.coins);
+      this.#checkUnlocks('catTouches', countCatTouch());
+      this.notice = { title: cfg.texts.touch, text: cfg.texts.touchSub.replace('{n}', cfg.coins), until: this.time + 2.5 };
+      sound.play('levelUp');
+      this.cat = null;
+    } else if (this.cat.gone) {
+      this.cat = null;
+    }
+  }
+
   // 今の生存時間に応じた敵の強さの倍率
   #enemyStrength() {
     const s = CONFIG.enemyScaling;
@@ -1372,6 +1403,7 @@ export class Game {
     for (const o of this.xpOrbs) o.draw(wctx);
     for (const w of this.waves) w.draw(wctx);
     for (const e of this.enemies) e.draw(wctx);
+    if (this.cat) this.cat.draw(wctx);
     for (const fx of this.effects) fx.draw(wctx);
     if (this.boss && !this.boss.dead) this.boss.draw(wctx);
     this.player.draw(wctx);
