@@ -105,16 +105,17 @@ class Sound {
     this.#fadeMusicTo(0, cfg.fadeOutSec / 4);
   }
 
-  // 'normal' か 'boss'。次の小節の頭から、重ねながら切り替わる
+  // 'normal'・'boss'・'card'（カードゲーム。仕様 043・105）。次の小節の頭から、重ねながら切り替わる。
+  // 'normal' に戻すと、選んでいる曲（setTrack）に戻る
   setMode(mode) {
     this.mode = mode;
     this.#switchSong();
   }
 
-  // 普段に流す曲を id で選ぶ（CONFIG.audio.music のキー。'boss' は選べない）。
-  // 流れている途中なら、次の小節の頭から重ねながら切り替わる。ボスの間は、ボスが終わってから使われる
+  // 普段に流す曲を id で選ぶ（CONFIG.audio.tracks にある曲だけ。ボスやカードゲームの曲は選べない）。
+  // 流れている途中なら、次の小節の頭から重ねながら切り替わる。ボスやカードゲームの間は、それが終わってから使われる
   setTrack(id) {
-    if (!cfg.music[id] || id === 'boss') return;
+    if (!cfg.tracks.includes(id)) return;
     this.trackId = id;
     this.#switchSong();
   }
@@ -195,7 +196,7 @@ class Sound {
   }
 
   #songId() {
-    return this.mode === 'boss' ? 'boss' : this.trackId;
+    return this.mode === 'normal' ? this.trackId : cfg.sceneSongs[this.mode];
   }
 
   #switchSong() {

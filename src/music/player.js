@@ -55,6 +55,24 @@ const STYLES = {
     v.hat(at, i % 2 ? 0.5 : 1, out);
   },
 
+  // ジャズのラウンジ：ベースが 1 拍ずつ歩き（ウォーキング・ベース）、シンバルが「チーン・チキ」と刻む。
+  // ピアノのきざみは 2 小節でひと組。小節の最後の拍で、次の和音へ半音下から寄っていく
+  lounge(p, i, at, s, bar) {
+    const { v, chord, root, nextRoot, out } = p;
+    const odd = bar % 2 === 1;
+    if (i === 0) v.wash(chord, at, s * 8 + 0.3, out, 0.03);
+    if (!odd && i === 0) chord.forEach((f) => v.ep(f, at, s * 3, 0.5, out));
+    if (!odd && i === 3) chord.forEach((f) => v.ep(f, at, s * 5, 0.35, out));
+    if (odd && i === 2) chord.forEach((f) => v.ep(f, at, s * 2, 0.4, out));
+    if (odd && i === 5) chord.forEach((f) => v.ep(f, at, s * 3.2, 0.45, out));
+    const walk = { 0: root, 2: root * 2 ** (7 / 12), 4: root * 2, 6: nextRoot * 2 ** (-1 / 12) };
+    if (walk[i]) v.upright(walk[i], at, s * 1.9, out, 0.3);
+    const ride = { 0: 1, 2: 0.8, 3: 0.5, 4: 1, 6: 0.8, 7: 0.5 };
+    if (ride[i]) v.ride(at, ride[i], out);
+    if (i === 2 || i === 6) v.brush(at, 0.3, out);
+    if (i === 0) v.kick(at, 0.3, out);
+  },
+
   // 朝の曲：和音を小節の終わりまでのばし、軽く跳ねるリズムを足す
   morning(p, i, at, s) {
     const { v, chord, root, out } = p;
@@ -198,7 +216,7 @@ export class MusicPlayer {
     const n = bar % data.chords.length;
     const swing = song.swing ?? this.swing;
     const at = time + (i % 2 ? swing * s : 0);
-    const p = { v: this.v, out: l.bus, song, chord: data.chords[n], root: data.bass[n] };
+    const p = { v: this.v, out: l.bus, song, chord: data.chords[n], root: data.bass[n], nextRoot: data.bass[(n + 1) % data.bass.length] };
     STYLES[song.style ?? 'lofi'](p, i, at, s, bar);
 
     const mel = data.melody?.[bar % data.melody.length];

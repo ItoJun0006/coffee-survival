@@ -195,6 +195,37 @@ export class Voices {
     this.#osc('triangle', 820, time, 0.04, this.envelope(0.07 * vel, time, 0.04, dest));
   }
 
+  // ミュートをつけたトランペット風：こもった鼻にかかった音で、のばすとあとから揺れる（夜のジャズ）
+  horn(f, time, dur, vel, dest) {
+    const ctx = this.ctx;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 1100;
+    bp.Q.value = 1.2;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(0.11 * vel, time + 0.05);
+    g.gain.setValueAtTime(0.09 * vel, time + Math.max(0.05, dur - 0.08));
+    g.gain.linearRampToValueAtTime(0, time + dur);
+    bp.connect(g).connect(dest);
+    const o = this.#osc('sawtooth', f, time, dur, bp);
+    this.#osc('triangle', f, time, dur, this.#level(0.5, g));
+    // 長くのばす音だけ、0.3 秒たってから揺らす
+    if (dur > 0.5) {
+      const depth = ctx.createGain();
+      depth.gain.setValueAtTime(0, time);
+      depth.gain.linearRampToValueAtTime(f * 0.01, time + Math.min(0.6, dur));
+      depth.connect(o.frequency);
+      this.#osc('sine', 5, time, dur, depth);
+    }
+  }
+
+  // ライドシンバル：「チーン」と軽く残る、ジャズの刻み
+  ride(time, vel, dest) {
+    this.noise(time, 0.45, 0.045 * vel, 'bandpass', 6500, dest);
+    this.#osc('triangle', 3100, time, 0.3, this.envelope(0.012 * vel, time, 0.3, dest));
+  }
+
   // マラカス風の「シャカ」
   shaker(time, vel, dest) {
     this.noise(time, 0.07, 0.07 * vel, 'highpass', 5000, dest);
