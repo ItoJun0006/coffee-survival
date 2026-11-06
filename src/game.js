@@ -24,6 +24,7 @@ import { PixelLayer } from './pixel-layer.js';
 import { Floor } from './floor.js';
 import { sound } from './sound.js';
 import { RecordShelf, applySavedTrack, stepTrack, currentTrackName } from './record-shelf.js';
+import { CardGame, canEnterCardGame, notEnoughText } from './card-game.js';
 import { font } from './font.js';
 import { Background } from './background.js';
 import { stage, setStage } from './stage.js';
@@ -115,6 +116,7 @@ export class Game {
     sound.init();
     applySavedTrack();
     this.recordShelf = new RecordShelf((text) => this.#toast(text));
+    this.cardGame = new CardGame();
     // 画面の上に数秒出す知らせ（キャラの解放など）。ゲームの時間ではなく実際の時間で消える
     this.toasts = [];
     this.#checkUnlocks('launches', recordLaunch());
@@ -586,8 +588,19 @@ export class Game {
     }
     if (this.state === 'title') {
       this.#checkSecretCommand();
-      // レコード棚（仕様 039）：R キーか、右下のボタンのクリックで入る
+      // カードゲーム（仕様 043）：B キーか、右下のボタンのクリックで入る。豆コインが足りないときは入らない
       const pos = this.input.clickPos;
+      if (this.input.wasPressed('KeyB') || (pos && this.input.clicked && inRect(pos, this.#cardButton()))) {
+        this.input.consumeClick();
+        if (!canEnterCardGame()) {
+          this.#toast(notEnoughText());
+          return;
+        }
+        this.cardGame.open();
+        this.state = 'cards';
+        return;
+      }
+      // レコード棚（仕様 039）：R キーか、右下のボタンのクリックで入る
       if (this.input.wasPressed('KeyR') || (pos && this.input.clicked && inRect(pos, this.#shelfButton()))) {
         this.input.consumeClick();
         this.recordShelf.open();
@@ -602,6 +615,10 @@ export class Game {
     }
     if (this.state === 'records') {
       if (this.recordShelf.update(this.input, this.viewW, this.viewH) === 'back') this.state = 'title';
+      return;
+    }
+    if (this.state === 'cards') {
+      if (this.cardGame.update(this.input, this.viewW, this.viewH) === 'back') this.state = 'title';
       return;
     }
     if (this.state === 'select') {
@@ -1396,6 +1413,8 @@ export class Game {
       this.#drawTitle();
     } else if (this.state === 'records') {
       this.recordShelf.draw(this.ctx, this.viewW, this.viewH);
+    } else if (this.state === 'cards') {
+      this.cardGame.draw(this.ctx, this.viewW, this.viewH);
     } else if (this.state === 'select') {
       this.characterSelect.draw(ctx, this.viewW, this.viewH);
     } else {
@@ -1636,6 +1655,7 @@ export class Game {
     this.#drawPointCard();
     drawTitleRecords(this.ctx, this.viewW, records());
     this.#drawShelfButton();
+    this.#drawCardButton();
   }
 
   // タイトルの右下の「レコード棚」のボタン（仕様 039）
@@ -1659,6 +1679,31 @@ export class Game {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(CONFIG.recordShelf.button, b.x + b.w / 2, b.y + b.h / 2);
+    ctx.restore();
+  }
+
+  // タイトルの右下、レコード棚の上の「珈琲ブラックジャック」のボタン（仕様 043）
+  #cardButton() {
+    const shelf = this.#shelfButton();
+    const w = 240;
+    return { x: this.viewW - w - 16, y: shelf.y - shelf.h - 10, w, h: shelf.h };
+  }
+
+  #drawCardButton() {
+    const { ctx } = this;
+    const b = this.#cardButton();
+    const color = CONFIG.cardGame.colors.accent;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(b.x, b.y, b.w, b.h);
+    ctx.fillStyle = color;
+    ctx.font = font(14, true);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(CONFIG.cardGame.button, b.x + b.w / 2, b.y + b.h / 2);
     ctx.restore();
   }
 

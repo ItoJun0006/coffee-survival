@@ -476,6 +476,62 @@ export const CONFIG = {
     },
     colors: { bg: '#1b1310', title: '#f0d58a', sub: 'rgba(243, 230, 216, 0.75)', accent: '#f0d58a', warn: '#e88a6a' },
   },
+  // カードゲーム「珈琲ブラックジャック」（仕様 043）。タイトルから B キーかボタンで入る。
+  // rounds は 1 回の遊びの勝負の数、bets は賭ける豆コインの段階、dealerStand は親が引くのをやめる合計、
+  // naturalRate は最初の 2 枚で 21（ちょうどいい一杯）のときに、賭けた分の何倍増えるか、decks は山札に入れる組の数、
+  // reshuffleBelow は山札がこの枚数より少なくなったら勝負の前に混ぜ直す数、dealerStepSec は親が 1 枚ずつ引く間隔（秒）
+  cardGame: {
+    title: '珈琲ブラックジャック',
+    button: '♠ 珈琲ブラックジャック（B キー）',
+    rounds: 10,
+    bets: [10, 20, 50],
+    dealerStand: 17,
+    naturalRate: 1.5,
+    decks: 2,
+    reshuffleBelow: 15,
+    dealerStepSec: 0.6,
+    // 1〜10 のカードに描く珈琲豆のキャラ（CHARACTERS の並び順）と、絵札に描く眠気の手下（CONFIG.enemies のキー）
+    rankCharacters: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    faceEnemies: { J: 'ghost', Q: 'slime', K: 'sheep' },
+    dealer: {
+      name: 'ひつじの支配人',
+      lines: {
+        bet: '羊が 17 匹… わたしは そこで止まります',
+        play: 'ふわぁ… もう 1 枚 いきますか？',
+        win: 'メェ… 今夜は あなたの勝ちです',
+        lose: 'おやすみなさい。豆コインは いただきます',
+        push: 'おあいこ… 眠くなってきました',
+        natural: 'ちょうどいい一杯… 目が覚めました',
+        summary: 'またいつでも、夜ふかしに いらっしゃい',
+      },
+    },
+    texts: {
+      notEnough: '豆コインが足りない！ 本編で豆コインをためよう（{min} 枚から遊べる）',
+      round: '勝負 {n} / {total}',
+      bet: '賭け {bet} 枚',
+      betPick: '←→ で賭ける枚数を選ぶ　Enter / クリックで配る',
+      next: 'Enter / クリックで次の勝負へ',
+      toSummary: 'Enter / クリックでまとめへ',
+      back: 'Enter / Esc でタイトルへ',
+      help: 'Esc でやめる（勝負の途中なら、その勝負は無かったことになる）',
+      rules: '親は 17 まで引く ・ ちょうどいい一杯（21）は 1.5 倍',
+      results: { win: 'かち！', lose: 'まけ…', push: 'ひきわけ', natural: 'ちょうどいい一杯！', bust: '21 をこえた…' },
+      summary: { title: '今夜のまとめ', win: '勝ち', lose: '負け', push: '引き分け', net: '豆コイン' },
+      actions: {
+        hit: { label: 'もう 1 枚', key: 'A' },
+        stand: { label: 'これで勝負', key: 'S' },
+        double: { label: '倍賭け', key: 'D', off: '最初の 2 枚のときだけ' },
+        split: { label: '分ける', key: 'F', off: '同じ数字 2 枚のときだけ' },
+        noCoins: '豆コインが足りない',
+      },
+    },
+    colors: {
+      bg: '#20180f', floor: '#33281c', grid: 'rgba(0, 0, 0, 0.25)', frame: '#e0b050', text: '#fff1d6', sub: 'rgba(255, 241, 214, 0.75)',
+      accent: '#ffd84a', line: '#2a1a10', card: '#fff8ea', cardBack: '#7a4a2a', cardBackInk: '#e0b050', beanPanel: '#f3ead6',
+      enemyPanel: '#e8e0f5', ink: '#2a1a10', enemyInk: '#5a3a7a', button: '#f2e2c2', buttonOff: 'rgba(242, 226, 194, 0.35)',
+      win: '#9fe08a', lose: '#e88a6a', push: '#f2e2c2', bubble: '#fff8ea', name: '#7a4a2a',
+    },
+  },
   // 隠し要素。cafeAuLait：タイトルで word を打つと、豆がカフェオレ色になる（もう一度打つと戻る。仕様 037）
   secrets: {
     cafeAuLait: {
