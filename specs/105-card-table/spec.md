@@ -4,9 +4,9 @@
 
 **Created**: 2026-11-06
 
-**Status**: Draft（ユーザーに聞いてもらっている。カードゲームの画面で流す呼び出しはメインが足す）
+**Status**: Draft（ユーザーに聞いてもらっている。カードゲームの画面で流す呼び出しと、レコード棚の背表紙・ジャケットの絵はメインが足す）
 
-**Input**: メイン（otWeb_main）からの依頼。カードゲーム「珈琲ブラックジャック」（仕様 043）で流す曲を 1 曲。ジャケット `assets/images/art/soundtrack-cover-card-game.jpg`（暗いこげ茶の背景に金色に光るカード、中は星の夜空と湯気の音符、木のテーブルに白いカップ）に合わせる
+**Input**: メイン（otWeb_main）からの依頼。カードゲーム「珈琲ブラックジャック」（仕様 043）・ビデオポーカー（仕様 044）で流す曲を 1 曲。レコード棚で買える曲としても使う（2026-11-07 の依頼の変更）。ジャケット `assets/images/art/soundtrack-cover-card-game.jpg`（暗いこげ茶の背景に金色に光るカード、中は星の夜空と湯気の音符、木のテーブルに白いカップ）に合わせる
 
 ## Clarifications
 
@@ -14,7 +14,7 @@
 
 - Q: 曲の id と名前は？ → A: id は `cardTable`、名前は「真夜中のカード卓」
 - Q: どんな曲か？ → A: 夜のカード卓。落ち着いているけれど、少しドキドキする勝負の雰囲気。5〜10 分くり返し聞いても疲れない、ゆったりしたテンポのジャズ（夜のラウンジ）
-- Q: レコード棚で買えるか？ → A: 買えない。`CONFIG.audio.tracks` には入れない。カードゲームの画面で流す仕組み（呼び出し）はメインが作る
+- Q: レコード棚で買えるか？ → A: ~~買えない~~ → **買える**（2026-11-07 にメインの依頼が変わった）。`CONFIG.audio.tracks` の最後（`coffeeStorm`・`sleepyCloud` のあと）に `'cardTable'` を足す。値段はほかの曲と同じで、背表紙の色とジャケットの絵（`CONFIG.recordShelf`）はメインが足す。カードゲームの画面で流す仕組み（呼び出し）もメインが作る
 - Q: どうやって流すか？ → A: ボスの曲と同じ「場面の曲」にする。`sound.setMode('card')` で切り替わり、`sound.setMode('normal')` で、遊ぶ人がレコード棚で選んでいる曲に戻る（どちらも次の小節の頭から重ねながら移る）。どの場面でどの曲かは `CONFIG.audio.sceneSongs`
 
 ### まだ決めること
@@ -34,11 +34,11 @@
 ## メインが使うもの（約束ごと）
 
 - カードゲームを始めたら `sound.setMode('card')`、やめてタイトルなどに戻ったら `sound.setMode('normal')`
-- `sound.setTrack(id)` は `CONFIG.audio.tracks` の曲だけを受け付けるようにした（`cardTable` やボスの曲は選べない）
+- `sound.setTrack(id)` は `CONFIG.audio.tracks` の曲だけを受け付けるようにした（ボスの曲は選べない。`cardTable` は tracks に入ったので選べる）
 
 ## Requirements *(mandatory)*
 
-- **FR-001**: `CONFIG.audio.music.cardTable` に曲を足す。`CONFIG.audio.tracks` には足さない
+- **FR-001**: `CONFIG.audio.music.cardTable` に曲を足し、`CONFIG.audio.tracks` の最後に `'cardTable'` を足す（レコード棚で買える）
 - **FR-002**: `sound.setMode('card')` で `cardTable` に、`sound.setMode('normal')` で選んでいる曲に戻る。レコード棚で選んだ曲（`sound.track`）は変わらない
 - **FR-003**: ほかの曲と同じく、小節・ひと回りのつなぎ目で無音にならない（仕様 100 FR-001）
 - **FR-004**: `src/config.js` は `audio` のまとまりだけを書き換える
@@ -46,7 +46,7 @@
 ## Success Criteria *(mandatory)*
 
 - **SC-001**: 0.25 秒ごとに測ったとき、普段の 1/4 より小さくなる瞬間がない（2026-11-06 に確認：いちばん小さいところでも普段の 0.40 倍）
-- **SC-002**: `npm --prefix tests test` がすべて通る。実際のゲームで 曲を選ぶ → `setMode('card')` → `setMode('normal')` で、選んだ曲に戻り、コンソールにエラーが出ない
+- **SC-002**: `npm --prefix tests test` がすべて通る。実際のゲームで 曲を選ぶ → `setMode('card')` → `setMode('normal')` で、選んだ曲に戻り、コンソールにエラーが出ない。`setTrack('cardTable')` でレコード棚の曲としても流れる
 
 ## 聞いてもらうファイル（candidates/）
 
