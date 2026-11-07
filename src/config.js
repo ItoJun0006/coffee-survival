@@ -561,6 +561,8 @@ export const CONFIG = {
       overflow: { perBlade: 0.2, maxExtra: 6 },
       // slowSpin：Lv untilLevel になるまでは、回る速さを rate 倍にする（2026-10-24）
       slowSpin: { untilLevel: 8, rate: 0.5 },
+      // focusSizeSkip：ピーベリーの大きさの倍率（仕様 017）をかけない値。回る半径はそのままで、刃だけ大きくする（2026-11-07）
+      focusSizeSkip: ['orbitRadius'],
       // focusSpinExp：ピーベリーは刃が 1 枚になる代わりに、回る速さを「本来の刃の数 ^ focusSpinExp」倍にする（1 なら枚数と同じ倍率。2026-10-24）
       focusSpinExp: 1,
       // limitBreak：限界突破（Lv 9 から）では、everyLevels Lv ごとに刃を 1 枚足し、刃の大きさを shrinkRate 倍にする。

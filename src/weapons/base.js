@@ -49,8 +49,10 @@ export class Weapon {
     if (size === 1) return area;
     if (this.#focusArea !== area || this.#focusSize !== size) {
       const c = { ...area };
+      // focusSizeSkip に書いた値（ミル・トルネードの回る半径など）は、大きくしない
+      const skip = c.focusSizeSkip ?? [];
       for (const k of [...AREA_KEYS, ...(c.areaKeys ?? [])]) {
-        if (typeof c[k] === 'number') c[k] *= size;
+        if (typeof c[k] === 'number' && !skip.includes(k)) c[k] *= size;
       }
       this.#focusConfig = c;
       this.#focusArea = area;
