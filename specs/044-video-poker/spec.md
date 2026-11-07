@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-07
 
-**Status**: Draft
+**Status**: Implemented（役の倍率・回数・賭けの段階は遊んで調整する）
 
 **Input**: User description: "ブラックジャックとポーカーを選べるようにしたい"
 

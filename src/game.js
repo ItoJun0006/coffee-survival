@@ -25,6 +25,7 @@ import { Floor } from './floor.js';
 import { sound } from './sound.js';
 import { RecordShelf, applySavedTrack, stepTrack, currentTrackName } from './record-shelf.js';
 import { CardGame, canEnterCardGame, notEnoughText } from './card-game.js';
+import { VideoPoker, canEnterPoker, pokerNotEnoughText } from './video-poker.js';
 import { font } from './font.js';
 import { Background } from './background.js';
 import { stage, setStage } from './stage.js';
@@ -117,6 +118,7 @@ export class Game {
     applySavedTrack();
     this.recordShelf = new RecordShelf((text) => this.#toast(text));
     this.cardGame = new CardGame();
+    this.poker = new VideoPoker();
     // 画面の上に数秒出す知らせ（キャラの解放など）。ゲームの時間ではなく実際の時間で消える
     this.toasts = [];
     this.#checkUnlocks('launches', recordLaunch());
@@ -600,6 +602,17 @@ export class Game {
         this.state = 'cards';
         return;
       }
+      // ビデオポーカー（仕様 044）：P キーか、右下のボタンのクリックで入る。豆コインが足りないときは入らない
+      if (this.input.wasPressed('KeyP') || (pos && this.input.clicked && inRect(pos, this.#pokerButton()))) {
+        this.input.consumeClick();
+        if (!canEnterPoker()) {
+          this.#toast(pokerNotEnoughText());
+          return;
+        }
+        this.poker.open();
+        this.state = 'poker';
+        return;
+      }
       // レコード棚（仕様 039）：R キーか、右下のボタンのクリックで入る
       if (this.input.wasPressed('KeyR') || (pos && this.input.clicked && inRect(pos, this.#shelfButton()))) {
         this.input.consumeClick();
@@ -619,6 +632,10 @@ export class Game {
     }
     if (this.state === 'cards') {
       if (this.cardGame.update(this.input, this.viewW, this.viewH) === 'back') this.state = 'title';
+      return;
+    }
+    if (this.state === 'poker') {
+      if (this.poker.update(this.input, this.viewW, this.viewH) === 'back') this.state = 'title';
       return;
     }
     if (this.state === 'select') {
@@ -1415,6 +1432,8 @@ export class Game {
       this.recordShelf.draw(this.ctx, this.viewW, this.viewH);
     } else if (this.state === 'cards') {
       this.cardGame.draw(this.ctx, this.viewW, this.viewH);
+    } else if (this.state === 'poker') {
+      this.poker.draw(this.ctx, this.viewW, this.viewH);
     } else if (this.state === 'select') {
       this.characterSelect.draw(ctx, this.viewW, this.viewH);
     } else {
@@ -1656,6 +1675,7 @@ export class Game {
     drawTitleRecords(this.ctx, this.viewW, records());
     this.#drawShelfButton();
     this.#drawCardButton();
+    this.#drawPokerButton();
   }
 
   // タイトルの右下の「レコード棚」のボタン（仕様 039）
@@ -1689,9 +1709,23 @@ export class Game {
     return { x: this.viewW - w - 16, y: shelf.y - shelf.h - 10, w, h: shelf.h };
   }
 
+  // ブラックジャックのボタンの上の「珈琲ポーカー」のボタン（仕様 044）
+  #pokerButton() {
+    const card = this.#cardButton();
+    return { ...card, y: card.y - card.h - 10 };
+  }
+
   #drawCardButton() {
+    this.#drawTableButton(this.#cardButton(), CONFIG.cardGame.button);
+  }
+
+  #drawPokerButton() {
+    this.#drawTableButton(this.#pokerButton(), CONFIG.poker.button);
+  }
+
+  // カードの卓（ブラックジャック・ポーカー）に入るボタン
+  #drawTableButton(b, label) {
     const { ctx } = this;
-    const b = this.#cardButton();
     const color = CONFIG.cardGame.colors.accent;
     ctx.save();
     ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
@@ -1703,7 +1737,7 @@ export class Game {
     ctx.font = font(14, true);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(CONFIG.cardGame.button, b.x + b.w / 2, b.y + b.h / 2);
+    ctx.fillText(label, b.x + b.w / 2, b.y + b.h / 2);
     ctx.restore();
   }
 
