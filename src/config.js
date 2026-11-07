@@ -849,6 +849,25 @@ export const CONFIG = {
     title: 'ねぶくろキャンプ！',
     text: '寝袋に取り囲まれた…',
   },
+  // 隠し要素「横切るジャコウネコ」（仕様 065）。毎分 chancePerMin の確率で、画面の外からプレイヤーの近くを通って反対側へ、
+  // speed でまっすぐ走り抜ける（ボスが出ている間は出ない）。passOffset はプレイヤーからどれだけずれた所を通るか（最大）。
+  // 触ると豆コインが coins 枚入る。プレイをまたいで kopiTouches 回触ると、コピ・ルアク（029）の条件 catTouches を満たす
+  jacoCat: {
+    chancePerMin: 0.03,
+    speed: 180,
+    radius: 16,
+    passOffset: 160,
+    coins: 50,
+    kopiTouches: 3,
+    // 本物のジャコウネコ寄り（3 案の A）。灰茶の細い体に黒い斑点、目のまわりの黒い仮面、しま模様の長いしっぽ
+    look: { body: '#8a7a66', dark: '#2e2620', leg: '#3a3028', eye: '#f4efe6', nose: '#1e120c' },
+    texts: {
+      appear: '何かが横切った…！',
+      appearSub: 'ジャコウネコだ！ 追いかけて触ろう',
+      touch: 'ジャコウネコに触れた！',
+      touchSub: '豆コイン +{n}',
+    },
+  },
   // 珈琲店の木の床（仕様 005）。横長の板を、継ぎ目をずらして並べた板張り
   // size はドット 1 マスの大きさ（pixelArt.size と合わせる）、periodDots は柄 1 枚の大きさ（ドットの数）
   // enabled を false にすると、背景のタイルの床（scenery.floor）になる
