@@ -16,7 +16,7 @@
 
 ## 実装
 
-- [ ] 【敵】B001 レア敵「まくらウサギ」を作る：specs/013-rare-enemy/tasks.md の T003〜T018（16 個）。倒すとそのプレイの間だけ攻撃の枠が 4 つになる
+- [ ] 【敵】B001 レア敵「まくらウサギ」を作る：specs/013-rare-enemy/tasks.md の T003〜T018（16 個）。倒すとそのプレイの間だけ攻撃の枠が 4 つになる（2026-10-28 に実装：lite_enemy_rabbit。残り：メインが `CONFIG.slots.weapons` を読む 3 か所を `game.weaponSlots` に替える、音楽係が専用の効果音を作る）
 - [x] 【メイン】B002 8 種類の武器の強化の仕上げ：specs/012-weapon-upgrades/tasks.md の T060〜T066（7 個）。遊んで当たり方・重さを確かめ、仕様書の数字を最終の値に直す（アイス珈琲の作り変え・ミル・トルネードの押し返しも含めて確かめる）（2026-10-23 に完了。ショックウェーブ MAX の大きさとドリップの雨の範囲は playtest.md の P18・P19）
 - [x] 【メイン】B003 自分の記録（自己ベスト）を残す：specs/001-game-baseline/spec.md の User Story 7 と「記録」の FR。結果画面に今回の生存時間・倒した敵の数・到達レベルと自己ベスト、タイトルに自己ベストとクリア回数を出す。決めること：タイトルと結果画面での記録の見せ方（3 案）。先に tasks.md を作る。tasks.md は specs/001-game-baseline/tasks.md（2026-10-23 に作った）。見せ方の 3 案は specs/001-game-baseline/candidates/records-abc.jpg（2026-10-23 に完了。見せ方は C、エクストラステージは数えない）
 - [x] 【キャラ】B005 弾が 1 つだけの「一点集中」キャラ「ピーベリー」：specs/017-focus-character/spec.md（2026-10-22 に実装。見た目は A、ケントを外したマスに入れた）
