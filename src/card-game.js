@@ -26,6 +26,23 @@ const CARD = { w: 104, h: 146, gap: 16 };
 const POS = { dealer: { x: 600, y: 114, scale: 0.85 }, bubble: { x: 720, y: 90 }, dealerRow: 290, playerRow: 484, banner: 388, buttonsY: 608, bet: { x: 200, y: 484 } };
 const BUTTON = { w: 170, h: 56, gap: 18 };
 
+// 遊び方のページを最後まで見たか（ブラウザに保存する。見たあとは、はじめに出さない）
+const HOWTO_KEY = 'coffee-survival.cardGameHowto';
+function howtoSeen() {
+  try {
+    return localStorage.getItem(HOWTO_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+function saveHowtoSeen() {
+  try {
+    localStorage.setItem(HOWTO_KEY, '1');
+  } catch {
+    // 保存できなくても、このプレイの間は遊び方を閉じられる
+  }
+}
+
 const inRect = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 const CHARS = CHARACTERS.filter((c) => !c.placeholder);
 
@@ -42,16 +59,33 @@ export class CardGame {
     this.stats = { win: 0, lose: 0, push: 0, net: 0 };
     this.betIndex = 0;
     this.#toBet();
+    // はじめて入ったときは、まず遊び方のページを見せる
+    this.howto = howtoSeen() ? null : 0;
     this.openedAt = performance.now();
     sound.startMusic();
   }
 
   // 戻るときは 'back' を返す
   update(input, viewW, viewH) {
-    if (input.wasPressed('Escape')) return 'back';
     const view = this.#view(viewW, viewH);
     const clicked = input.consumeClick();
     const pos = clicked && input.clickPos ? { x: (input.clickPos.x - view.ox) / view.k, y: (input.clickPos.y - view.oy) / view.k } : null;
+    const help = cfg().help;
+    if (this.howto === null && input.wasPressed(`Key${help.key}`)) {
+      this.howto = 0;
+      return null;
+    }
+    // 遊び方のページ：Esc で閉じる（カードゲームはやめない）
+    if (this.howto !== null) {
+      if (input.wasPressed('ArrowLeft')) this.howto = Math.max(0, this.howto - 1);
+      else if (input.wasPressed('ArrowRight') || clicked) this.howto += 1;
+      if (this.howto >= help.pages.length || input.wasPressed('Escape')) {
+        this.howto = null;
+        saveHowtoSeen();
+      }
+      return null;
+    }
+    if (input.wasPressed('Escape')) return 'back';
     const button = pos ? this.#buttons().find((b) => inRect(pos, b)) : null;
     if (this.phase === 'bet') {
       if (input.wasPressed('ArrowLeft')) this.#stepBet(-1);
@@ -211,7 +245,7 @@ export class CardGame {
     this.delta = delta;
     this.round++;
     const natural = this.results.some((r) => r.result === 'natural');
-    this.line = delta > 0 ? (natural ? 'natural' : 'win') : delta < 0 ? 'lose' : 'push';
+    this.natural = natural;
     sound.play(natural ? 'levelUp' : delta > 0 ? 'bean' : delta < 0 ? 'fakeBean' : 'hit');
     this.phase = 'result';
   }
@@ -278,14 +312,14 @@ export class CardGame {
       const h = this.hands[this.active];
       const a = t.actions;
       // 選べないときは、札の形が合わないのか、豆コインが足りないのかを出す
-      const sub = (id, shapeOk, can) => (can ? `［${a[id].key}］` : shapeOk ? a.noCoins : a[id].off);
+      const sub = (id, shapeOk, can) => (can ? `［${a[id].key}］${cfg().help.actions[id]}` : shapeOk ? a.noCoins : a[id].off);
       const doubleShape = !!h && h.cards.length === 2 && !h.doubled;
       const splitShape = !!h && this.hands.length === 1 && canSplitCards(h.cards);
       const canDouble = this.#canDouble(h);
       const canSplit = this.#canSplit(h);
       return row([
-        { id: 'hit', label: a.hit.label, sub: `［${a.hit.key}］`, enabled: true, primary: true },
-        { id: 'stand', label: a.stand.label, sub: `［${a.stand.key}］`, enabled: true },
+        { id: 'hit', label: a.hit.label, sub: sub('hit', true, true), enabled: true, primary: true },
+        { id: 'stand', label: a.stand.label, sub: sub('stand', true, true), enabled: true },
         { id: 'double', label: a.double.label, sub: sub('double', doubleShape, canDouble), enabled: canDouble },
         { id: 'split', label: a.split.label, sub: sub('split', splitShape, canSplit), enabled: canSplit },
       ]);
@@ -335,7 +369,7 @@ export class CardGame {
   #bubbleRect(ctx) {
     const d = cfg().dealer;
     ctx.font = font(15, true);
-    const w = Math.max(ctx.measureText(d.lines[this.line]).width, ctx.measureText(`親：${d.name}`).width) + 32;
+    const w = Math.max(ctx.measureText(this.#bubbleLine()).width, ctx.measureText(`親：${d.name}`).width) + 32;
     return { x: POS.bubble.x, y: POS.bubble.y, w, h: 64 };
   }
 
@@ -397,7 +431,9 @@ export class CardGame {
       const color = this.delta > 0 ? c.win : this.delta < 0 ? c.lose : c.push;
       this.#box(p, 380, POS.banner - 22, 440, 44, '#000', 5, color);
     }
+    if (this.howto !== null) this.#drawHowtoShapes(p);
     for (const btn of this.#buttons()) {
+      if (this.howto !== null) break;
       p.fillStyle = '#000';
       p.fillRect(btn.x + 6, btn.y + 6, btn.w, btn.h);
       this.#box(p, btn.x, btn.y, btn.w, btn.h, btn.enabled ? c.button : c.buttonOff, 5, (btn.primary || btn.selected) && btn.enabled ? c.accent : c.line);
@@ -483,8 +519,12 @@ export class CardGame {
     ctx.fillStyle = c.name;
     ctx.fillText(`親：${s.dealer.name}`, b.x + 16, b.y + 20);
     ctx.fillStyle = c.ink;
-    ctx.fillText(s.dealer.lines[this.line], b.x + 16, b.y + 44);
+    ctx.fillText(this.#bubbleLine(), b.x + 16, b.y + 44);
     ctx.textAlign = 'center';
+    if (this.howto !== null) {
+      this.#drawHowtoTexts(ctx);
+      return;
+    }
     if (this.phase === 'summary') {
       this.#drawSummaryTexts(ctx);
       return;
@@ -522,9 +562,13 @@ export class CardGame {
     if (this.phase === 'bet') {
       ctx.fillStyle = c.sub;
       ctx.font = font(15, true);
-      ctx.fillText(t.rules, BOX.w / 2, POS.banner);
+      ctx.fillText(s.help.betTip, BOX.w / 2, POS.banner);
+    } else if (this.phase === 'play') {
+      ctx.fillStyle = c.accent;
+      ctx.font = font(14, true);
+      ctx.fillText(this.#playTip(), BOX.w / 2, POS.banner);
     } else if (this.phase === 'result') {
-      const head = this.delta > 0 ? (this.line === 'natural' ? t.results.natural : t.results.win) : this.delta < 0 ? t.results.lose : t.results.push;
+      const head = this.delta > 0 ? (this.natural ? t.results.natural : t.results.win) : this.delta < 0 ? t.results.lose : t.results.push;
       ctx.fillStyle = this.delta > 0 ? c.win : this.delta < 0 ? c.lose : c.push;
       ctx.font = font(22, true);
       const sign = this.delta > 0 ? '+' : '';
@@ -543,6 +587,91 @@ export class CardGame {
     ctx.fillStyle = c.sub;
     ctx.font = font(13);
     ctx.fillText(this.phase === 'bet' ? t.betPick : t.help, BOX.w / 2, 684);
+  }
+
+  // ふきだしのせりふ。自分の番ではおすすめを、結果では勝ち負けの理由を話す
+  #bubbleLine() {
+    if (this.phase === 'result') return this.#reason();
+    if (this.phase === 'play') return this.#advice();
+    return cfg().dealer.lines[this.line];
+  }
+
+  #upCard() {
+    return handTotal([this.dealer[0]]).total;
+  }
+
+  // 次の 1 枚で 21 をこえる見込み（%）。1 を 11 と数えている手は、1 枚ではこえない
+  #bustChance(cards) {
+    const { total, soft } = handTotal(cards);
+    if (soft) return 0;
+    const values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10];
+    return Math.round((values.filter((v) => total + v > 21).length / values.length) * 100);
+  }
+
+  #playTip() {
+    const h = cfg().help;
+    const hand = this.hands[this.active];
+    if (!hand) return '';
+    const up = this.#upCard();
+    return fill(h.playTip, { me: handTotal(hand.cards).total, bust: this.#bustChance(hand.cards), up, upKind: up <= 6 ? h.upKinds.weak : h.upKinds.strong });
+  }
+
+  #advice() {
+    const a = cfg().help.advice;
+    const hand = this.hands[this.active];
+    if (!hand) return '';
+    const me = handTotal(hand.cards).total;
+    if (me <= 11) return a.safe;
+    if (me >= 17) return a.stop;
+    return this.#upCard() <= 6 ? a.weakUp : a.strongUp;
+  }
+
+  #reason() {
+    const h = cfg().help;
+    const r = this.results?.[0];
+    if (!r) return '';
+    const dealer = handTotal(this.dealer).total;
+    const dealerText = dealer > 21 ? fill(h.dealerBust, { n: dealer }) : String(dealer);
+    const me = this.hands.map((hand) => handTotal(hand.cards).total).join(' と ');
+    return fill(h.reason, { me, dealer: dealerText, result: cfg().texts.results[r.result] });
+  }
+
+  // 遊び方のページ
+  #drawHowtoShapes(p) {
+    const c = cfg().colors;
+    const page = cfg().help.pages[this.howto];
+    p.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    p.fillRect(20, 20, BOX.w - 40, BOX.h - 40);
+    this.#box(p, 200, 150, 800, 470, c.card, 6);
+    const xs = this.#row(page.cards.length, BOX.w / 2, 400);
+    page.cards.forEach((rank, i) => this.#cardFace(p, { rank }, xs[i], 420));
+  }
+
+  #drawHowtoTexts(ctx) {
+    const s = cfg();
+    const c = s.colors;
+    const page = s.help.pages[this.howto];
+    ctx.textAlign = 'center';
+    ctx.fillStyle = c.name;
+    ctx.font = font(14, true);
+    ctx.fillText(`遊び方 ${this.howto + 1} / ${s.help.pages.length}`, BOX.w / 2, 186);
+    ctx.fillStyle = c.ink;
+    ctx.font = font(26, true);
+    ctx.fillText(page.title, BOX.w / 2, 222);
+    ctx.font = font(17, true);
+    ctx.textAlign = 'left';
+    page.lines.forEach((line, i) => ctx.fillText(line, 250, 272 + i * (page.cards.length ? 34 : 50)));
+    ctx.font = font(30, true);
+    const xs = this.#row(page.cards.length, BOX.w / 2, 400);
+    page.cards.forEach((rank, i) => {
+      ctx.fillStyle = isFace(rank) ? c.enemyInk : c.ink;
+      ctx.textAlign = 'left';
+      ctx.fillText(rank, xs[i] + 12, 420 + 24);
+    });
+    ctx.textAlign = 'center';
+    ctx.fillStyle = c.name;
+    ctx.font = font(13);
+    ctx.fillText(s.help.pageHelp, BOX.w / 2, 600);
   }
 
   #drawSummaryTexts(ctx) {
