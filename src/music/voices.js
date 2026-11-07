@@ -112,6 +112,14 @@ export class Voices {
     this.#osc('sine', f * 4, time, 0.4, this.envelope(0.25, time, 0.4, g));
   }
 
+  // オルゴール風：小さくて澄んだ「チン」という音が、ころんと消える
+  musicBox(f, time, dur, vel, dest) {
+    const g = this.envelope(0.08 * vel, time, Math.max(dur, 0.8) + 0.6, dest);
+    this.#osc('sine', f, time, Math.max(dur, 0.8) + 0.6, g);
+    this.#osc('sine', f * 3, time, 0.3, this.envelope(0.3, time, 0.3, g));
+    this.#osc('triangle', f * 2, time, 0.15, this.envelope(0.15, time, 0.15, g));
+  }
+
   // やわらかい笛風：息の音を少し混ぜる
   flute(f, time, dur, vel, dest) {
     const ctx = this.ctx;
@@ -124,6 +132,47 @@ export class Voices {
     this.#osc('sine', f, time, dur, g);
     this.#osc('triangle', f * 2, time, dur, this.#level(0.08, g));
     this.noise(time, 0.08, 0.03 * vel, 'bandpass', f * 2, dest);
+  }
+
+  // 金管風の和音：2 本のぎざぎざの波を少しずらして重ね、鳴った瞬間だけ明るくする（力強い曲のきざみ）
+  brass(f, time, dur, vel, dest) {
+    const lp = this.ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(2800, time);
+    lp.frequency.exponentialRampToValueAtTime(900, time + Math.max(0.15, dur));
+    lp.connect(this.envelope(0.05 * vel, time, dur + 0.1, dest));
+    this.#osc('sawtooth', f, time, dur + 0.1, lp).detune.value = 7;
+    this.#osc('sawtooth', f, time, dur + 0.1, lp).detune.value = -7;
+  }
+
+  // シンセのメロディー：太めの音に、少しだけ音程の揺れを付ける
+  lead(f, time, dur, vel, dest) {
+    const ctx = this.ctx;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 2600;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(0.05 * vel, time + 0.02);
+    g.gain.setValueAtTime(0.045 * vel, time + Math.max(0.02, dur - 0.06));
+    g.gain.linearRampToValueAtTime(0, time + dur);
+    lp.connect(g).connect(dest);
+    for (const [type, cents, level] of [['square', 0, 0.6], ['sawtooth', 9, 0.5]]) {
+      const o = this.#osc(type, f, time, dur, this.#level(level, lp));
+      o.detune.value = cents;
+      this.#osc('sine', 5.5, time, dur, this.#level(f * 0.006, o.frequency));
+    }
+  }
+
+  // 刻むベース：8 分音符で休まず押していく、太くて短い音
+  drive(f, time, dur, dest, vol = 0.2) {
+    const lp = this.ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(700, time);
+    lp.frequency.exponentialRampToValueAtTime(250, time + dur);
+    lp.connect(this.envelope(vol, time, dur, dest));
+    this.#osc('sawtooth', f, time, dur, lp);
+    this.#osc('sine', f, time, dur, this.#level(0.8, lp));
   }
 
   bass(f, time, dur, dest, vol = 0.32) {
@@ -184,6 +233,11 @@ export class Voices {
     this.noise(time, 0.05, 0.12 * vel, 'highpass', 2500, dest);
   }
 
+  // シンバル：「シャーン」と長く残る
+  crash(time, vel, dest) {
+    this.noise(time, 1.2, 0.09 * vel, 'highpass', 5000, dest);
+  }
+
   // ブラシでこするスネア：「シャッ」と長めに伸びる
   brush(time, vel, dest) {
     this.noise(time, 0.32, 0.12 * vel, 'bandpass', 3000, dest);
@@ -193,6 +247,37 @@ export class Voices {
   rim(time, vel, dest) {
     this.noise(time, 0.03, 0.18 * vel, 'bandpass', 2400, dest);
     this.#osc('triangle', 820, time, 0.04, this.envelope(0.07 * vel, time, 0.04, dest));
+  }
+
+  // ミュートをつけたトランペット風：こもった鼻にかかった音で、のばすとあとから揺れる（夜のジャズ）
+  horn(f, time, dur, vel, dest) {
+    const ctx = this.ctx;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 1100;
+    bp.Q.value = 1.2;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(0.11 * vel, time + 0.05);
+    g.gain.setValueAtTime(0.09 * vel, time + Math.max(0.05, dur - 0.08));
+    g.gain.linearRampToValueAtTime(0, time + dur);
+    bp.connect(g).connect(dest);
+    const o = this.#osc('sawtooth', f, time, dur, bp);
+    this.#osc('triangle', f, time, dur, this.#level(0.5, g));
+    // 長くのばす音だけ、0.3 秒たってから揺らす
+    if (dur > 0.5) {
+      const depth = ctx.createGain();
+      depth.gain.setValueAtTime(0, time);
+      depth.gain.linearRampToValueAtTime(f * 0.01, time + Math.min(0.6, dur));
+      depth.connect(o.frequency);
+      this.#osc('sine', 5, time, dur, depth);
+    }
+  }
+
+  // ライドシンバル：「チーン」と軽く残る、ジャズの刻み
+  ride(time, vel, dest) {
+    this.noise(time, 0.45, 0.045 * vel, 'bandpass', 6500, dest);
+    this.#osc('triangle', 3100, time, 0.3, this.envelope(0.012 * vel, time, 0.3, dest));
   }
 
   // マラカス風の「シャカ」
