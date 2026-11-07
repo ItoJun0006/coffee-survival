@@ -849,6 +849,33 @@ export const CONFIG = {
     title: 'ねぶくろキャンプ！',
     text: '寝袋に取り囲まれた…',
   },
+  // 隠し要素「金色の羊」（仕様 066）。noHitSec のあいだ一度もダメージを受けないと、1 回のプレイで 1 回だけ出る（ボスが出ている間は出ない）。
+  // 体力は出た時点の羊の体力 × hpRate。fleeDist より近づくと fleeSpeed で逃げ、遠いと approachSpeed で近づく。出てから leaveAfterSec で去る。
+  // 倒すと、そのときのレベルからちょうど levels 回レベルアップできる経験値を、orbs 個の粒にして scatter の範囲にまき散らす
+  goldenSheep: {
+    noHitSec: 180,
+    hpRate: 10,
+    radius: 21,
+    fleeDist: 350,
+    approachSpeed: 100,
+    fleeSpeed: 150,
+    escapeSec: 1,
+    leaveAfterSec: 30,
+    levels: 2,
+    orbs: 24,
+    scatter: 70,
+    contactCaffeine: 5,
+    // color は倒したときのエフェクトの粒の色。金色の毛ときらめき（3 案の A）
+    color: '#f0c64a',
+    look: { wool: '#f0c64a', face: '#6b4a1e', spark: '#fff6c8' },
+    texts: {
+      appear: '金色の羊が現れた！',
+      appearSub: '3 分間、無傷で眠気をしのいだごほうび',
+      defeat: '金色の羊を倒した！',
+      defeatSub: '経験値がどっさり',
+      fled: '金色の羊は逃げてしまった…',
+    },
+  },
   // 珈琲店の木の床（仕様 005）。横長の板を、継ぎ目をずらして並べた板張り
   // size はドット 1 マスの大きさ（pixelArt.size と合わせる）、periodDots は柄 1 枚の大きさ（ドットの数）
   // enabled を false にすると、背景のタイルの床（scenery.floor）になる

@@ -8,6 +8,7 @@ import { Boss } from './entities/boss.js';
 import { DragonBoss, rollDragon, drawDragonPanel, takeDragonTreasure } from './entities/dragon-boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
+import { GoldenSheep, tookDamage, xpForLevels, debugGolden } from './entities/golden-sheep.js';
 import { BadgeField } from './entities/bean-badge.js';
 import { AbstainCounter } from './coin-bonus.js';
 import { WEAPON_ORDER } from './weapons/index.js';
@@ -197,6 +198,11 @@ export class Game {
     this.waveUntil = 0;
     const camp = CONFIG.bagCamp;
     this.bagCampAt = camp.minSec + Math.random() * (camp.maxSec - camp.minSec);
+    // 金色の羊（仕様 066）：出ている羊、このプレイでもう出たか、ダメージを受けずにいる時間、前のフレームの無敵時間
+    this.golden = null;
+    this.goldenDone = false;
+    this.noHitSec = 0;
+    this.lastInvincible = 0;
     this.#applyDebugWeapons();
   }
 
@@ -689,6 +695,7 @@ export class Game {
     else this.#updatePlayer(dt);
     this.#spawnBeans(dt);
     if (!this.boss) this.#spawnEnemies(dt);
+    this.#updateGolden(dt);
     this.#updateEnemies(dt);
     if (this.boss) this.#updateBoss(dt);
     // ダイスケ豆が固まっている間は、攻撃も止まる（仕様 019）
@@ -1234,6 +1241,53 @@ export class Game {
     return this.time + (stage.enemyTimeOffsetSec ?? 0);
   }
 
+  // ---- 隠し要素「金色の羊」（仕様 066）。動きと絵は entities/golden-sheep.js ----
+
+  // noHitSec のあいだ一度もダメージを受けなければ、1 回のプレイで 1 回だけ、画面の外に出す（?goldenSheep のときは 3 秒）。
+  // 出てから leaveAfterSec たつか、ボスが出たら去り始め、画面の外へ出たら消える
+  #updateGolden(dt) {
+    const cfg = CONFIG.goldenSheep;
+    const p = this.player;
+    if (!this.goldenDone) {
+      this.noHitSec = tookDamage(p, this.enemies, this.lastInvincible) ? 0 : this.noHitSec + dt;
+      this.lastInvincible = p.invincibleTimer;
+      if (this.noHitSec >= (debugGolden ? 3 : cfg.noHitSec) && !this.boss) {
+        this.goldenDone = true;
+        const { x, y } = this.#spawnPoint();
+        this.golden = new GoldenSheep(x, y, this.#enemyStrength(), this.time);
+        this.enemies.push(this.golden);
+        this.notice = { title: cfg.texts.appear, text: cfg.texts.appearSub, until: this.time + 2.5 };
+        sound.play('bossAppear');
+      }
+    }
+    const g = this.golden;
+    if (!g) return;
+    if (!g.leaving && (this.boss || this.time - g.appearedAt >= cfg.leaveAfterSec)) g.leaving = true;
+    if (g.leaving && dist(g, p) > Math.hypot(this.viewW, this.viewH) / 2 + g.radius * 3) {
+      this.enemies = this.enemies.filter((e) => e !== g);
+      this.golden = null;
+      this.notice = { title: cfg.texts.fled, text: '', until: this.time + 2.5 };
+    }
+  }
+
+  // 倒したら、ちょうど levels 回レベルアップできる経験値を、たくさんの粒にしてまき散らす
+  #defeatGolden(e) {
+    const cfg = CONFIG.goldenSheep;
+    this.golden = null;
+    // 1 個はふつうの敵と同じく、倒した場所に落ちる（e.config.xp）。残りをまわりにまく
+    const each = xpForLevels(this.level, this.xp) / cfg.orbs;
+    e.config.xp = each;
+    for (let i = 1; i < cfg.orbs; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.sqrt(Math.random()) * cfg.scatter;
+      this.#dropXp(e.x + Math.cos(a) * r, e.y + Math.sin(a) * r, each);
+    }
+    unlock('secret-golden-sheep');
+    this.notice = { title: cfg.texts.defeat, text: cfg.texts.defeatSub, until: this.time + 2.5 };
+    sound.play('clear');
+    this.effects.push(new DefeatEffect(e.x, e.y, cfg.color, e.radius * 3));
+  }
+
   // 今の生存時間に応じた敵の強さの倍率
   #enemyStrength() {
     const s = CONFIG.enemyScaling;
@@ -1345,6 +1399,7 @@ export class Game {
     const { enemyDropChance, maxDroppedBeans } = CONFIG.leveling;
     this.enemies = this.enemies.filter((e) => {
       if (!e.dead) return true;
+      if (e === this.golden) this.#defeatGolden(e);
       addKills(1);
       this.runKills += 1;
       sound.play('defeat');
