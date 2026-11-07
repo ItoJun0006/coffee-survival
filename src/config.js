@@ -131,7 +131,9 @@ export const CONFIG = {
     // 吹く向きは、それぞれの左右 sideDeg にも足す。弾が同じ向きに重ならないよう、広がりを spreadDeg 以上にする。
     // 見た目は、浅煎り・中煎り・深煎りの 3 粒を串に刺したもの（stick は串の色、tiltDeg は串の傾き）
     multi: { countRate: 3, damageRate: 0.2, sideDeg: 25, spreadDeg: 10, stick: '#c9a46a', stickDark: '#8a6a3a', tiltDeg: 15 },
-    focus: { countKeys: ['count', 'drops', 'shots', 'directionsDeg'], damageExp: 0.65, intervalExp: 0.35, offWeapons: ['puddle', 'shockwave', 'ice'], offRate: 0.5 },
+    // sizeExp・sizeMax（2026-11-05）：減った数 N に応じて、弾・刃・雫などの大きさと当たる範囲を N^sizeExp 倍にする（sizeMax 倍まで）。
+    //   威力と間隔の上乗せはそのまま。武器の大きさを変える所はメインの受け持ち（範囲アップと同じく、武器の設定に倍率を掛ける）
+    focus: { countKeys: ['count', 'drops', 'shots', 'directionsDeg'], damageExp: 0.65, intervalExp: 0.35, sizeExp: 0.5, sizeMax: 2.5, offWeapons: ['puddle', 'shockwave', 'ice'], offRate: 0.5 },
     // クリエイター豆（仕様 021）：珈琲豆が出ず、レベルアップの 3 枚のうち 1 枚が必ずエナジードリンク（選ぶと上限の healRate 回復）。
     // startLevel より上は、Lv が 1 上がるごとにダメージ・攻撃の速さ・移動の速さが rate 倍ずつ伸びる（maxRate 倍まで）。経験値は xpRate 倍。
     // 見た目は赤いヘッドホンとエナジードリンクの缶（band はヘッドホンの輪、cup は耳あて、can は缶、bolt は缶の稲妻、rim は缶のふち）
@@ -628,6 +630,8 @@ export const CONFIG = {
       overflow: { perBlade: 0.2, maxExtra: 6 },
       // slowSpin：Lv untilLevel になるまでは、回る速さを rate 倍にする（2026-10-24）
       slowSpin: { untilLevel: 8, rate: 0.5 },
+      // focusSizeSkip：ピーベリーの大きさの倍率（仕様 017）をかけない値。回る半径はそのままで、刃だけ大きくする（2026-11-07）
+      focusSizeSkip: ['orbitRadius'],
       // focusSpinExp：ピーベリーは刃が 1 枚になる代わりに、回る速さを「本来の刃の数 ^ focusSpinExp」倍にする（1 なら枚数と同じ倍率。2026-10-24）
       focusSpinExp: 1,
       // limitBreak：限界突破（Lv 9 から）では、everyLevels Lv ごとに刃を 1 枚足し、刃の大きさを shrinkRate 倍にする。
