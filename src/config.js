@@ -498,10 +498,6 @@ export const CONFIG = {
       lines: {
         bet: '羊が 17 匹… わたしは そこで止まります',
         play: 'ふわぁ… もう 1 枚 いきますか？',
-        win: 'メェ… 今夜は あなたの勝ちです',
-        lose: 'おやすみなさい。豆コインは いただきます',
-        push: 'おあいこ… 眠くなってきました',
-        natural: 'ちょうどいい一杯… 目が覚めました',
         summary: 'またいつでも、夜ふかしに いらっしゃい',
       },
     },
@@ -509,12 +505,11 @@ export const CONFIG = {
       notEnough: '豆コインが足りない！ 本編で豆コインをためよう（{min} 枚から遊べる）',
       round: '勝負 {n} / {total}',
       bet: '賭け {bet} 枚',
-      betPick: '←→ で賭ける枚数を選ぶ　Enter / クリックで配る',
+      betPick: '←→ で賭ける枚数を選ぶ　Enter / クリックで配る　H で遊び方',
       next: 'Enter / クリックで次の勝負へ',
       toSummary: 'Enter / クリックでまとめへ',
       back: 'Enter / Esc でタイトルへ',
-      help: 'Esc でやめる（勝負の途中なら、その勝負は無かったことになる）',
-      rules: '親は 17 まで引く ・ ちょうどいい一杯（21）は 1.5 倍',
+      help: 'H で遊び方　Esc でやめる（勝負の途中なら、その勝負は無かったことになる）',
       results: { win: 'かち！', lose: 'まけ…', push: 'ひきわけ', natural: 'ちょうどいい一杯！', bust: '21 をこえた…' },
       summary: { title: '今夜のまとめ', win: '勝ち', lose: '負け', push: '引き分け', net: '豆コイン' },
       actions: {
@@ -525,11 +520,90 @@ export const CONFIG = {
         noCoins: '豆コインが足りない',
       },
     },
+    // 遊び方の説明。pages は遊び方のページ（はじめて入ったときに出し、key でいつでも見られる）、
+    // actions はボタンの下に出す説明、betTip・playTip は真ん中に出すヒント、advice・reason は親のふきだしのおすすめと勝ち負けの理由
+    help: {
+      key: 'H',
+      pages: [
+        { title: 'めあて', cards: ['7', 'K', '4'], lines: ['カードの合計を 21 に近づけて、親（ひつじの支配人）より大きければ勝ち。', '21 をこえたら、その場で負け（親を待たずに決まる）。', '親より小さいと負け、同じなら引き分け。'] },
+        { title: 'カードの数え方', cards: ['1', 'K'], lines: ['1〜10 は、書いてある数のまま。絵札（J・Q・K）は、どれも 10。', '1 は、1 か 11 の、都合のいい方で数える。', '最初の 2 枚で 21 は「ちょうどいい一杯」。賭けた分の 1.5 倍もらえる。'] },
+        { title: '選べること', cards: [], lines: ['もう 1 枚［A］：カードを 1 枚引く。', 'これで勝負［S］：引くのをやめて、親の番にする。', '倍賭け［D］：最初の 2 枚のときだけ。賭けを 2 倍にして、1 枚だけ引く。', '分ける［F］：同じ札が 2 枚のときだけ。2 つに分けて、別々に勝負する。', '親は、合計が 17 になるまで必ず引く（17 以上で止まる）。'] },
+      ],
+      pageHelp: '←→ でページを切りかえ　Enter で次へ　Esc で閉じる　H でいつでも見られる',
+      actions: { hit: 'カードを 1 枚引く', stand: '引くのをやめて勝負', double: '賭け 2 倍で 1 枚だけ', split: '2 つに分けて勝負' },
+      betTip: '賭ける枚数を選んで Enter で配る。勝てば賭けた分ふえ、負ければへる',
+      playTip: 'あなたの合計 {me}：次の 1 枚で 21 をこえる見込み 約 {bust}%　／　親の見えている札 {up}（{upKind}）',
+      upKinds: { weak: '親が 21 をこえやすい札', strong: '親が強くなりやすい札' },
+      advice: { safe: 'まだ 21 をこえない。もう 1 枚がおすすめ', stop: '17 以上。ここで勝負するのが安全', weakUp: '親がこけるのを待って、ここで勝負もあり', strongUp: '親は強そう。もう 1 枚も考えよう' },
+      reason: 'あなた {me}　親 {dealer}　→ {result}',
+      dealerBust: '{n}（21 をこえた）',
+    },
     colors: {
       bg: '#20180f', floor: '#33281c', grid: 'rgba(0, 0, 0, 0.25)', frame: '#e0b050', text: '#fff1d6', sub: 'rgba(255, 241, 214, 0.75)',
       accent: '#ffd84a', line: '#2a1a10', card: '#fff8ea', cardBack: '#7a4a2a', cardBackInk: '#e0b050', beanPanel: '#f3ead6',
       enemyPanel: '#e8e0f5', ink: '#2a1a10', enemyInk: '#5a3a7a', button: '#f2e2c2', buttonOff: 'rgba(242, 226, 194, 0.35)',
-      win: '#9fe08a', lose: '#e88a6a', push: '#f2e2c2', bubble: '#fff8ea', name: '#7a4a2a',
+      win: '#9fe08a', lose: '#e88a6a', push: '#f2e2c2', bubble: '#fff8ea', name: '#7a4a2a', red: '#b0283a', highlight: 'rgba(255, 216, 74, 0.55)',
+    },
+  },
+  // ビデオポーカー「珈琲ポーカー」（仕様 044）。タイトルから P キーかボタンで入る。見た目の色とカードの絵は cardGame と同じ。
+  // rounds は 1 回の遊びの勝負の数、bets は賭ける豆コインの段階、hands は役の名前と倍率（賭けた分の何倍もらえるか。強い順）
+  poker: {
+    title: '珈琲ポーカー',
+    button: '♦ 珈琲ポーカー（P キー）',
+    rounds: 10,
+    bets: [10, 20, 50],
+    hands: {
+      royal: { name: 'ロイヤルストレートフラッシュ', rate: 250 },
+      straightFlush: { name: 'ストレートフラッシュ', rate: 50 },
+      four: { name: 'フォーカード', rate: 25 },
+      fullHouse: { name: 'フルハウス', rate: 9 },
+      flush: { name: 'フラッシュ', rate: 6 },
+      straight: { name: 'ストレート', rate: 4 },
+      three: { name: 'スリーカード', rate: 3 },
+      twoPair: { name: 'ツーペア', rate: 2 },
+      jacks: { name: 'ワンペア（J 以上）', rate: 1 },
+      none: { name: '役なし', rate: 0 },
+    },
+    dealer: {
+      name: 'ねぼけフクロウの店主',
+      lines: {
+        bet: 'ホゥ… 夜ふかしのはずが、眠いのです',
+        summary: 'ホゥ… またのお越しを。おやすみなさい',
+      },
+    },
+    // 遊び方の説明（仕様 043 の FR-012・FR-013 と同じ考え方）。pages の cards は [数字, マーク（0：♠ 1：♥ 2：♦ 3：♣）]
+    help: {
+      key: 'H',
+      pages: [
+        { title: 'めあて', cards: [['J', 1], ['J', 3], ['7', 0], ['3', 2], ['9', 1]], lines: ['5 枚の手札で、なるべく強い役を作る。', '残したい札を選んで、残さなかった札を 1 回だけ引き直す。', '役ができると、役の表の倍率 × 賭けた分の豆コインがもらえる。'] },
+        { title: '役の作り方', cards: [['5', 0], ['6', 1], ['7', 2], ['8', 3], ['9', 0]], lines: ['ペア：同じ数字が 2 枚（ワンペアで役になるのは J・Q・K・1）。', 'ストレート：数字が 5 つ続く（1 は 1 としても 14 としても使える）。', 'フラッシュ：5 枚とも同じマーク。フルハウス：同じ数字 3 枚と 2 枚。'] },
+        { title: '選べること', cards: [], lines: ['1〜5 キーかクリック：その札を残す（もう一度で外す）。', 'Enter：残さなかった札を引き直して、役を決める。', '全部残せば、引き直さずに、そのまま役を決める。', '交換の前なら、Esc でやめても豆コインは動かない。'] },
+      ],
+      pageHelp: '←→ でページを切りかえ　Enter で次へ　Esc で閉じる　H でいつでも見られる',
+      betTip: '賭ける枚数を選んで Enter で配る。役ができれば倍率の分ふえ、役がなければへる',
+      advice: {
+        keepAll: '{hand} ができている。全部残して Enter',
+        keepMade: '{hand} ができている。そろった札を残そう',
+        flushDraw: '同じマークが 4 枚。残して フラッシュを ねらおう',
+        smallPair: 'J より小さいペア。残すとスリーカードを ねらえる',
+        highCards: 'J 以上の札を残すと、ワンペアに近づく',
+        redraw: 'そろいそうな札がない。全部かえて 運だめし',
+      },
+      reasonMade: '{cards} で {hand}　→ 豆コイン {delta} 枚',
+      reasonNone: '役はできませんでした　→ 豆コイン {delta} 枚',
+    },
+    texts: {
+      notEnough: '豆コインが足りない！ 本編で豆コインをためよう（{min} 枚から遊べる）',
+      round: '勝負 {n} / {total}',
+      bet: '賭け {bet} 枚',
+      betPick: '←→ で賭ける枚数を選ぶ　Enter / クリックで配る　H で遊び方',
+      help: '1〜5 / クリックで残す札を選ぶ　Enter で交換　H で遊び方　Esc でやめる',
+      held: '残す',
+      current: 'いまの役：{hand}',
+      payTitle: '役の表（賭けた分の何倍もらえるか）',
+      draw: { label: '交換する', sub: '［Enter］残さない札を引き直す' },
+      back: 'Enter / Esc でタイトルへ',
+      summary: { title: '今夜のまとめ', made: '役ができた', none: '役なし', best: 'いちばんの役', net: '豆コイン' },
     },
   },
   // 隠し要素。cafeAuLait：タイトルで word を打つと、豆がカフェオレ色になる（もう一度打つと戻る。仕様 037）
@@ -848,6 +922,33 @@ export const CONFIG = {
     extraRadius: 40,
     title: 'ねぶくろキャンプ！',
     text: '寝袋に取り囲まれた…',
+  },
+  // 隠し要素「金色の羊」（仕様 066）。noHitSec のあいだ一度もダメージを受けないと、1 回のプレイで 1 回だけ出る（ボスが出ている間は出ない）。
+  // 体力は出た時点の羊の体力 × hpRate。fleeDist より近づくと fleeSpeed で逃げ、遠いと approachSpeed で近づく。出てから leaveAfterSec で去る。
+  // 倒すと、そのときのレベルからちょうど levels 回レベルアップできる経験値を、orbs 個の粒にして scatter の範囲にまき散らす
+  goldenSheep: {
+    noHitSec: 180,
+    hpRate: 10,
+    radius: 21,
+    fleeDist: 350,
+    approachSpeed: 100,
+    fleeSpeed: 150,
+    escapeSec: 1,
+    leaveAfterSec: 30,
+    levels: 2,
+    orbs: 24,
+    scatter: 70,
+    contactCaffeine: 5,
+    // color は倒したときのエフェクトの粒の色。金色の毛ときらめき（3 案の A）
+    color: '#f0c64a',
+    look: { wool: '#f0c64a', face: '#6b4a1e', spark: '#fff6c8' },
+    texts: {
+      appear: '金色の羊が現れた！',
+      appearSub: '3 分間、無傷で眠気をしのいだごほうび',
+      defeat: '金色の羊を倒した！',
+      defeatSub: '経験値がどっさり',
+      fled: '金色の羊は逃げてしまった…',
+    },
   },
   // 珈琲店の木の床（仕様 005）。横長の板を、継ぎ目をずらして並べた板張り
   // size はドット 1 マスの大きさ（pixelArt.size と合わせる）、periodDots は柄 1 枚の大きさ（ドットの数）

@@ -8,6 +8,7 @@ import { Boss } from './entities/boss.js';
 import { DragonBoss, rollDragon, drawDragonPanel, takeDragonTreasure } from './entities/dragon-boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
+import { GoldenSheep, tookDamage, xpForLevels, debugGolden } from './entities/golden-sheep.js';
 import { BadgeField } from './entities/bean-badge.js';
 import { AbstainCounter } from './coin-bonus.js';
 import { WEAPON_ORDER } from './weapons/index.js';
@@ -25,6 +26,7 @@ import { Floor } from './floor.js';
 import { sound } from './sound.js';
 import { RecordShelf, applySavedTrack, stepTrack, currentTrackName } from './record-shelf.js';
 import { CardGame, canEnterCardGame, notEnoughText } from './card-game.js';
+import { VideoPoker, canEnterPoker, pokerNotEnoughText } from './video-poker.js';
 import { font } from './font.js';
 import { Background } from './background.js';
 import { stage, setStage } from './stage.js';
@@ -117,6 +119,7 @@ export class Game {
     applySavedTrack();
     this.recordShelf = new RecordShelf((text) => this.#toast(text));
     this.cardGame = new CardGame();
+    this.poker = new VideoPoker();
     // 画面の上に数秒出す知らせ（キャラの解放など）。ゲームの時間ではなく実際の時間で消える
     this.toasts = [];
     this.#checkUnlocks('launches', recordLaunch());
@@ -197,6 +200,11 @@ export class Game {
     this.waveUntil = 0;
     const camp = CONFIG.bagCamp;
     this.bagCampAt = camp.minSec + Math.random() * (camp.maxSec - camp.minSec);
+    // 金色の羊（仕様 066）：出ている羊、このプレイでもう出たか、ダメージを受けずにいる時間、前のフレームの無敵時間
+    this.golden = null;
+    this.goldenDone = false;
+    this.noHitSec = 0;
+    this.lastInvincible = 0;
     this.#applyDebugWeapons();
   }
 
@@ -600,6 +608,17 @@ export class Game {
         this.state = 'cards';
         return;
       }
+      // ビデオポーカー（仕様 044）：P キーか、右下のボタンのクリックで入る。豆コインが足りないときは入らない
+      if (this.input.wasPressed('KeyP') || (pos && this.input.clicked && inRect(pos, this.#pokerButton()))) {
+        this.input.consumeClick();
+        if (!canEnterPoker()) {
+          this.#toast(pokerNotEnoughText());
+          return;
+        }
+        this.poker.open();
+        this.state = 'poker';
+        return;
+      }
       // レコード棚（仕様 039）：R キーか、右下のボタンのクリックで入る
       if (this.input.wasPressed('KeyR') || (pos && this.input.clicked && inRect(pos, this.#shelfButton()))) {
         this.input.consumeClick();
@@ -619,6 +638,10 @@ export class Game {
     }
     if (this.state === 'cards') {
       if (this.cardGame.update(this.input, this.viewW, this.viewH) === 'back') this.state = 'title';
+      return;
+    }
+    if (this.state === 'poker') {
+      if (this.poker.update(this.input, this.viewW, this.viewH) === 'back') this.state = 'title';
       return;
     }
     if (this.state === 'select') {
@@ -689,6 +712,7 @@ export class Game {
     else this.#updatePlayer(dt);
     this.#spawnBeans(dt);
     if (!this.boss) this.#spawnEnemies(dt);
+    this.#updateGolden(dt);
     this.#updateEnemies(dt);
     if (this.boss) this.#updateBoss(dt);
     // ダイスケ豆が固まっている間は、攻撃も止まる（仕様 019）
@@ -1234,6 +1258,53 @@ export class Game {
     return this.time + (stage.enemyTimeOffsetSec ?? 0);
   }
 
+  // ---- 隠し要素「金色の羊」（仕様 066）。動きと絵は entities/golden-sheep.js ----
+
+  // noHitSec のあいだ一度もダメージを受けなければ、1 回のプレイで 1 回だけ、画面の外に出す（?goldenSheep のときは 3 秒）。
+  // 出てから leaveAfterSec たつか、ボスが出たら去り始め、画面の外へ出たら消える
+  #updateGolden(dt) {
+    const cfg = CONFIG.goldenSheep;
+    const p = this.player;
+    if (!this.goldenDone) {
+      this.noHitSec = tookDamage(p, this.enemies, this.lastInvincible) ? 0 : this.noHitSec + dt;
+      this.lastInvincible = p.invincibleTimer;
+      if (this.noHitSec >= (debugGolden ? 3 : cfg.noHitSec) && !this.boss) {
+        this.goldenDone = true;
+        const { x, y } = this.#spawnPoint();
+        this.golden = new GoldenSheep(x, y, this.#enemyStrength(), this.time);
+        this.enemies.push(this.golden);
+        this.notice = { title: cfg.texts.appear, text: cfg.texts.appearSub, until: this.time + 2.5 };
+        sound.play('bossAppear');
+      }
+    }
+    const g = this.golden;
+    if (!g) return;
+    if (!g.leaving && (this.boss || this.time - g.appearedAt >= cfg.leaveAfterSec)) g.leaving = true;
+    if (g.leaving && dist(g, p) > Math.hypot(this.viewW, this.viewH) / 2 + g.radius * 3) {
+      this.enemies = this.enemies.filter((e) => e !== g);
+      this.golden = null;
+      this.notice = { title: cfg.texts.fled, text: '', until: this.time + 2.5 };
+    }
+  }
+
+  // 倒したら、ちょうど levels 回レベルアップできる経験値を、たくさんの粒にしてまき散らす
+  #defeatGolden(e) {
+    const cfg = CONFIG.goldenSheep;
+    this.golden = null;
+    // 1 個はふつうの敵と同じく、倒した場所に落ちる（e.config.xp）。残りをまわりにまく
+    const each = xpForLevels(this.level, this.xp) / cfg.orbs;
+    e.config.xp = each;
+    for (let i = 1; i < cfg.orbs; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.sqrt(Math.random()) * cfg.scatter;
+      this.#dropXp(e.x + Math.cos(a) * r, e.y + Math.sin(a) * r, each);
+    }
+    unlock('secret-golden-sheep');
+    this.notice = { title: cfg.texts.defeat, text: cfg.texts.defeatSub, until: this.time + 2.5 };
+    sound.play('clear');
+    this.effects.push(new DefeatEffect(e.x, e.y, cfg.color, e.radius * 3));
+  }
+
   // 今の生存時間に応じた敵の強さの倍率
   #enemyStrength() {
     const s = CONFIG.enemyScaling;
@@ -1345,6 +1416,7 @@ export class Game {
     const { enemyDropChance, maxDroppedBeans } = CONFIG.leveling;
     this.enemies = this.enemies.filter((e) => {
       if (!e.dead) return true;
+      if (e === this.golden) this.#defeatGolden(e);
       addKills(1);
       this.runKills += 1;
       sound.play('defeat');
@@ -1415,6 +1487,8 @@ export class Game {
       this.recordShelf.draw(this.ctx, this.viewW, this.viewH);
     } else if (this.state === 'cards') {
       this.cardGame.draw(this.ctx, this.viewW, this.viewH);
+    } else if (this.state === 'poker') {
+      this.poker.draw(this.ctx, this.viewW, this.viewH);
     } else if (this.state === 'select') {
       this.characterSelect.draw(ctx, this.viewW, this.viewH);
     } else {
@@ -1656,6 +1730,7 @@ export class Game {
     drawTitleRecords(this.ctx, this.viewW, records());
     this.#drawShelfButton();
     this.#drawCardButton();
+    this.#drawPokerButton();
   }
 
   // タイトルの右下の「レコード棚」のボタン（仕様 039）
@@ -1689,9 +1764,23 @@ export class Game {
     return { x: this.viewW - w - 16, y: shelf.y - shelf.h - 10, w, h: shelf.h };
   }
 
+  // ブラックジャックのボタンの上の「珈琲ポーカー」のボタン（仕様 044）
+  #pokerButton() {
+    const card = this.#cardButton();
+    return { ...card, y: card.y - card.h - 10 };
+  }
+
   #drawCardButton() {
+    this.#drawTableButton(this.#cardButton(), CONFIG.cardGame.button);
+  }
+
+  #drawPokerButton() {
+    this.#drawTableButton(this.#pokerButton(), CONFIG.poker.button);
+  }
+
+  // カードの卓（ブラックジャック・ポーカー）に入るボタン
+  #drawTableButton(b, label) {
     const { ctx } = this;
-    const b = this.#cardButton();
     const color = CONFIG.cardGame.colors.accent;
     ctx.save();
     ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
@@ -1703,7 +1792,7 @@ export class Game {
     ctx.font = font(14, true);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(CONFIG.cardGame.button, b.x + b.w / 2, b.y + b.h / 2);
+    ctx.fillText(label, b.x + b.w / 2, b.y + b.h / 2);
     ctx.restore();
   }
 
