@@ -31,6 +31,7 @@
 - Q: 上限は？ → A: 2.5 倍まで
 - Q: 今の上乗せ（威力 N^0.65・間隔 N^0.35）は？ → A: そのまま残す（大きさは足し算で、今より強くなる）
 - 見た目：Lv 8 の豆マシンガン（N=3）で、今と 1.73 倍を並べた画像を見せた（`specs/proposals/2026-11-05-peaberry/peaberry-size.png`）。設定は `characters.focus.sizeExp`・`sizeMax`。武器の大きさを変える所（`src/weapons/base.js` の範囲アップの仕組み）はメインにお願いした
+- Q（2026-11-07）：ミル・トルネードの回る半径も大きくするか？ → A: 回る半径（orbitRadius）は大きくしない。刃だけ大きくする（メインの PR #71 では回る半径も 70 → 171 になっていたため、ユーザーに確かめた）
 
 ## User Scenarios & Testing *(mandatory)*
 
