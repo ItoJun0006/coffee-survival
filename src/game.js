@@ -10,6 +10,7 @@ import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
 import { JacoCat, countCatTouch, debugCat } from './entities/jaco-cat.js';
 import { BadgeField } from './entities/bean-badge.js';
+import { KopiCoinField } from './entities/kopi-coins.js';
 import { AbstainCounter } from './coin-bonus.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
@@ -147,6 +148,7 @@ export class Game {
     this.beans = [];
     this.xpOrbs = [];
     this.badgeField = new BadgeField(); // 豆の証（仕様 081）
+    this.kopiCoins = new KopiCoinField(this.character); // コピ・ルアクの落とす豆コイン（仕様 029）
     this.abstain = new AbstainCounter(); // 豆をがまんした（仕様 082）
     this.enemies = [];
     this.waves = [];
@@ -704,6 +706,7 @@ export class Game {
     this.#collectBeans();
     this.#collectXpOrbs(dt);
     if (this.badgeField.update(dt, this.player)) this.#toast(CONFIG.coins.badge.texts.picked); // 豆の証（仕様 081）
+    this.kopiCoins.update(this.player); // コピ・ルアク（仕様 029）
 
     if (this.dragon?.fight) this.#updateDragonFight();
     else if (!this.player.alive) this.#finish('gameover');
@@ -755,6 +758,8 @@ export class Game {
     rows.push(...this.badgeField.settle(cleared, rows));
     // 豆をがまんした分（豆の証の倍率はかけないので、証のあとに足す。仕様 082）
     rows.push(...this.abstain.rows(this.beans, this.time));
+    // コピ・ルアクが拾った豆コイン（豆の証の倍率はかけない。仕様 029）
+    rows.push(...this.kopiCoins.rows());
     const before = coins();
     addCoins(rows.reduce((sum, r) => sum + r.value, 0));
     this.coinTally = { rows, before, startedAt: performance.now(), skipped: false };
@@ -874,6 +879,7 @@ export class Game {
         beans: () => value >= r.count,
         maxLevel: () => value >= r.level,
         dragonDefeat: () => true,
+        catTouches: () => value >= r.count,
         allWeaponsMax: () => this.weapons.length >= CONFIG.slots.weapons && this.weapons.every((w) => w.isMax),
       }[type]();
       if (met && unlock(readyId(c.group))) this.#toast(CONFIG.coins.texts.ready.replace('{name}', c.name).replace('{price}', coinText(c.price)));
@@ -1382,6 +1388,7 @@ export class Game {
       this.effects.push(new DefeatEffect(e.x, e.y, e.config.color, e.radius));
       this.#dropXp(e.x, e.y, e.config.xp);
       this.badgeField.drop(e); // 豆の証（仕様 081）
+      this.kopiCoins.drop(e); // コピ・ルアク（仕様 029）
       if (!noBeans(this.character) && Math.random() < enemyDropChance && this.beans.length < CONFIG.bean.maxCount + maxDroppedBeans) {
         this.beans.push(new Bean(e.x, e.y));
       }
@@ -1417,6 +1424,7 @@ export class Game {
     });
     for (const b of this.beans) b.draw(wctx);
     this.badgeField.draw(wctx); // 豆の証（仕様 081）
+    this.kopiCoins.draw(wctx); // コピ・ルアク（仕様 029）
     for (const o of this.xpOrbs) o.draw(wctx);
     for (const w of this.waves) w.draw(wctx);
     for (const e of this.enemies) e.draw(wctx);
