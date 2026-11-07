@@ -8,8 +8,10 @@ import { Boss } from './entities/boss.js';
 import { DragonBoss, rollDragon, drawDragonPanel, takeDragonTreasure } from './entities/dragon-boss.js';
 import { YawnWave } from './entities/yawn-wave.js';
 import { DefeatEffect } from './entities/defeat-effect.js';
+import { JacoCat, countCatTouch, debugCat } from './entities/jaco-cat.js';
 import { GoldenSheep, tookDamage, xpForLevels, debugGolden } from './entities/golden-sheep.js';
 import { BadgeField } from './entities/bean-badge.js';
+import { KopiCoinField } from './entities/kopi-coins.js';
 import { AbstainCounter } from './coin-bonus.js';
 import { WEAPON_ORDER } from './weapons/index.js';
 import { BeanShotgun } from './weapons/bean-shotgun.js';
@@ -147,6 +149,7 @@ export class Game {
     this.beans = [];
     this.xpOrbs = [];
     this.badgeField = new BadgeField(); // 豆の証（仕様 081）
+    this.kopiCoins = new KopiCoinField(this.character); // コピ・ルアクの落とす豆コイン（仕様 029）
     this.abstain = new AbstainCounter(); // 豆をがまんした（仕様 082）
     this.enemies = [];
     this.waves = [];
@@ -198,6 +201,9 @@ export class Game {
     this.waveUntil = 0;
     const camp = CONFIG.bagCamp;
     this.bagCampAt = camp.minSec + Math.random() * (camp.maxSec - camp.minSec);
+    // 横切るジャコウネコ（仕様 065）：走っている猫と、次に抽選する時刻
+    this.cat = null;
+    this.catRollAt = debugCat ? 3 : 60;
     // 金色の羊（仕様 066）：出ている羊、このプレイでもう出たか、ダメージを受けずにいる時間、前のフレームの無敵時間
     this.golden = null;
     this.goldenDone = false;
@@ -695,6 +701,7 @@ export class Game {
     else this.#updatePlayer(dt);
     this.#spawnBeans(dt);
     if (!this.boss) this.#spawnEnemies(dt);
+    this.#updateCat(dt);
     this.#updateGolden(dt);
     this.#updateEnemies(dt);
     if (this.boss) this.#updateBoss(dt);
@@ -706,6 +713,7 @@ export class Game {
     this.#collectBeans();
     this.#collectXpOrbs(dt);
     if (this.badgeField.update(dt, this.player)) this.#toast(CONFIG.coins.badge.texts.picked); // 豆の証（仕様 081）
+    this.kopiCoins.update(this.player); // コピ・ルアク（仕様 029）
 
     if (this.dragon?.fight) this.#updateDragonFight();
     else if (!this.player.alive) this.#finish('gameover');
@@ -757,6 +765,8 @@ export class Game {
     rows.push(...this.badgeField.settle(cleared, rows));
     // 豆をがまんした分（豆の証の倍率はかけないので、証のあとに足す。仕様 082）
     rows.push(...this.abstain.rows(this.beans, this.time));
+    // コピ・ルアクが拾った豆コイン（豆の証の倍率はかけない。仕様 029）
+    rows.push(...this.kopiCoins.rows());
     const before = coins();
     addCoins(rows.reduce((sum, r) => sum + r.value, 0));
     this.coinTally = { rows, before, startedAt: performance.now(), skipped: false };
@@ -876,6 +886,7 @@ export class Game {
         beans: () => value >= r.count,
         maxLevel: () => value >= r.level,
         dragonDefeat: () => true,
+        catTouches: () => value >= r.count,
         allWeaponsMax: () => this.weapons.length >= CONFIG.slots.weapons && this.weapons.every((w) => w.isMax),
       }[type]();
       if (met && unlock(readyId(c.group))) this.#toast(CONFIG.coins.texts.ready.replace('{name}', c.name).replace('{price}', coinText(c.price)));
@@ -1241,6 +1252,32 @@ export class Game {
     return this.time + (stage.enemyTimeOffsetSec ?? 0);
   }
 
+  // ---- 隠し要素「横切るジャコウネコ」（仕様 065）。動きと絵は entities/jaco-cat.js ----
+
+  // 毎分 1 回抽選して、当たれば画面の外から走らせる（?cat のときは 3 秒後に必ず）。触ると豆コインと、コピ・ルアクの条件
+  #updateCat(dt) {
+    const cfg = CONFIG.jacoCat;
+    if (this.time >= this.catRollAt) {
+      const first = this.catRollAt;
+      this.catRollAt = Math.floor(this.time / 60 + 1) * 60;
+      if (!this.cat && !this.boss && ((debugCat && first < 60) || Math.random() < cfg.chancePerMin)) {
+        this.cat = new JacoCat(this.player, Math.hypot(this.viewW, this.viewH) / 2 + cfg.radius * 3);
+        this.notice = { title: cfg.texts.appear, text: cfg.texts.appearSub, until: this.time + 2.5 };
+      }
+    }
+    if (!this.cat) return;
+    this.cat.update(dt);
+    if (this.cat.touches(this.player)) {
+      addCoins(cfg.coins);
+      this.#checkUnlocks('catTouches', countCatTouch());
+      this.notice = { title: cfg.texts.touch, text: cfg.texts.touchSub.replace('{n}', cfg.coins), until: this.time + 2.5 };
+      sound.play('levelUp');
+      this.cat = null;
+    } else if (this.cat.gone) {
+      this.cat = null;
+    }
+  }
+
   // ---- 隠し要素「金色の羊」（仕様 066）。動きと絵は entities/golden-sheep.js ----
 
   // noHitSec のあいだ一度もダメージを受けなければ、1 回のプレイで 1 回だけ、画面の外に出す（?goldenSheep のときは 3 秒）。
@@ -1406,6 +1443,7 @@ export class Game {
       this.effects.push(new DefeatEffect(e.x, e.y, e.config.color, e.radius));
       this.#dropXp(e.x, e.y, e.config.xp);
       this.badgeField.drop(e); // 豆の証（仕様 081）
+      this.kopiCoins.drop(e); // コピ・ルアク（仕様 029）
       if (!noBeans(this.character) && Math.random() < enemyDropChance && this.beans.length < CONFIG.bean.maxCount + maxDroppedBeans) {
         this.beans.push(new Bean(e.x, e.y));
       }
@@ -1441,9 +1479,11 @@ export class Game {
     });
     for (const b of this.beans) b.draw(wctx);
     this.badgeField.draw(wctx); // 豆の証（仕様 081）
+    this.kopiCoins.draw(wctx); // コピ・ルアク（仕様 029）
     for (const o of this.xpOrbs) o.draw(wctx);
     for (const w of this.waves) w.draw(wctx);
     for (const e of this.enemies) e.draw(wctx);
+    if (this.cat) this.cat.draw(wctx);
     for (const fx of this.effects) fx.draw(wctx);
     if (this.boss && !this.boss.dead) this.boss.draw(wctx);
     this.player.draw(wctx);

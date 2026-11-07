@@ -88,10 +88,6 @@ export const CONFIG = {
         rates: { speed: 1.1, caffeine: 0.95, damage: 0.9, interval: 1 }, pattern: { kind: 'star', color: '#ffe066', lightColor: '#6b3a10' },
       },
       {
-        id: 'villa-sarchi', name: 'ビジャサルチ', origin: 'コスタリカで見つかったブルボンの仲間', trait: '早撃ち', price: 260, power: 'area',
-        rates: { speed: 1, caffeine: 0.9, damage: 1, interval: 0.95 }, pattern: { kind: 'zigzag', color: '#f5b971', lightColor: '#735133' },
-      },
-      {
         id: 'sl28', name: 'SL28', origin: 'ケニアで選び出された品種', trait: '一撃', price: 280, power: 'standFirm',
         rates: { speed: 0.95, caffeine: 0.95, damage: 1.1, interval: 1.05 }, pattern: { kind: 'spots', color: '#d9534f', lightColor: '#b0302a' },
       },
@@ -154,6 +150,14 @@ export const CONFIG = {
       copyDamageRate: 0.7, copyGlow: '#9fe3ff',
       roastIds: ['medium', 'dark'], size: 0.62, gap: 0.55, hand: '#e9c79a',
     },
+    // コピ・ルアク（仕様 029）：倒した手下が coinChance の確率で豆コイン（1 枚）を落とす。拾った豆コインは、やられても結果画面で全部もらえる
+    // （豆の証の倍率はかけない）。落ちたコインは消えない。radius は拾える大きさ。見た目はジャコウネコ（仕様 065）に合わせた、
+    // 目のまわりの黒い仮面（mask）と、黒い耳（ear。内側は earInner）。3 案から C に決めた
+    kopi: {
+      coinChance: 0.02, coinRadius: 8, maxOnGround: 200,
+      colors: { mask: '#2e2620', ear: '#2e2620', earInner: '#8a7a66' },
+      row: '拾った豆コイン',
+    },
     // 豆の形（shape）。ふつうの豆は楕円で、shape のあるキャラだけこの形で描く。値は r に対する割合。
     // drop（しずく形。リベリカ大粒。2026-10-27 の朝のデザイン案から A に決めた）：start から、3 次ベジェ曲線（制御点 2 つと終点）を順につなぐ
     shapes: {
@@ -167,14 +171,14 @@ export const CONFIG = {
         ],
       },
     },
-    // 新しいキャラを足すために外した品種（仕様 016 FR-022。カティモールはクリエイター豆、マラゴジッペはドラゴン豆、パカマラは双子豆のため、仕様 021・022・080）。前に買っていた人には、値段の豆コインを返す
-    removedVarieties: [{ id: 'kent', price: 220 }, { id: 'catimor', price: 300 }, { id: 'maragogipe', price: 340 }, { id: 'pacamara', price: 320 }],
+    // 新しいキャラを足すために外した品種（仕様 016 FR-022。カティモールはクリエイター豆、マラゴジッペはドラゴン豆、パカマラは双子豆、ビジャサルチはコピ・ルアクのため、仕様 021・022・080・029）。前に買っていた人には、値段の豆コインを返す
+    removedVarieties: [{ id: 'kent', price: 220 }, { id: 'catimor', price: 300 }, { id: 'maragogipe', price: 340 }, { id: 'pacamara', price: 320 }, { id: 'villa-sarchi', price: 260 }],
     // 特別なキャラ。require の条件を満たすと仕入れられるようになり、price の豆コインで買う（仕様 016 FR-018）。
     // roast は性能と色（品種 × 焙煎度のキャラと同じ形）、origin と desc は買うポップアップに出す
     // require.type：clearCaffeine＝カフェインが上限の ratio 以上のまま 1 面をクリア、maxClears＝Lv 8 の攻撃を持ったまま 1 面をクリアした品種（特別なキャラはそれぞれ 1 種類）の数が count 以上、extraClear＝エクストラステージをクリア、bossDefeat＝ボスを倒す、allWeaponsMax＝攻撃を上限の数までそろえてすべて最大 Lv、launches＝ゲームを count 回起動、
     //   plays＝ゲームを count 回始める、playTime＝累計プレイ時間が seconds 秒以上（例：{ type: 'playTime', seconds: 3600, text: '…' }）、
     //   distance＝累計移動距離が pixels 以上（マップの端から端は 2000）、kills＝累計撃破数が count 以上、beans＝累計の拾った豆が count 以上、
-    //   maxLevel＝1 回のプレイで Lv level になる、dragonDefeat＝ドラゴンのボスを倒す（仕様 022）
+    //   maxLevel＝1 回のプレイで Lv level になる、dragonDefeat＝ドラゴンのボスを倒す（仕様 022）、catTouches＝ジャコウネコにプレイをまたいで count 回触る（仕様 029・065）
     // drawScale は見た目の大きさの倍率（当たる範囲は変わらない）
     specials: [
       {
@@ -239,6 +243,13 @@ export const CONFIG = {
         origin: 'いつも 2 粒いっしょの、ふたごの豆', desc: '同じ攻撃をいくつでも持てる。2 つ目からは威力 70%',
         roast: { trait: 'ふたご', color: '#8b5a2b', crease: '#4e2f16', speedRate: 1, maxCaffeine: 100, damageRate: 1, attackIntervalRate: 1 },
         require: null,
+      },
+      {
+        // 倒した敵がときどき豆コインを落とす（仕様 029）。値は上の kopi を使う。仕入れの条件は、敵係の隠し要素「横切るジャコウネコ」（仕様 065）に 3 回触ること
+        id: 'kopi-luwak', name: 'コピ・ルアク', price: 500, kopi: true,
+        origin: 'ジャコウネコが運んできた、とても高い珈琲豆', desc: '倒した敵がときどき豆コインを落とす。そのかわり少し弱い',
+        roast: { trait: 'お金かせぎ', color: '#6e4a2c', crease: '#3a2414', speedRate: 1, maxCaffeine: 100, damageRate: 0.9, attackIntervalRate: 1 },
+        require: { type: 'catTouches', count: 3, text: 'まれに横切るジャコウネコに 3 回触る' },
       },
     ],
     // 選択画面に並べるマスの数（最終目標）。まだ中身のないマスは「？？？」として鍵付きで出す
@@ -861,6 +872,25 @@ export const CONFIG = {
     extraRadius: 40,
     title: 'ねぶくろキャンプ！',
     text: '寝袋に取り囲まれた…',
+  },
+  // 隠し要素「横切るジャコウネコ」（仕様 065）。毎分 chancePerMin の確率で、画面の外からプレイヤーの近くを通って反対側へ、
+  // speed でまっすぐ走り抜ける（ボスが出ている間は出ない）。passOffset はプレイヤーからどれだけずれた所を通るか（最大）。
+  // 触ると豆コインが coins 枚入る。プレイをまたいで kopiTouches 回触ると、コピ・ルアク（029）の条件 catTouches を満たす
+  jacoCat: {
+    chancePerMin: 0.03,
+    speed: 180,
+    radius: 16,
+    passOffset: 160,
+    coins: 50,
+    kopiTouches: 3,
+    // 本物のジャコウネコ寄り（3 案の A）。灰茶の細い体に黒い斑点、目のまわりの黒い仮面、しま模様の長いしっぽ
+    look: { body: '#8a7a66', dark: '#2e2620', leg: '#3a3028', eye: '#f4efe6', nose: '#1e120c' },
+    texts: {
+      appear: '何かが横切った…！',
+      appearSub: 'ジャコウネコだ！ 追いかけて触ろう',
+      touch: 'ジャコウネコに触れた！',
+      touchSub: '豆コイン +{n}',
+    },
   },
   // 隠し要素「金色の羊」（仕様 066）。noHitSec のあいだ一度もダメージを受けないと、1 回のプレイで 1 回だけ出る（ボスが出ている間は出ない）。
   // 体力は出た時点の羊の体力 × hpRate。fleeDist より近づくと fleeSpeed で逃げ、遠いと approachSpeed で近づく。出てから leaveAfterSec で去る。

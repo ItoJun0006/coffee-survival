@@ -38,6 +38,7 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   ctx.scale(sx, sy);
   if (character.creator) drawHeadphoneBand(ctx, r);
   if (character.dragon) drawDragonBack(ctx, r);
+  if (character.kopi) drawCivetEars(ctx, r);
 
   ctx.fillStyle = color;
   beanBodyPath(ctx, character, r);
@@ -57,6 +58,8 @@ export function drawCharacter(ctx, character, r, { look = { x: 0, y: 0 }, bob = 
   ctx.moveTo(0, -r * 0.88);
   ctx.quadraticCurveTo(r * 0.22, -r * 0.35, 0, r * 0.15);
   ctx.stroke();
+  // コピ・ルアク（仕様 029）は、目のまわりに黒い仮面（目は仮面の上に描く）
+  if (character.kopi) drawCivetMask(ctx, r);
   // 目と口。ピーベリー（仕様 017）は目玉が 1 つ
   if (character.eyes === 'one') drawOneEye(ctx, r, look, dot);
   else if (dot) drawDotEyes(ctx, r, look, dot, sx, sy);
@@ -301,6 +304,34 @@ function drawSharpEyes(ctx, r, color, dot) {
     ctx.closePath();
     ctx.fill();
   }
+}
+
+// コピ・ルアク（仕様 029）：ジャコウネコ（仕様 065）のような黒い耳（豆の後ろ）と、目のまわりの黒い仮面
+function drawCivetEars(ctx, r) {
+  const { ear, earInner } = CONFIG.characters.kopi.colors;
+  for (const side of [-1, 1]) {
+    ctx.fillStyle = ear;
+    ctx.beginPath();
+    ctx.moveTo(side * r * 0.2, -r * 0.9);
+    ctx.lineTo(side * r * 0.55, -r * 1.4);
+    ctx.lineTo(side * r * 0.72, -r * 0.7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = earInner;
+    ctx.beginPath();
+    ctx.moveTo(side * r * 0.33, -r * 0.88);
+    ctx.lineTo(side * r * 0.55, -r * 1.22);
+    ctx.lineTo(side * r * 0.64, -r * 0.78);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function drawCivetMask(ctx, r) {
+  ctx.fillStyle = CONFIG.characters.kopi.colors.mask;
+  ctx.beginPath();
+  ctx.ellipse(0, -r * 0.05, r * 0.72, r * 0.22, 0, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 // スキン「椿」（頭に大きな椿の髪飾り）。椿の花の絵は、大きさ 80 を基準にしたアイコンの絵（item-icons.js）を使う
