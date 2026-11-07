@@ -7,8 +7,6 @@ const RANKS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
 // 強さ。1 はいちばん強い（14）。1・2・3・4・5 のストレートでは 1 として数える
 const VALUE = { 1: 14, J: 11, Q: 12, K: 13 };
 const value = (rank) => VALUE[rank] ?? Number(rank);
-// ワンペアで役になる札（J 以上）
-const HIGH = ['J', 'Q', 'K', '1'];
 
 // 1 組 52 枚（マーク 0〜3 × 13 種類）を混ぜる
 export function makeDeck() {
@@ -52,7 +50,7 @@ export function evaluate(cards) {
   if (straight) return { id: 'straight', idx: all };
   if (g[0].idx.length === 3) return { id: 'three', idx: g[0].idx };
   if (g[0].idx.length === 2 && g[1].idx.length === 2) return { id: 'twoPair', idx: [...g[0].idx, ...g[1].idx] };
-  if (g[0].idx.length === 2 && HIGH.includes(g[0].rank)) return { id: 'jacks', idx: g[0].idx };
+  if (g[0].idx.length === 2) return { id: 'pair', idx: g[0].idx };
   return { id: 'none', idx: [] };
 }
 
@@ -62,22 +60,17 @@ export function payout(id, bet) {
   return bet * rate - bet;
 }
 
-// 残す札のおすすめ：{ idx, reason }。reason は CONFIG.poker.help.advice のキー
-export function suggestHold(cards) {
+// 交換する札のおすすめ：{ idx（交換するとよい札が何枚目か）, reason }。reason は CONFIG.poker.help.advice のキー
+export function suggestExchange(cards) {
+  const others = (keep) => [0, 1, 2, 3, 4].filter((i) => !keep.includes(i));
   const made = evaluate(cards);
-  // 5 枚で作る役（ストレート以上・フルハウス）は、そのまま全部残す
-  if (made.idx.length === 5) return { idx: made.idx, reason: 'keepAll' };
-  if (made.id !== 'none') return { idx: made.idx, reason: 'keepMade' };
-  // 同じマークが 4 枚なら、フラッシュをねらう
+  // 5 枚で作る役（ストレート以上・フルハウス）は、交換しない
+  if (made.idx.length === 5) return { idx: [], reason: 'keepAll' };
+  if (made.id !== 'none') return { idx: others(made.idx), reason: 'keepMade' };
+  // 同じマークが 4 枚なら、ちがうマークの 1 枚を交換してフラッシュをねらう
   for (let suit = 0; suit < 4; suit++) {
-    const idx = cards.map((c, i) => (c.suit === suit ? i : -1)).filter((i) => i >= 0);
-    if (idx.length === 4) return { idx, reason: 'flushDraw' };
+    const keep = cards.map((c, i) => (c.suit === suit ? i : -1)).filter((i) => i >= 0);
+    if (keep.length === 4) return { idx: others(keep), reason: 'flushDraw' };
   }
-  // 小さいペア（J より下）でも、残せばスリーカードやツーペアをねらえる
-  const pair = groups(cards).find((g) => g.idx.length === 2);
-  if (pair) return { idx: pair.idx, reason: 'smallPair' };
-  // J 以上の札を残すと、ワンペア（J 以上）に近づく
-  const high = cards.map((c, i) => (HIGH.includes(c.rank) ? i : -1)).filter((i) => i >= 0);
-  if (high.length) return { idx: high.slice(0, 2), reason: 'highCards' };
-  return { idx: [], reason: 'redraw' };
+  return { idx: [0, 1, 2, 3, 4], reason: 'redraw' };
 }

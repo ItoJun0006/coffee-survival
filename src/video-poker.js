@@ -3,11 +3,11 @@ import { drawOwlDealer } from './entities/owl-dealer.js';
 import { coins, addCoins, spendCoins } from './progress.js';
 import { font } from './font.js';
 import { sound } from './sound.js';
-import { makeDeck, evaluate, payout, suggestHold } from './poker.js';
+import { makeDeck, evaluate, payout, suggestExchange } from './poker.js';
 import { CardTable, CARD, fill, inRect } from './card-table.js';
 
 // ビデオポーカー「珈琲ポーカー」（仕様 044）の画面。
-// 賭ける → 5 枚配る → 残す札を選ぶ → 交換して役が決まる、を rounds 回くり返してまとめを出す。
+// 賭ける → 5 枚配る → 交換する札を選ぶ → 交換して役が決まる、を rounds 回くり返してまとめを出す。
 // 豆コインは役が決まったときだけ動かす（交換の前にやめたら、その勝負は無かったことになる）
 const cfg = () => CONFIG.poker;
 
@@ -17,7 +17,7 @@ export const pokerNotEnoughText = () => fill(cfg().texts.notEnough, { min: minPo
 
 const POS = { dealer: { x: 640, y: 118, scale: 0.85 }, bubble: { x: 760, y: 92 }, pay: { x: 40, y: 110, w: 300, h: 340 }, cards: { cx: 720, y: 420 }, tip: 340, buttonsY: 600, bet: { x: 420, y: 290 } };
 const RAISE = 20;
-const HAND_ORDER = ['royal', 'straightFlush', 'four', 'fullHouse', 'flush', 'straight', 'three', 'twoPair', 'jacks'];
+const HAND_ORDER = ['royal', 'straightFlush', 'four', 'fullHouse', 'flush', 'straight', 'three', 'twoPair', 'pair'];
 
 export class VideoPoker extends CardTable {
   constructor() {
@@ -64,7 +64,7 @@ export class VideoPoker extends CardTable {
   #toBet() {
     this.phase = 'bet';
     this.hand = [];
-    this.held = [];
+    this.swap = [];
     this.result = null;
     this.clampBet();
   }
@@ -72,20 +72,20 @@ export class VideoPoker extends CardTable {
   #deal() {
     this.deck = makeDeck();
     this.hand = this.deck.splice(0, 5);
-    this.held = [false, false, false, false, false];
+    this.swap = [false, false, false, false, false];
     this.betNow = this.bet();
     this.phase = 'hold';
     sound.play('bean');
   }
 
   #toggle(i) {
-    this.held[i] = !this.held[i];
+    this.swap[i] = !this.swap[i];
     sound.play('hit');
   }
 
-  // 残さなかった札を引き直して役を決め、豆コインを動かして保存する
+  // 選んだ札を引き直して役を決め、豆コインを動かして保存する
   #drawCards() {
-    this.hand = this.hand.map((c, i) => (this.held[i] ? c : this.deck.shift()));
+    this.hand = this.hand.map((c, i) => (this.swap[i] ? this.deck.shift() : c));
     const made = evaluate(this.hand);
     const delta = payout(made.id, this.betNow);
     if (delta > 0) addCoins(delta);
@@ -118,8 +118,8 @@ export class VideoPoker extends CardTable {
   #cardLayouts() {
     const xs = this.row(this.hand.length, POS.cards.cx, 640);
     return this.hand.map((card, i) => {
-      const up = this.phase === 'hold' && this.held[i];
-      return { card, x: xs[i], y: POS.cards.y - (up ? RAISE : 0), w: CARD.w, h: CARD.h, held: up, made: this.phase === 'result' && this.result.idx.includes(i) };
+      const up = this.phase === 'hold' && this.swap[i];
+      return { card, x: xs[i], y: POS.cards.y - (up ? RAISE : 0), w: CARD.w, h: CARD.h, swap: up, made: this.phase === 'result' && this.result.idx.includes(i) };
     });
   }
 
@@ -161,10 +161,10 @@ export class VideoPoker extends CardTable {
       p.fillRect(pay.x + 8, pay.y + 40 + lit * 32, pay.w - 16, 28);
     }
     this.drawBetStack(p, POS.bet.x, POS.bet.y, this.hand.length ? this.betNow : this.bet());
-    // 手札と「残す」の札。結果では、役を作った札をふちで光らせる
+    // 手札と「交換」の札。結果では、役を作った札をふちで光らせる
     for (const d of this.#cardLayouts()) {
       this.cardFace(p, d.card, d.x, d.y);
-      if (d.held) this.box(p, d.x, d.y - 34, CARD.w, 26, c.accent);
+      if (d.swap) this.box(p, d.x, d.y - 34, CARD.w, 26, c.accent);
       if (d.made) {
         p.strokeStyle = c.accent;
         p.lineWidth = 6;
@@ -217,14 +217,14 @@ export class VideoPoker extends CardTable {
     ctx.fillStyle = c.text;
     ctx.font = font(15, true);
     ctx.fillText(fill(t.bet, { bet: this.hand.length ? this.betNow : this.bet() }), POS.bet.x, POS.bet.y - 24);
-    // 手札：すみの数字、「残す」、キーの番号
+    // 手札：すみの数字、「交換」、キーの番号
     for (const [i, d] of this.#cardLayouts().entries()) {
       this.cardCorners(ctx, d.card, d.x, d.y);
       ctx.textAlign = 'center';
-      if (d.held) {
+      if (d.swap) {
         ctx.fillStyle = c.ink;
         ctx.font = font(15, true);
-        ctx.fillText(t.held, d.x + CARD.w / 2, d.y - 21);
+        ctx.fillText(t.swap, d.x + CARD.w / 2, d.y - 21);
       }
       if (this.phase === 'hold') {
         ctx.fillStyle = c.sub;
@@ -255,11 +255,11 @@ export class VideoPoker extends CardTable {
     ctx.fillText(this.phase === 'bet' ? t.betPick : t.help, 600, 684);
   }
 
-  // ふきだしのせりふ。交換の前は残す札のおすすめを、結果ではどの札で何の役ができたかを話す
+  // ふきだしのせりふ。交換の前は交換する札のおすすめを、結果ではどの札で何の役ができたかを話す
   #bubbleLine() {
     const s = cfg();
     if (this.phase === 'hold') {
-      const { reason } = suggestHold(this.hand);
+      const { reason } = suggestExchange(this.hand);
       const id = evaluate(this.hand).id;
       return fill(s.help.advice[reason], { hand: s.hands[id].name });
     }
